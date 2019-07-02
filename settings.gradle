@@ -1,0 +1,3 @@
+include ':kotlin-inject-compiler'
+include ':kotlin-inject-runtime'
+include ':sample'

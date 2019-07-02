@@ -1,0 +1,14 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+    id 'org.jetbrains.kotlin.kapt'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    kapt project(':kotlin-inject-compiler')
+    implementation project(':kotlin-inject-runtime')
+    implementation "org.jetbrains.kotlin:kotlin-stdlib"
+}
