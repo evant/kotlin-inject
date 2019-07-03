@@ -119,24 +119,29 @@ class InjectCompiler : AbstractProcessor() {
         }
 
         val injectModule = TypeSpec.classBuilder("Inject${element.simpleName}")
-            .addModifiers(KModifier.PRIVATE)
             .superclass(element.asClassName())
             .addProperties(props)
             .build()
 
-        val file = FileSpec.builder(element.enclosingElement.toString(), "Inject${element.simpleName}")
+        val injectFile = FileSpec.builder(element.enclosingElement.toString(), "Inject${element.simpleName}")
             .addType(injectModule)
+            .build()
+
+        val createFile = FileSpec.builder("me.tatarka.inject", "Create${element.simpleName}")
             .addFunction(
-                FunSpec.builder("create")
+                FunSpec.builder("createModule")
+                    .addModifiers(KModifier.INLINE)
                     .receiver(KClass::class.asClassName().plusParameter(element.asType().asTypeName()))
                     .returns(element.asType().asTypeName())
-                    .addCode(CodeBlock.of("return %N()", injectModule))
+                    .addCode(CodeBlock.of("return %L.%N()", element.enclosingElement.toString(), injectModule))
                     .build()
             )
             .build()
+
         val out = File(generatedSourcesRoot).also { it.mkdir() }
 
-        file.writeTo(out)
+        injectFile.writeTo(out)
+        createFile.writeTo(out)
     }
 
     private fun provide(

@@ -2,11 +2,9 @@ package me.tatarka.inject.sample
 
 import assertk.assertAll
 import assertk.assertThat
-import assertk.assertions.isEqualTo
-import assertk.assertions.isInstanceOf
-import assertk.assertions.isNotNull
-import assertk.assertions.isTrue
+import assertk.assertions.*
 import me.tatarka.inject.annotations.*
+import me.tatarka.inject.createModule
 import org.junit.Before
 import org.junit.Test
 
@@ -75,6 +73,8 @@ class NamedFoo(val name: String)
     @Provides @Named("2") fun foo2() = NamedFoo("2")
 }
 
+class NotAModule
+
 class ModuleTest {
 
     @Before
@@ -84,14 +84,14 @@ class ModuleTest {
 
     @Test
     fun generates_a_module_that_provides_a_dep_with_no_arguments() {
-        val module = Module1::class.create()
+        val module = Module1::class.createModule()
 
         assertThat(module.foo).isNotNull()
     }
 
     @Test
     fun generates_a_module_that_provides_a_dep_with_an_argument() {
-        val module = Module2::class.create()
+        val module = Module2::class.createModule()
 
         assertThat(module.bar).isNotNull()
         assertThat(module.bar.foo).isNotNull()
@@ -99,7 +99,7 @@ class ModuleTest {
 
     @Test
     fun generates_a_modules_that_provides_a_dep() {
-        val module = Module3::class.create()
+        val module = Module3::class.createModule()
 
         assertThat(module.foo).isNotNull()
         assertThat(module.providesCalled).isTrue()
@@ -107,14 +107,14 @@ class ModuleTest {
 
     @Test
     fun generates_a_module_that_binds_an_interface_to_a_dep() {
-        val module = Module4::class.create()
+        val module = Module4::class.createModule()
 
         assertThat(module.foo).isInstanceOf(Foo::class)
     }
 
     @Test
     fun generates_a_module_where_a_singleton_provides_is_only_called_once() {
-        val module = Module5::class.create()
+        val module = Module5::class.createModule()
         module.foo
         module.foo
 
@@ -123,7 +123,7 @@ class ModuleTest {
 
     @Test
     fun generates_a_module_where_a_singleton_constructor_is_only_called_once() {
-        val module = Module6::class.create()
+        val module = Module6::class.createModule()
         module.baz
         module.baz
 
@@ -132,11 +132,18 @@ class ModuleTest {
 
     @Test
     fun generates_a_module_that_provides_different_values_based_on_the_named_qualifier() {
-        val module = Module7::class.create()
+        val module = Module7::class.createModule()
 
         assertAll {
             assertThat(module.foo1.name).isEqualTo("1")
             assertThat(module.foo2.name).isEqualTo("2")
         }
+    }
+
+    @Test
+    fun throws_exception_when_no_module_is_generated() {
+        assertThat {
+            NotAModule::class.createModule()
+        }.thrownError { hasMessage("No inject module found for: class me.tatarka.inject.sample.NotAModule") }
     }
 }
