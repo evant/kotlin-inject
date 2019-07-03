@@ -73,6 +73,12 @@ class InjectCompiler : AbstractProcessor() {
                         .build()
                 )
             }
+            if (method.isProvider()) {
+                val returnType = typeUtils.asElement(method.returnType)
+                if (returnType.getAnnotation(Singleton::class.java) != null) {
+                    singletons.add(method.returnType)
+                }
+            }
         }
 
         for (singleton in singletons) {
@@ -82,7 +88,7 @@ class InjectCompiler : AbstractProcessor() {
             codeBlock.add(" }")
             props.add(
                 PropertySpec.builder(
-                    typeUtils.asElement(singleton).simpleName.toString().decapitalize(),
+                    typeUtils.asElement(singleton).simpleName.asSingleton(),
                     singleton.asTypeName(),
                     KModifier.PRIVATE
                 ).delegate(codeBlock.build())
@@ -91,8 +97,7 @@ class InjectCompiler : AbstractProcessor() {
         }
 
         for (method in ElementFilter.methodsIn(element.enclosedElements)) {
-            if (method.modifiers.contains(Modifier.ABSTRACT) && method.parameters.isEmpty()) {
-
+            if (method.isProvider()) {
                 val codeBlock = CodeBlock.builder()
                 codeBlock.add("return ")
                 codeBlock.add(provide(method.returnType, providesMap, bindsMap, singletons))
@@ -141,7 +146,7 @@ class InjectCompiler : AbstractProcessor() {
         singletons: List<TypeMirror>
     ): CodeBlock {
         if (type in singletons) {
-           return CodeBlock.of("%N", typeUtils.asElement(type).simpleName.toString().decapitalize())
+            return CodeBlock.of("%N", typeUtils.asElement(type).simpleName.asSingleton())
         }
         val providesElement = providesMap[type]
         if (providesElement != null) {
@@ -187,6 +192,10 @@ class InjectCompiler : AbstractProcessor() {
     }
 
     private fun Name.asProp(): String = toString().removePrefix("get").decapitalize()
+
+    private fun Name.asSingleton(): String = "_" + toString().decapitalize()
+
+    private fun ExecutableElement.isProvider(): Boolean = modifiers.contains(Modifier.ABSTRACT) && parameters.isEmpty()
 
     override fun getSupportedAnnotationTypes(): Set<String> = setOf(Module::class.java.canonicalName)
 

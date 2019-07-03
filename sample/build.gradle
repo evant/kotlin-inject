@@ -10,5 +10,17 @@ repositories {
 dependencies {
     kapt project(':kotlin-inject-compiler')
     implementation project(':kotlin-inject-runtime')
-    implementation "org.jetbrains.kotlin:kotlin-stdlib"
+
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib'
+
+    kaptTest project(':kotlin-inject-compiler')
+
+    testImplementation "org.jetbrains.kotlin:kotlin-test"
+    testImplementation "org.jetbrains.kotlin:kotlin-test-junit"
+    testImplementation 'org.jetbrains.kotlin:kotlin-reflect'
+
+    testImplementation 'com.willowtreeapps.assertk:assertk-jvm:0.17'
 }
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8

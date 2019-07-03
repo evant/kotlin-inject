@@ -1,3 +1,5 @@
+import jdk.tools.jlink.internal.plugins.ExcludeVMPlugin
+
 plugins {
     id 'org.jetbrains.kotlin.jvm'
     id 'org.jetbrains.kotlin.kapt'
@@ -5,6 +7,7 @@ plugins {
 
 repositories {
     mavenCentral()
+    jcenter()
     maven { url 'https://jitpack.io' }
 }
 
@@ -15,6 +18,9 @@ dependencies {
 
     testImplementation "org.jetbrains.kotlin:kotlin-test"
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit"
-    testImplementation 'com.github.tschuchortdev:kotlin-compile-testing:1.1.2'
+
     testImplementation 'com.willowtreeapps.assertk:assertk-jvm:0.17'
 }
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
