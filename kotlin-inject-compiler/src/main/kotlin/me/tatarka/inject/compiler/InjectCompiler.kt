@@ -2,17 +2,11 @@ package me.tatarka.inject.compiler
 
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.plusParameter
-import me.tatarka.inject.annotations.Binds
-import me.tatarka.inject.annotations.Module
-import me.tatarka.inject.annotations.Provides
-import me.tatarka.inject.annotations.Singleton
+import me.tatarka.inject.annotations.*
 import java.io.File
 import javax.annotation.processing.*
 import javax.lang.model.SourceVersion
-import javax.lang.model.element.ExecutableElement
-import javax.lang.model.element.Modifier
-import javax.lang.model.element.Name
-import javax.lang.model.element.TypeElement
+import javax.lang.model.element.*
 import javax.lang.model.type.TypeMirror
 import javax.lang.model.util.ElementFilter
 import javax.lang.model.util.Types
@@ -47,13 +41,13 @@ class InjectCompiler : AbstractProcessor() {
 
         val props = mutableListOf<PropertySpec>()
 
-        val providesMap = mutableMapOf<TypeMirror, ExecutableElement>()
-        val bindsMap = mutableMapOf<TypeMirror, ExecutableElement>()
+        val providesMap = mutableMapOf<TypeKey, ExecutableElement>()
+        val bindsMap = mutableMapOf<TypeKey, ExecutableElement>()
         val singletons = mutableListOf<TypeMirror>()
 
         for (method in ElementFilter.methodsIn(element.enclosedElements)) {
             if (method.getAnnotation(Provides::class.java) != null) {
-                providesMap[method.returnType] = method
+                providesMap[TypeKey(method.returnType, method.qualifier())] = method
 
                 if (method.getAnnotation(Singleton::class.java) != null) {
                     singletons.add(method.returnType)
@@ -61,7 +55,7 @@ class InjectCompiler : AbstractProcessor() {
             }
             if (method.getAnnotation(Binds::class.java) != null) {
                 messager.printMessage(Diagnostic.Kind.WARNING, "e:${method.simpleName}")
-                bindsMap[method.returnType] = method
+                bindsMap[TypeKey(method.returnType, method.qualifier())] = method
 
                 props.add(
                     PropertySpec.builder(
@@ -84,7 +78,7 @@ class InjectCompiler : AbstractProcessor() {
         for (singleton in singletons) {
             val codeBlock = CodeBlock.builder()
             codeBlock.add("lazy { ")
-            codeBlock.add(provide(singleton, providesMap, bindsMap, emptyList()))
+            codeBlock.add(provide(TypeKey(singleton), Context(provides = providesMap, binds = bindsMap)))
             codeBlock.add(" }")
             props.add(
                 PropertySpec.builder(
@@ -98,9 +92,20 @@ class InjectCompiler : AbstractProcessor() {
 
         for (method in ElementFilter.methodsIn(element.enclosedElements)) {
             if (method.isProvider()) {
+                val qualifier = method.qualifier()
+
                 val codeBlock = CodeBlock.builder()
                 codeBlock.add("return ")
-                codeBlock.add(provide(method.returnType, providesMap, bindsMap, singletons))
+                try {
+                    codeBlock.add(
+                        provide(
+                            TypeKey(method.returnType, qualifier),
+                            Context(source = method, provides = providesMap, binds = bindsMap, singletons = singletons)
+                        )
+                    )
+                } catch (e: FailedToGenerateException) {
+                    continue
+                }
 
                 props.add(
                     PropertySpec.builder(
@@ -145,44 +150,38 @@ class InjectCompiler : AbstractProcessor() {
     }
 
     private fun provide(
-        type: TypeMirror,
-        providesMap: Map<TypeMirror, ExecutableElement>,
-        bindsMap: Map<TypeMirror, ExecutableElement>,
-        singletons: List<TypeMirror>
+        key: TypeKey,
+        context: Context
     ): CodeBlock {
-        if (type in singletons) {
-            return CodeBlock.of("%N", typeUtils.asElement(type).simpleName.asSingleton())
+        if (key.type in context.singletons) {
+            return CodeBlock.of("%N", typeUtils.asElement(key.type).simpleName.asSingleton())
         }
-        val providesElement = providesMap[type]
-        if (providesElement != null) {
-            return provideProvides(providesElement, providesMap, bindsMap, singletons)
+        val providesElement = context.provides[key]
+        return if (providesElement != null) {
+            provideProvides(providesElement, context)
         } else {
-            val codeBlock = CodeBlock.builder()
-            val bindsElement = bindsMap[type]
+            val bindsElement = context.binds[key]
             if (bindsElement != null) {
-                val concreate = bindsElement.parameters[0]
-                codeBlock.add(provide(concreate.asType(), providesMap, bindsMap, singletons))
-                codeBlock.add(".%N", bindsElement.simpleName.asProp())
+                provideBinds(bindsElement, context)
             } else {
-                codeBlock.add("%T(", type.asTypeName())
-                val constructor = ElementFilter.constructorsIn(typeUtils.asElement(type).enclosedElements)[0]
-                constructor.parameters.forEachIndexed { i, param ->
-                    if (i != 0) {
-                        codeBlock.add(",")
-                    }
-                    codeBlock.add(provide(param.asType(), providesMap, bindsMap, singletons))
+                val element = typeUtils.asElement(key.type)
+                if (element.getAnnotation(Inject::class.java) != null) {
+                    provideConstructor(element, context)
+                } else {
+                    messager.printMessage(
+                        Diagnostic.Kind.ERROR,
+                        "Cannot find an @Inject constructor, @Provides, or @Binds for class: $element on ${context.source}",
+                        context.source
+                    )
+                    throw FailedToGenerateException()
                 }
-                codeBlock.add(")")
             }
-            return codeBlock.build()
         }
     }
 
     private fun provideProvides(
         providesElement: ExecutableElement,
-        providesMap: Map<TypeMirror, ExecutableElement>,
-        bindsMap: Map<TypeMirror, ExecutableElement>,
-        singletons: List<TypeMirror>
+        context: Context
     ): CodeBlock {
         val codeBlock = CodeBlock.builder()
         codeBlock.add("%N(", providesElement.simpleName)
@@ -190,7 +189,35 @@ class InjectCompiler : AbstractProcessor() {
             if (i != 0) {
                 codeBlock.add(",")
             }
-            codeBlock.add(provide(param.asType(), providesMap, bindsMap, singletons))
+            codeBlock.add(provide(TypeKey(param.asType()), context))
+        }
+        codeBlock.add(")")
+        return codeBlock.build()
+    }
+
+    private fun provideBinds(
+        bindsElement: ExecutableElement,
+        context: Context
+    ): CodeBlock {
+        val codeBlock = CodeBlock.builder()
+        val concreate = bindsElement.parameters[0]
+        codeBlock.add(provide(TypeKey(concreate.asType(), concreate.qualifier()), context))
+        codeBlock.add(".%N", bindsElement.simpleName.asProp())
+        return codeBlock.build()
+    }
+
+    private fun provideConstructor(
+        element: Element,
+        context: Context
+    ): CodeBlock {
+        val codeBlock = CodeBlock.builder()
+        codeBlock.add("%T(", element.asType().asTypeName())
+        val constructor = ElementFilter.constructorsIn(element.enclosedElements)[0]
+        constructor.parameters.forEachIndexed { i, param ->
+            if (i != 0) {
+                codeBlock.add(",")
+            }
+            codeBlock.add(provide(TypeKey(param.asType(), param.qualifier()), context))
         }
         codeBlock.add(")")
         return codeBlock.build()
@@ -202,7 +229,28 @@ class InjectCompiler : AbstractProcessor() {
 
     private fun ExecutableElement.isProvider(): Boolean = modifiers.contains(Modifier.ABSTRACT) && parameters.isEmpty()
 
+    private fun Element.qualifier(): Any? =
+        annotationMirrors.find {
+            it.annotationType.asElement().getAnnotation(Qualifier::class.java) != null
+        }?.wrap()
+
     override fun getSupportedAnnotationTypes(): Set<String> = setOf(Module::class.java.canonicalName)
 
     override fun getSupportedSourceVersion(): SourceVersion = SourceVersion.latestSupported()
+
+    data class Context(
+        val source: Element? = null,
+        val provides: Map<TypeKey, ExecutableElement>,
+        val binds: Map<TypeKey, ExecutableElement>,
+        val singletons: List<TypeMirror> = emptyList()
+    )
+
+    data class TypeKey(val type: TypeMirror, val qualifier: Any? = null)
+
+    private fun AnnotationMirror.wrap(): AnnotationMirrorWrapper =
+        AnnotationMirrorWrapper(annotationType.asTypeName(), elementValues.values.toList().map { it.value })
+
+    data class AnnotationMirrorWrapper(val type: TypeName, val values: List<Any>)
+
+    private class FailedToGenerateException : Exception()
 }

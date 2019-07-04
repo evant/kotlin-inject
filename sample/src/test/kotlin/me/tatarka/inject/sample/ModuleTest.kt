@@ -8,6 +8,8 @@ import me.tatarka.inject.createModule
 import org.junit.Before
 import org.junit.Test
 
+class NotAModule
+
 @Inject class Foo : IFoo
 
 @Module abstract class Module1 {
@@ -73,13 +75,45 @@ class NamedFoo(val name: String)
     @Provides @Named("2") fun foo2() = NamedFoo("2")
 }
 
-class NotAModule
+@Inject class Foo2 : IFoo
+
+@Module abstract class Module8 {
+    @get:Named("1")
+    abstract val foo1: IFoo
+
+    @get:Named("2")
+    abstract val foo2: IFoo
+
+    @get:Binds
+    @get:Named("1")
+    abstract val Foo.binds: IFoo
+
+    @get:Binds
+    @get:Named("2")
+    abstract val Foo2.binds: IFoo
+}
+
+@Inject class QualifiedFoo(@Named("1") val foo1: NamedFoo, @Named("2") val foo2: NamedFoo)
+
+@Module abstract class Module9 {
+    abstract val qualifiedFoo: QualifiedFoo
+
+    @Provides @Named("1") fun foo1() = NamedFoo("1")
+    @Provides @Named("2") fun foo2() = NamedFoo("2")
+}
 
 class ModuleTest {
 
     @Before
     fun setup() {
         bazConstructorCount = 0
+    }
+
+    @Test
+    fun throws_exception_when_no_module_is_generated() {
+        assertThat {
+            NotAModule::class.createModule()
+        }.thrownError { hasMessage("No inject module found for: class me.tatarka.inject.sample.NotAModule") }
     }
 
     @Test
@@ -141,9 +175,22 @@ class ModuleTest {
     }
 
     @Test
-    fun throws_exception_when_no_module_is_generated() {
-        assertThat {
-            NotAModule::class.createModule()
-        }.thrownError { hasMessage("No inject module found for: class me.tatarka.inject.sample.NotAModule") }
+    fun generates_a_module_that_binds_different_values_based_on_the_named_qualifier() {
+        val module = Module8::class.createModule()
+
+        assertAll {
+            assertThat(module.foo1).hasClass(Foo::class)
+            assertThat(module.foo2).hasClass(Foo2::class)
+        }
+    }
+
+    @Test
+    fun generates_a_module_that_constructs_different_values_based_on_the_named_qualifier() {
+        val module = Module9::class.createModule()
+
+        assertAll {
+            assertThat(module.qualifiedFoo.foo1.name).isEqualTo("1")
+            assertThat(module.qualifiedFoo.foo2.name).isEqualTo("2")
+        }
     }
 }
