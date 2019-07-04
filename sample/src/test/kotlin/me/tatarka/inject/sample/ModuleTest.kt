@@ -34,31 +34,6 @@ interface IFoo
     companion object
 }
 
-@Module abstract class Module5 {
-    var providesCalledCount = 0
-
-    abstract val foo: Foo
-
-    @Provides
-    @Singleton
-    fun foo() = Foo().also { providesCalledCount++ }
-
-    companion object
-}
-
-var bazConstructorCount = 0
-
-@Singleton @Inject class Baz {
-    init {
-        bazConstructorCount++
-    }
-}
-
-@Singleton @Module abstract class Module6 {
-    abstract val baz: Baz
-
-    companion object
-}
 
 class NamedFoo(val name: String)
 
@@ -106,23 +81,11 @@ class NamedFoo(val name: String)
     companion object
 }
 
-@Module abstract class ParentModule {
-    @Provides fun foo() = NamedFoo("parent")
-
-    companion object
-}
-
-@Module abstract class Module10(val parent: ParentModule) {
-    abstract val foo: NamedFoo
-
-    companion object
-}
-
 class ModuleTest {
 
     @Before
     fun setup() {
-        bazConstructorCount = 0
+        barConstructorCount = 0
     }
 
     @Test
@@ -145,24 +108,6 @@ class ModuleTest {
         val module = Module4.create()
 
         assertThat(module.foo).isInstanceOf(Foo::class)
-    }
-
-    @Test
-    fun generates_a_module_where_a_singleton_provides_is_only_called_once() {
-        val module = Module5.create()
-        module.foo
-        module.foo
-
-        assertThat(module.providesCalledCount).isEqualTo(1)
-    }
-
-    @Test
-    fun generates_a_module_where_a_singleton_constructor_is_only_called_once() {
-        val module = Module6.create()
-        module.baz
-        module.baz
-
-        assertThat(bazConstructorCount).isEqualTo(1)
     }
 
     @Test
@@ -193,13 +138,5 @@ class ModuleTest {
             assertThat(module.qualifiedFoo.foo1.name).isEqualTo("1")
             assertThat(module.qualifiedFoo.foo2.name).isEqualTo("2")
         }
-    }
-
-    @Test
-    fun generates_a_module_that_provides_a_dep_from_a_parent_module() {
-        val parent = ParentModule.create()
-        val module = Module10.create(parent)
-
-        assertThat(module.foo.name).isEqualTo("parent")
     }
 }

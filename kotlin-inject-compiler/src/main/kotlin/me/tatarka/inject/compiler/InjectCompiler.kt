@@ -60,16 +60,15 @@ class InjectCompiler : AbstractProcessor() {
             )
         }
 
-        for (singleton in context.singletons) {
+        for (singleton in context.scoped) {
             val codeBlock = CodeBlock.builder()
             codeBlock.add("lazy { ")
-            codeBlock.add(provide(TypeKey(singleton), context.withoutSingletons()))
+            codeBlock.add(provide(TypeKey(singleton), context.withoutScoped()))
             codeBlock.add(" }")
             props.add(
                 PropertySpec.builder(
-                    typeUtils.asElement(singleton).simpleName.asSingleton(),
-                    singleton.asTypeName(),
-                    KModifier.PRIVATE
+                    typeUtils.asElement(singleton).simpleName.asScopedProp(),
+                    singleton.asTypeName()
                 ).delegate(codeBlock.build())
                     .build()
             )
@@ -101,7 +100,6 @@ class InjectCompiler : AbstractProcessor() {
         val constructor = element.constructor()
 
         val injectModule = TypeSpec.classBuilder("Inject${element.simpleName}")
-            .addModifiers(KModifier.PRIVATE)
             .superclass(element.asClassName())
             .apply {
                 if (constructor != null) {
@@ -161,14 +159,14 @@ class InjectCompiler : AbstractProcessor() {
 
         val providesMap = mutableMapOf<TypeKey, ExecutableElement>()
         val bindsMap = mutableMapOf<TypeKey, ExecutableElement>()
-        val singletons = mutableListOf<TypeMirror>()
+        val scoped = mutableListOf<TypeMirror>()
 
         for (method in ElementFilter.methodsIn(element.enclosedElements)) {
             if (method.getAnnotation(Provides::class.java) != null) {
                 providesMap[TypeKey(method.returnType, method.qualifier())] = method
 
-                if (method.getAnnotation(Singleton::class.java) != null) {
-                    singletons.add(method.returnType)
+                if (method.scope() != null) {
+                    scoped.add(method.returnType)
                 }
             }
             if (method.getAnnotation(Binds::class.java) != null) {
@@ -177,8 +175,8 @@ class InjectCompiler : AbstractProcessor() {
             }
             if (method.isProvider()) {
                 val returnType = typeUtils.asElement(method.returnType)
-                if (returnType.getAnnotation(Singleton::class.java) != null) {
-                    singletons.add(method.returnType)
+                if (returnType.scope() != null) {
+                    scoped.add(method.returnType)
                 }
             }
         }
@@ -200,7 +198,7 @@ class InjectCompiler : AbstractProcessor() {
             parents = parents,
             provides = providesMap,
             binds = bindsMap,
-            singletons = singletons
+            scoped = scoped
         )
     }
 
@@ -208,8 +206,8 @@ class InjectCompiler : AbstractProcessor() {
         key: TypeKey,
         context: Context
     ): CodeBlock {
-        if (key.type in context.singletons) {
-            return CodeBlock.of("%N", typeUtils.asElement(key.type).simpleName.asSingleton())
+        if (key.type in context.scoped) {
+            return CodeBlock.of("%N", typeUtils.asElement(key.type).simpleName.asScopedProp())
         }
         val providesElement = context.findProvides(key)
         return if (providesElement != null) {
@@ -287,7 +285,6 @@ class InjectCompiler : AbstractProcessor() {
 
     private fun Name.asProp(): String = toString().removePrefix("get").decapitalize()
 
-    private fun Name.asSingleton(): String = "_" + toString().decapitalize()
 
     private fun Element.isModule() = getAnnotation(Module::class.java) != null
 
@@ -304,20 +301,15 @@ class InjectCompiler : AbstractProcessor() {
             it.annotationType.asElement().getAnnotation(Qualifier::class.java) != null
         }?.wrap()
 
-
-    override fun getSupportedAnnotationTypes(): Set<String> = setOf(Module::class.java.canonicalName)
-
-    override fun getSupportedSourceVersion(): SourceVersion = SourceVersion.latestSupported()
-
     data class Context(
         val source: Element? = null,
         val name: String? = null,
         val parents: List<Context>,
         val provides: Map<TypeKey, ExecutableElement>,
         val binds: Map<TypeKey, ExecutableElement>,
-        val singletons: List<TypeMirror> = emptyList()
+        val scoped: List<TypeMirror> = emptyList()
     ) {
-        fun withoutSingletons() = copy(singletons = emptyList())
+        fun withoutScoped() = copy(scoped = emptyList())
 
         fun findProvides(key: TypeKey): Result? {
             val result = provides[key]
@@ -344,4 +336,9 @@ class InjectCompiler : AbstractProcessor() {
     data class AnnotationMirrorWrapper(val type: TypeName, val values: List<Any>)
 
     private class FailedToGenerateException : Exception()
+
+    override fun getSupportedAnnotationTypes(): Set<String> = setOf(Module::class.java.canonicalName)
+
+    override fun getSupportedSourceVersion(): SourceVersion = SourceVersion.latestSupported()
+
 }

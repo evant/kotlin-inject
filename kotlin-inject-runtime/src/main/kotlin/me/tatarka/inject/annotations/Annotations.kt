@@ -17,7 +17,13 @@ annotation class Provides
 annotation class Binds
 
 @Retention(AnnotationRetention.RUNTIME)
-@Target(AnnotationTarget.CLASS, AnnotationTarget.FUNCTION)
+@Target(AnnotationTarget.ANNOTATION_CLASS)
+annotation class Scope
+
+@Scope
+@MustBeDocumented
+@Retention(AnnotationRetention.RUNTIME)
+@Target(AnnotationTarget.CLASS, AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY_GETTER)
 annotation class Singleton
 
 @Retention(AnnotationRetention.RUNTIME)
