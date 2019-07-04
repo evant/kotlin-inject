@@ -239,18 +239,21 @@ class InjectCompiler : AbstractProcessor() {
         context: Context
     ): CodeBlock {
         val codeBlock = CodeBlock.builder()
-        messager.printMessage(Diagnostic.Kind.WARNING, "element: ${providesElement}")
         if (providesElement.name != null) {
             codeBlock.add("%L.", providesElement.name)
         }
-        codeBlock.add("%N(", providesElement.element.simpleName)
-        providesElement.element.parameters.forEachIndexed { i, param ->
-            if (i != 0) {
-                codeBlock.add(",")
+        if (providesElement.element.isProp()) {
+            codeBlock.add("%N", providesElement.element.simpleName.asProp())
+        } else {
+            codeBlock.add("%N(", providesElement.element.simpleName)
+            providesElement.element.parameters.forEachIndexed { i, param ->
+                if (i != 0) {
+                    codeBlock.add(",")
+                }
+                codeBlock.add(provide(TypeKey(param.asType()), context))
             }
-            codeBlock.add(provide(TypeKey(param.asType()), context))
+            codeBlock.add(")")
         }
-        codeBlock.add(")")
         return codeBlock.build()
     }
 
@@ -289,6 +292,8 @@ class InjectCompiler : AbstractProcessor() {
     private fun Element.isModule() = getAnnotation(Module::class.java) != null
 
     private fun ExecutableElement.isProvider(): Boolean = modifiers.contains(Modifier.ABSTRACT) && parameters.isEmpty()
+
+    private fun ExecutableElement.isProp(): Boolean = simpleName.startsWith("get") && parameters.isEmpty()
 
     private fun Element.getCompanion(): TypeElement? = ElementFilter.typesIn(enclosedElements).firstOrNull()
 

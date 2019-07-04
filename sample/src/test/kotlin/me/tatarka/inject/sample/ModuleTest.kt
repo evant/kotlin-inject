@@ -23,17 +23,6 @@ import org.junit.Test
     companion object
 }
 
-@Module abstract class Module3 {
-    var providesCalled = false
-
-    abstract val foo: Foo
-
-    @Provides
-    fun foo() = Foo().also { providesCalled = true }
-
-    companion object
-}
-
 interface IFoo
 
 @Module abstract class Module4 {
@@ -149,14 +138,6 @@ class ModuleTest {
 
         assertThat(module.bar).isNotNull()
         assertThat(module.bar.foo).isNotNull()
-    }
-
-    @Test
-    fun generates_a_modules_that_provides_a_dep() {
-        val module = Module3.create()
-
-        assertThat(module.foo).isNotNull()
-        assertThat(module.providesCalled).isTrue()
     }
 
     @Test
