@@ -1,7 +1,6 @@
 package me.tatarka.inject.sample
 
 import me.tatarka.inject.annotations.*
-import me.tatarka.inject.createModule
 
 @Inject
 @Singleton
@@ -28,7 +27,7 @@ abstract class MyModule {
 }
 
 fun main() {
-    val module: MyModule = MyModule::class.createModule()
+    val module: MyModule = MyModule::class.create()
     println(module.baz)
 }
 

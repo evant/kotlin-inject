@@ -9,7 +9,7 @@ annotation class Inject
 annotation class Module
 
 @Retention(AnnotationRetention.RUNTIME)
-@Target(AnnotationTarget.FUNCTION)
+@Target(AnnotationTarget.PROPERTY_GETTER, AnnotationTarget.FUNCTION)
 annotation class Provides
 
 @Retention(AnnotationRetention.RUNTIME)
