@@ -1,42 +1,60 @@
 package me.tatarka.inject.annotations
 
-@Retention(AnnotationRetention.RUNTIME)
-@Target(AnnotationTarget.CLASS)
+import kotlin.annotation.AnnotationRetention.RUNTIME
+import kotlin.annotation.AnnotationTarget.*
+import kotlin.reflect.KClass
+
+@Retention(RUNTIME)
+@Target(CLASS)
 annotation class Inject
 
-@Retention(AnnotationRetention.RUNTIME)
-@Target(AnnotationTarget.CLASS)
+@Retention(RUNTIME)
+@Target(CLASS)
 annotation class Module
 
-@Retention(AnnotationRetention.RUNTIME)
-@Target(AnnotationTarget.PROPERTY_GETTER, AnnotationTarget.FUNCTION)
+@Retention(RUNTIME)
+@Target(PROPERTY_GETTER, FUNCTION)
 annotation class Provides
 
-@Retention(AnnotationRetention.RUNTIME)
-@Target(AnnotationTarget.PROPERTY_GETTER, AnnotationTarget.FUNCTION)
+@Retention(RUNTIME)
+@Target(PROPERTY_GETTER, FUNCTION)
 annotation class Binds
 
-@Retention(AnnotationRetention.RUNTIME)
-@Target(AnnotationTarget.ANNOTATION_CLASS)
+@Retention(RUNTIME)
+@Target(ANNOTATION_CLASS)
 annotation class Scope
 
 @Scope
 @MustBeDocumented
-@Retention(AnnotationRetention.RUNTIME)
-@Target(AnnotationTarget.CLASS, AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY_GETTER)
+@Retention(RUNTIME)
+@Target(CLASS, FUNCTION, PROPERTY_GETTER)
 annotation class Singleton
 
-@Retention(AnnotationRetention.RUNTIME)
-@Target(AnnotationTarget.ANNOTATION_CLASS)
+@Retention(RUNTIME)
+@Target(ANNOTATION_CLASS)
 annotation class Qualifier
 
 @Qualifier
 @MustBeDocumented
-@Retention(AnnotationRetention.RUNTIME)
-@Target(
-    AnnotationTarget.VALUE_PARAMETER,
-    AnnotationTarget.FUNCTION,
-    AnnotationTarget.PROPERTY_GETTER,
-    AnnotationTarget.CLASS
-)
+@Retention(RUNTIME)
+@Target(VALUE_PARAMETER, FUNCTION, PROPERTY_GETTER, CLASS)
 annotation class Named(val value: String)
+
+@Target(ANNOTATION_CLASS)
+annotation class MultibindsKey
+
+@MultibindsKey
+annotation class ClassKey(val value: KClass<*>)
+
+@MultibindsKey
+annotation class StringKey(val value: String)
+
+
+@MultibindsKey
+annotation class My2ArgKey(val one: String, val two: Int)
+
+@Target(FUNCTION, PROPERTY_GETTER)
+annotation class IntoMap
+
+@Target(FUNCTION, PROPERTY_GETTER)
+annotation class IntoFun

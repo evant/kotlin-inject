@@ -1,0 +1,37 @@
+package me.tatarka.inject.sample
+
+import assertk.assertThat
+import assertk.assertions.hasClass
+import assertk.assertions.isNotNull
+import me.tatarka.inject.annotations.Module
+import org.junit.Test
+
+interface ModuleInterface {
+    val foo: Foo
+}
+
+@Module abstract class InterfaceModule : ModuleInterface {
+    companion object
+}
+
+interface GenericModuleInterface<T> {
+    val foo: T
+}
+
+@Module abstract class GenericInterfaceModule : GenericModuleInterface<Foo> {
+    companion object
+}
+
+class InheritanceTest {
+    @Test fun generates_a_module_that_provides_a_dep_defined_in_an_implemented_interface() {
+        val module = InterfaceModule.create()
+
+        assertThat(module.foo).isNotNull()
+    }
+
+    @Test fun generates_a_module_that_provides_a_dep_defined_in_a_generic_implemented_interface() {
+        val module = GenericInterfaceModule.create()
+
+        assertThat(module.foo).hasClass(Foo::class)
+    }
+}

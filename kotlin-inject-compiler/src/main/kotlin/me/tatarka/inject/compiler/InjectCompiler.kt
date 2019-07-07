@@ -7,6 +7,7 @@ import java.io.File
 import javax.annotation.processing.*
 import javax.lang.model.SourceVersion
 import javax.lang.model.element.*
+import javax.lang.model.type.ExecutableType
 import javax.lang.model.type.TypeMirror
 import javax.lang.model.util.ElementFilter
 import javax.lang.model.util.Types
@@ -84,26 +85,29 @@ class InjectCompiler : AbstractProcessor() {
             )
         }
 
-        for (method in ElementFilter.methodsIn(element.enclosedElements)) {
-            if (method.isProvider()) {
-                val qualifier = method.qualifier()
+        element.recurseParents(typeUtils) { type, e ->
+            for (method in ElementFilter.methodsIn(e.enclosedElements)) {
+                if (method.isProvider()) {
+                    val qualifier = method.qualifier()
 
-                val codeBlock = CodeBlock.builder()
-                codeBlock.add("return ")
-                codeBlock.add(provide(TypeKey(method.returnType, qualifier), context))
-                props.add(
-                    PropertySpec.builder(
-                        method.simpleName.asProp(),
-                        method.returnType.asTypeName(),
-                        KModifier.OVERRIDE
-                    )
-                        .getter(
-                            FunSpec.getterBuilder()
-                                .addCode(codeBlock.build())
-                                .build()
+                    val codeBlock = CodeBlock.builder()
+                    codeBlock.add("return ")
+                    val methodType = typeUtils.asMemberOf(type, method) as ExecutableType
+                    codeBlock.add(provide(TypeKey(methodType.returnType, qualifier), context))
+                    props.add(
+                        PropertySpec.builder(
+                            method.simpleName.asProp(),
+                            methodType.returnType.asTypeName(),
+                            KModifier.OVERRIDE
                         )
-                        .build()
-                )
+                            .getter(
+                                FunSpec.getterBuilder()
+                                    .addCode(codeBlock.build())
+                                    .build()
+                            )
+                            .build()
+                    )
+                }
             }
         }
 
@@ -201,17 +205,19 @@ class InjectCompiler : AbstractProcessor() {
             }
         }
 
-        for (method in ElementFilter.methodsIn(element.enclosedElements)) {
-            if (method.getAnnotation(Provides::class.java) != null) {
-                providesMap[TypeKey(method.returnType, method.qualifier())] = method
-                addScope(method.returnType, method.scopeType())
-            }
-            if (method.getAnnotation(Binds::class.java) != null) {
-                bindsMap[TypeKey(method.returnType, method.qualifier())] = method
-            }
-            if (method.isProvider()) {
-                val returnType = typeUtils.asElement(method.returnType)
-                addScope(method.returnType, returnType.scopeType())
+        element.recurseParents(typeUtils) { type, e ->
+            for (method in ElementFilter.methodsIn(e.enclosedElements)) {
+                if (method.getAnnotation(Provides::class.java) != null) {
+                    providesMap[TypeKey(method.returnType, method.qualifier())] = method
+                    addScope(method.returnType, method.scopeType())
+                }
+                if (method.getAnnotation(Binds::class.java) != null) {
+                    bindsMap[TypeKey(method.returnType, method.qualifier())] = method
+                }
+                if (method.isProvider()) {
+                    val returnType = typeUtils.asElement(method.returnType)
+                    addScope(method.returnType, returnType.scopeType())
+                }
             }
         }
 

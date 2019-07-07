@@ -4,6 +4,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import me.tatarka.inject.annotations.*
 import org.junit.Test
+import kotlin.reflect.KClass
 
 class ScopeFoo
 
