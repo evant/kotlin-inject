@@ -262,27 +262,37 @@ class InjectCompiler : AbstractProcessor() {
             )
             throw FailedToGenerateException()
         }
-        return when (result.kind) {
-            Kind.PROVIDES -> provideProvides(result, context)
-            Kind.BINDS -> provideBinds(result.element as ExecutableElement, context)
-            Kind.SCOPED -> provideScoped(key, result)
-            Kind.CONSTRUCTOR -> provideConstructor(result.element, context)
+        return when (result) {
+            is Result.Provides -> provideProvides(result, context)
+            is Result.Binds -> provideBinds(result.element, context)
+            is Result.Scoped -> provideScoped(key, result)
+            is Result.Constructor -> provideConstructor(result.element, context)
         }
     }
 
     private fun provideProvides(
-        providesElement: Result,
+        providesElement: Result.Provides,
         context: Context
     ): CodeBlock {
         val codeBlock = CodeBlock.builder()
         if (providesElement.name != null) {
             codeBlock.add("%L.", providesElement.name)
         }
-        if ((providesElement.element as ExecutableElement).isProp()) {
-            codeBlock.add("%N", providesElement.element.simpleName.asProp())
+        val element = providesElement.element
+        val isExtension = element.isExtension()
+        if (element.isProp()) {
+            if (isExtension) {
+                codeBlock.add(provide(TypeKey(element.parameters[0].asType()), context))
+                codeBlock.add(".")
+            }
+            codeBlock.add("%N", element.simpleName.asProp())
         } else {
-            codeBlock.add("%N(", providesElement.element.simpleName)
-            providesElement.element.parameters.forEachIndexed { i, param ->
+            if (isExtension) {
+                codeBlock.add(provide(TypeKey(element.parameters[0].asType()), context))
+                codeBlock.add(".")
+            }
+            codeBlock.add("%N(", element.simpleName)
+            element.parameters.drop(if (isExtension) 1 else 0).forEachIndexed { i, param ->
                 if (i != 0) {
                     codeBlock.add(",")
                 }
@@ -321,7 +331,7 @@ class InjectCompiler : AbstractProcessor() {
         return codeBlock.build()
     }
 
-    private fun provideScoped(key: TypeKey, result: Result): CodeBlock {
+    private fun provideScoped(key: TypeKey, result: Result.Scoped): CodeBlock {
         val codeBlock = CodeBlock.builder()
         if (result.name != null) {
             codeBlock.add("(%L as Inject%N).", result.name, result.element.simpleName)
@@ -337,7 +347,7 @@ class InjectCompiler : AbstractProcessor() {
 
     private fun ExecutableElement.isProvider(): Boolean = modifiers.contains(Modifier.ABSTRACT) && parameters.isEmpty()
 
-    private fun ExecutableElement.isProp(): Boolean = simpleName.startsWith("get") && parameters.isEmpty()
+    private fun ExecutableElement.isProp(): Boolean = simpleName.startsWith("get") && ((isExtension() && parameters.size == 1) || parameters.isEmpty())
 
     private fun Element.getCompanion(): TypeElement? = ElementFilter.typesIn(enclosedElements).firstOrNull()
 
@@ -350,13 +360,13 @@ class InjectCompiler : AbstractProcessor() {
 
     private fun Context.find(key: TypeKey): Result? {
         provides[key]?.let { result ->
-            return@find Result(name, Kind.PROVIDES, result)
+            return@find Result.Provides(name, result)
         }
         binds[key]?.let { result ->
-            return@find Result(name, Kind.BINDS, result)
+            return@find Result.Binds(name, result)
         }
         scoped[key.type]?.let { result ->
-            return@find Result(name, Kind.SCOPED, result)
+            return@find Result.Scoped(name, result)
         }
         for (parent in parents) {
             val parentResult = parent.find(key)
@@ -364,9 +374,9 @@ class InjectCompiler : AbstractProcessor() {
                 return parentResult
             }
         }
-        val element = typeUtils.asElement(key.type)
+        val element = typeUtils.asElement(key.type) as TypeElement
         if (element.getAnnotation(Inject::class.java) != null) {
-            return Result(null, Kind.CONSTRUCTOR, element)
+            return Result.Constructor(element)
         }
         return null
     }
@@ -380,25 +390,14 @@ class InjectCompiler : AbstractProcessor() {
         val scoped: Map<TypeMirror, TypeElement> = emptyMap()
     ) {
         fun withoutScoped() = copy(scoped = emptyMap())
-
-        fun findProvides(key: TypeKey): Result? {
-            val result = provides[key]
-            if (result != null) {
-                return Result(name, Kind.PROVIDES, result)
-            }
-            for (parent in parents) {
-                val parentResult = parent.findProvides(key)
-                if (parentResult != null) {
-                    return parentResult
-                }
-            }
-            return null;
-        }
     }
 
-    data class Result(val name: String?, val kind: Kind, val element: Element)
-
-    enum class Kind { PROVIDES, BINDS, SCOPED, CONSTRUCTOR }
+    sealed class Result(val name: String?) {
+        class Provides(name: String?, val element: ExecutableElement) : Result(name)
+        class Binds(name: String?, val element: ExecutableElement) : Result(name)
+        class Scoped(name: String?, val element: TypeElement) : Result(name)
+        class Constructor(val element: TypeElement) : Result(null)
+    }
 
     data class TypeKey(val type: TypeMirror, val qualifier: Any? = null)
 

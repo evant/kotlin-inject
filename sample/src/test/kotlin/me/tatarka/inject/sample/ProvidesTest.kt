@@ -1,6 +1,7 @@
 package me.tatarka.inject.sample
 
 import assertk.assertThat
+import assertk.assertions.isNotNull
 import assertk.assertions.isSameAs
 import assertk.assertions.isTrue
 import me.tatarka.inject.annotations.Inject
@@ -8,7 +9,7 @@ import me.tatarka.inject.annotations.Module
 import me.tatarka.inject.annotations.Provides
 import org.junit.Test
 
-class ProvidesFoo
+class ProvidesFoo(val bar: ProvidesBar? = null)
 @Inject class ProvidesBar
 
 @Module abstract class ProvidesFunctionModule {
@@ -28,7 +29,7 @@ class ProvidesFoo
     abstract val foo: ProvidesFoo
 
     @Provides
-    fun foo(bar: ProvidesBar) = ProvidesFoo().also { providesCalled = true }
+    fun foo(bar: ProvidesBar) = ProvidesFoo(bar).also { providesCalled = true }
 
     companion object
 }
@@ -45,6 +46,29 @@ class ProvidesFoo
     companion object
 }
 
+@Module abstract class ProvidesExtensionFunctionModule {
+    var providesCalled = false
+
+    abstract val foo: ProvidesFoo
+
+    @Provides
+    fun ProvidesBar.provideFoo() = ProvidesFoo(this).also { providesCalled = true }
+
+    companion object
+}
+
+@Module abstract class ProvidesExtensionValModule {
+    var providesCalled = false
+
+    abstract val foo: ProvidesFoo
+
+    @get:Provides
+    val ProvidesBar.provideFoo
+        get() = ProvidesFoo(this).also { providesCalled = true }
+
+    companion object
+}
+
 @Module abstract class ProvidesValConstructorModule(@get:Provides val provideFoo: ProvidesFoo) {
     abstract val foo: ProvidesFoo
 
@@ -53,32 +77,42 @@ class ProvidesFoo
 
 class ProvidesTest {
 
-    @Test
-    fun generates_a_module_that_provides_a_dep_from_a_function() {
+    @Test fun generates_a_module_that_provides_a_dep_from_a_function() {
         val module = ProvidesFunctionModule.create()
 
         module.foo
         assertThat(module.providesCalled).isTrue()
     }
 
-    @Test
-    fun generates_a_module_that_provides_a_dep_from_a_function_with_arg() {
+    @Test fun generates_a_module_that_provides_a_dep_from_a_function_with_arg() {
         val module = ProvidesFunctionArgModule.create()
 
-        module.foo
+        assertThat(module.foo.bar).isNotNull()
         assertThat(module.providesCalled).isTrue()
     }
 
-    @Test
-    fun generates_a_module_that_provides_a_dep_from_a_val() {
+    @Test fun generates_a_module_that_provides_a_dep_from_a_val() {
         val module = ProvidesValModule.create()
 
         module.foo
         assertThat(module.providesCalled).isTrue()
     }
 
-    @Test
-    fun generates_a_module_that_provides_a_dep_from_a_constructor_val() {
+    @Test fun generates_a_module_that_provides_a_deb_from_an_extension_function() {
+        val module = ProvidesExtensionFunctionModule.create()
+
+        assertThat(module.foo.bar).isNotNull()
+        assertThat(module.providesCalled).isTrue()
+    }
+
+    @Test fun generates_a_module_that_provides_a_deb_from_an_extension_val() {
+        val module = ProvidesExtensionValModule.create()
+
+        assertThat(module.foo.bar).isNotNull()
+        assertThat(module.providesCalled).isTrue()
+    }
+
+    @Test fun generates_a_module_that_provides_a_dep_from_a_constructor_val() {
         val foo = ProvidesFoo()
         val module = ProvidesValConstructorModule.create(foo)
 
