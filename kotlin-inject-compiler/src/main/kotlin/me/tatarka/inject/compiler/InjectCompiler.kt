@@ -8,6 +8,7 @@ import javax.annotation.processing.*
 import javax.lang.model.SourceVersion
 import javax.lang.model.element.*
 import javax.lang.model.type.ExecutableType
+import javax.lang.model.type.NoType
 import javax.lang.model.type.TypeMirror
 import javax.lang.model.util.ElementFilter
 import javax.lang.model.util.Types
@@ -345,7 +346,7 @@ class InjectCompiler : AbstractProcessor() {
 
     private fun Element.isModule() = getAnnotation(Module::class.java) != null
 
-    private fun ExecutableElement.isProvider(): Boolean = modifiers.contains(Modifier.ABSTRACT) && parameters.isEmpty()
+    private fun ExecutableElement.isProvider(): Boolean = modifiers.contains(Modifier.ABSTRACT) && parameters.isEmpty() && returnType !is NoType
 
     private fun ExecutableElement.isProp(): Boolean = simpleName.startsWith("get") && ((isExtension() && parameters.size == 1) || parameters.isEmpty())
 
