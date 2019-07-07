@@ -25,16 +25,6 @@ import org.junit.Test
 
 interface IFoo
 
-@Module abstract class Module4 {
-    abstract val foo: IFoo
-
-    @get:Binds
-    abstract val Foo.binds: IFoo
-
-    companion object
-}
-
-
 class NamedFoo(val name: String)
 
 @Module abstract class Module7 {
@@ -51,24 +41,6 @@ class NamedFoo(val name: String)
 }
 
 @Inject class Foo2 : IFoo
-
-@Module abstract class Module8 {
-    @get:Named("1")
-    abstract val foo1: IFoo
-
-    @get:Named("2")
-    abstract val foo2: IFoo
-
-    @get:Binds
-    @get:Named("1")
-    abstract val Foo.binds: IFoo
-
-    @get:Binds
-    @get:Named("2")
-    abstract val Foo2.binds: IFoo
-
-    companion object
-}
 
 @Inject class QualifiedFoo(@Named("1") val foo1: NamedFoo, @Named("2") val foo2: NamedFoo)
 
@@ -104,29 +76,12 @@ class ModuleTest {
     }
 
     @Test
-    fun generates_a_module_that_binds_an_interface_to_a_dep() {
-        val module = Module4.create()
-
-        assertThat(module.foo).isInstanceOf(Foo::class)
-    }
-
-    @Test
     fun generates_a_module_that_provides_different_values_based_on_the_named_qualifier() {
         val module = Module7.create()
 
         assertAll {
             assertThat(module.foo1.name).isEqualTo("1")
             assertThat(module.foo2.name).isEqualTo("2")
-        }
-    }
-
-    @Test
-    fun generates_a_module_that_binds_different_values_based_on_the_named_qualifier() {
-        val module = Module8.create()
-
-        assertAll {
-            assertThat(module.foo1).hasClass(Foo::class)
-            assertThat(module.foo2).hasClass(Foo2::class)
         }
     }
 

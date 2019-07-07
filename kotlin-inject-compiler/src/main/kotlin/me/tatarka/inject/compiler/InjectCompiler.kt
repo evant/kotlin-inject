@@ -60,18 +60,6 @@ class InjectCompiler : AbstractProcessor() {
 
         val props = mutableListOf<PropertySpec>()
 
-        for (method in context.binds.values) {
-            props.add(
-                PropertySpec.builder(
-                    method.simpleName.asProp(),
-                    method.returnType.asTypeName(),
-                    KModifier.OVERRIDE
-                ).receiver(method.parameters[0].asType().asTypeName())
-                    .getter(FunSpec.getterBuilder().addCode("return this").build())
-                    .build()
-            )
-        }
-
         for ((type, _) in context.scoped) {
             val codeBlock = CodeBlock.builder()
             codeBlock.add("lazy { ")
@@ -178,7 +166,6 @@ class InjectCompiler : AbstractProcessor() {
     ): Context {
 
         val providesMap = mutableMapOf<TypeKey, ExecutableElement>()
-        val bindsMap = mutableMapOf<TypeKey, ExecutableElement>()
         val scoped = mutableMapOf<TypeMirror, TypeElement>()
 
         val elementScope = element.scopeType()
@@ -212,9 +199,6 @@ class InjectCompiler : AbstractProcessor() {
                     providesMap[TypeKey(method.returnType, method.qualifier())] = method
                     addScope(method.returnType, method.scopeType())
                 }
-                if (method.getAnnotation(Binds::class.java) != null) {
-                    bindsMap[TypeKey(method.returnType, method.qualifier())] = method
-                }
                 if (method.isProvider()) {
                     val returnType = typeUtils.asElement(method.returnType)
                     addScope(method.returnType, returnType.scopeType())
@@ -245,7 +229,6 @@ class InjectCompiler : AbstractProcessor() {
             name = name,
             parents = parents,
             provides = providesMap,
-            binds = bindsMap,
             scoped = scoped
         )
     }
@@ -258,14 +241,13 @@ class InjectCompiler : AbstractProcessor() {
         if (result == null) {
             messager.printMessage(
                 Diagnostic.Kind.ERROR,
-                "Cannot find an @Inject constructor, @Provides, or @Binds for class: ${key.type} on ${context.source}",
+                "Cannot find an @Inject constructor or @Provides for class: ${key.type} on ${context.source}",
                 context.source
             )
             throw FailedToGenerateException()
         }
         return when (result) {
             is Result.Provides -> provideProvides(result, context)
-            is Result.Binds -> provideBinds(result.element, context)
             is Result.Scoped -> provideScoped(key, result)
             is Result.Constructor -> provideConstructor(result.element, context)
         }
@@ -363,9 +345,6 @@ class InjectCompiler : AbstractProcessor() {
         provides[key]?.let { result ->
             return@find Result.Provides(name, result)
         }
-        binds[key]?.let { result ->
-            return@find Result.Binds(name, result)
-        }
         scoped[key.type]?.let { result ->
             return@find Result.Scoped(name, result)
         }
@@ -387,7 +366,6 @@ class InjectCompiler : AbstractProcessor() {
         val name: String? = null,
         val parents: List<Context>,
         val provides: Map<TypeKey, ExecutableElement>,
-        val binds: Map<TypeKey, ExecutableElement>,
         val scoped: Map<TypeMirror, TypeElement> = emptyMap()
     ) {
         fun withoutScoped() = copy(scoped = emptyMap())
@@ -395,7 +373,6 @@ class InjectCompiler : AbstractProcessor() {
 
     sealed class Result(val name: String?) {
         class Provides(name: String?, val element: ExecutableElement) : Result(name)
-        class Binds(name: String?, val element: ExecutableElement) : Result(name)
         class Scoped(name: String?, val element: TypeElement) : Result(name)
         class Constructor(val element: TypeElement) : Result(null)
     }

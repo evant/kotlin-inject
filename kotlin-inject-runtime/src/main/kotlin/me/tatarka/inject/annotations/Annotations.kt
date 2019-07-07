@@ -17,10 +17,6 @@ annotation class Module
 annotation class Provides
 
 @Retention(RUNTIME)
-@Target(PROPERTY_GETTER, FUNCTION)
-annotation class Binds
-
-@Retention(RUNTIME)
 @Target(ANNOTATION_CLASS)
 annotation class Scope
 

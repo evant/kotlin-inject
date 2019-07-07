@@ -18,8 +18,8 @@ class Baz(foo: IFoo, bar: Bar)
 abstract class MyModule {
     abstract val baz: Baz
 
-    @get:Binds
-    protected abstract val Foo.binds: IFoo
+    @get:Provides
+    protected val Foo.binds: IFoo get() = this
 
     @Provides
     @Singleton

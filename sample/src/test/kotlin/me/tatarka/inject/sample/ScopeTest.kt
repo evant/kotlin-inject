@@ -4,14 +4,13 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import me.tatarka.inject.annotations.*
 import org.junit.Test
-import kotlin.reflect.KClass
 
 class ScopeFoo
 
 @Scope
 annotation class CustomScope
 
-@Module abstract class SingletonProvidesModule {
+@Singleton @Module abstract class SingletonProvidesModule {
     var providesCalledCount = 0
 
     abstract val foo: ScopeFoo
