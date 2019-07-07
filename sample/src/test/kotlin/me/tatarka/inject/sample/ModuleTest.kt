@@ -34,8 +34,8 @@ class NamedFoo(val name: String)
     @get:Named("2")
     abstract val foo2: NamedFoo
 
-    @Provides @Named("1") fun foo1() = NamedFoo("1")
-    @Provides @Named("2") fun foo2() = NamedFoo("2")
+    @Named("1") fun foo1() = NamedFoo("1")
+    @Named("2") fun foo2() = NamedFoo("2")
 
     companion object
 }
@@ -47,8 +47,8 @@ class NamedFoo(val name: String)
 @Module abstract class Module9 {
     abstract val qualifiedFoo: QualifiedFoo
 
-    @Provides @Named("1") fun foo1() = NamedFoo("1")
-    @Provides @Named("2") fun foo2() = NamedFoo("2")
+    @Named("1") fun foo1() = NamedFoo("1")
+    @Named("2") fun foo2() = NamedFoo("2")
 
     companion object
 }

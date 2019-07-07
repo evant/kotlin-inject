@@ -1,6 +1,8 @@
 package me.tatarka.inject.sample
 
-import me.tatarka.inject.annotations.*
+import me.tatarka.inject.annotations.Inject
+import me.tatarka.inject.annotations.Module
+import me.tatarka.inject.annotations.Singleton
 
 @Inject
 @Singleton
@@ -18,10 +20,8 @@ class Baz(foo: IFoo, bar: Bar)
 abstract class MyModule {
     abstract val baz: Baz
 
-    @get:Provides
     protected val Foo.binds: IFoo get() = this
 
-    @Provides
     @Singleton
     protected fun bar() = Bar()
 }

@@ -195,7 +195,7 @@ class InjectCompiler : AbstractProcessor() {
 
         element.recurseParents(typeUtils) { type, e ->
             for (method in ElementFilter.methodsIn(e.enclosedElements)) {
-                if (method.getAnnotation(Provides::class.java) != null) {
+                if (method.isProvides()) {
                     providesMap[TypeKey(method.returnType, method.qualifier())] = method
                     addScope(method.returnType, method.scopeType())
                 }
@@ -327,6 +327,8 @@ class InjectCompiler : AbstractProcessor() {
 
 
     private fun Element.isModule() = getAnnotation(Module::class.java) != null
+
+    private fun ExecutableElement.isProvides(): Boolean = !modifiers.contains(Modifier.PRIVATE) && !modifiers.contains(Modifier.ABSTRACT) && returnType !is NoType
 
     private fun ExecutableElement.isProvider(): Boolean = modifiers.contains(Modifier.ABSTRACT) && parameters.isEmpty() && returnType !is NoType
 

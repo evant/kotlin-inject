@@ -15,7 +15,6 @@ annotation class CustomScope
 
     abstract val foo: ScopeFoo
 
-    @Provides
     @Singleton
     fun foo() = ScopeFoo().also { providesCalledCount++ }
 
@@ -41,7 +40,6 @@ var barConstructorCount = 0
 
     abstract val foo: ScopeFoo
 
-    @Provides
     @CustomScope
     fun foo() = ScopeFoo().also { providesCalledCount++ }
 

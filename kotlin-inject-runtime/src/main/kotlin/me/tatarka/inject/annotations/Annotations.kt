@@ -13,10 +13,6 @@ annotation class Inject
 annotation class Module
 
 @Retention(RUNTIME)
-@Target(PROPERTY_GETTER, FUNCTION)
-annotation class Provides
-
-@Retention(RUNTIME)
 @Target(ANNOTATION_CLASS)
 annotation class Scope
 
