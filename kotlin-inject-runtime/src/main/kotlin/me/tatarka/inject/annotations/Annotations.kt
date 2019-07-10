@@ -19,7 +19,7 @@ annotation class Scope
 @Scope
 @MustBeDocumented
 @Retention(RUNTIME)
-@Target(CLASS, FUNCTION, PROPERTY_GETTER)
+@Target(CLASS)
 annotation class Singleton
 
 @Retention(RUNTIME)
@@ -41,9 +41,8 @@ annotation class ClassKey(val value: KClass<*>)
 @MultibindsKey
 annotation class StringKey(val value: String)
 
-
-@MultibindsKey
-annotation class My2ArgKey(val one: String, val two: Int)
+@Target(FUNCTION, PROPERTY_GETTER)
+annotation class IntoSet
 
 @Target(FUNCTION, PROPERTY_GETTER)
 annotation class IntoMap

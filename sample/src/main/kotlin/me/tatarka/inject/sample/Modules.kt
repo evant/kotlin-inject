@@ -22,7 +22,6 @@ abstract class MyModule {
 
     protected val Foo.binds: IFoo get() = this
 
-    @Singleton
     protected fun bar() = Bar()
 }
 
