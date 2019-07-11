@@ -4,13 +4,16 @@ import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.plusParameter
 import me.tatarka.inject.annotations.*
 import java.io.File
+import java.util.*
 import javax.annotation.processing.*
 import javax.lang.model.SourceVersion
 import javax.lang.model.element.*
+import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.ExecutableType
 import javax.lang.model.type.NoType
 import javax.lang.model.type.TypeMirror
 import javax.lang.model.util.ElementFilter
+import javax.lang.model.util.Elements
 import javax.lang.model.util.Types
 import javax.tools.Diagnostic
 import kotlin.reflect.KClass
@@ -22,6 +25,7 @@ class InjectCompiler : AbstractProcessor() {
     private lateinit var generatedSourcesRoot: String
     private lateinit var filer: Filer
     private lateinit var typeUtils: Types
+    private lateinit var elementUtils: Elements
     private lateinit var messager: Messager
 
     override fun init(processingEnv: ProcessingEnvironment) {
@@ -29,6 +33,7 @@ class InjectCompiler : AbstractProcessor() {
         this.generatedSourcesRoot = processingEnv.options[KAPT_KOTLIN_GENERATED_OPTION_NAME]!!
         this.filer = processingEnv.filer
         this.typeUtils = processingEnv.typeUtils
+        this.elementUtils = processingEnv.elementUtils
         this.messager = processingEnv.messager
     }
 
@@ -55,54 +60,30 @@ class InjectCompiler : AbstractProcessor() {
     }
 
     private fun process(element: TypeElement, scope: TypeElement?, scopedInjects: Collection<TypeElement>) {
+        val constructor = element.constructor()
+        val companion = element.getCompanion()
 
+        val injectModule = generateInjectModule(element, constructor, scopedInjects)
+        val createFunction = generateCreate(element, constructor, companion, injectModule)
+
+        val file = FileSpec.builder(element.enclosingElement.toString(), "Inject${element.simpleName}")
+            .addType(injectModule)
+            .addFunction(createFunction)
+            .build()
+
+        val out = File(generatedSourcesRoot).also { it.mkdir() }
+
+        file.writeTo(out)
+    }
+
+    private fun generateInjectModule(
+        element: TypeElement,
+        constructor: ExecutableElement?,
+        scopedInjects: Collection<TypeElement>
+    ): TypeSpec {
         val context = collectTypes(element, scopedInjects)
 
-        val props = mutableListOf<PropertySpec>()
-
-        for ((type, _) in context.scoped) {
-            val codeBlock = CodeBlock.builder()
-            codeBlock.add("lazy { ")
-            codeBlock.add(provide(TypeKey(type), context.withoutScoped()))
-            codeBlock.add(" }")
-            props.add(
-                PropertySpec.builder(
-                    typeUtils.asElement(type).simpleName.asScopedProp(),
-                    type.asTypeName()
-                ).delegate(codeBlock.build())
-                    .build()
-            )
-        }
-
-        element.recurseParents(typeUtils) { type, e ->
-            for (method in ElementFilter.methodsIn(e.enclosedElements)) {
-                if (method.isProvider()) {
-                    val qualifier = method.qualifier()
-
-                    val codeBlock = CodeBlock.builder()
-                    codeBlock.add("return ")
-                    val methodType = typeUtils.asMemberOf(type, method) as ExecutableType
-                    codeBlock.add(provide(TypeKey(methodType.returnType, qualifier), context))
-                    props.add(
-                        PropertySpec.builder(
-                            method.simpleName.asProp(),
-                            methodType.returnType.asTypeName(),
-                            KModifier.OVERRIDE
-                        )
-                            .getter(
-                                FunSpec.getterBuilder()
-                                    .addCode(codeBlock.build())
-                                    .build()
-                            )
-                            .build()
-                    )
-                }
-            }
-        }
-
-        val constructor = element.constructor()
-
-        val injectModule = TypeSpec.classBuilder("Inject${element.simpleName}")
+        return TypeSpec.classBuilder("Inject${element.simpleName}")
             .superclass(element.asClassName())
             .apply {
                 if (constructor != null) {
@@ -114,48 +95,89 @@ class InjectCompiler : AbstractProcessor() {
                     }
                     primaryConstructor(funSpec.build())
                 }
-            }
-            .addProperties(props)
-            .build()
 
-        val companion = element.getCompanion()
-
-        val file = FileSpec.builder(element.enclosingElement.toString(), "Inject${element.simpleName}")
-            .addType(injectModule)
-            .addFunction(
-                FunSpec.builder("create")
-                    .apply {
-                        if (constructor != null) {
-                            addParameters(ParameterSpec.parametersOf(constructor))
-                        }
-                        if (companion != null) {
-                            receiver(companion.asType().asTypeName())
-                        } else {
-                            receiver(KClass::class.asClassName().plusParameter(element.asType().asTypeName()))
-                        }
-                    }
-                    .returns(element.asType().asTypeName())
-                    .apply {
+                try {
+                    for ((type, _) in context.scoped) {
                         val codeBlock = CodeBlock.builder()
-                        codeBlock.add("return %L.%N(", element.enclosingElement.toString(), injectModule)
-                        if (constructor != null) {
-                            constructor.parameters.forEachIndexed { i, parameter ->
-                                if (i != 0) {
-                                    codeBlock.add(", ")
-                                }
-                                codeBlock.add("%L", parameter.simpleName.toString())
+                        codeBlock.add("lazy { ")
+                        codeBlock.add(provide(TypeKey(type), context.withoutScoped()))
+                        codeBlock.add(" }")
+
+                        addProperty(
+                            PropertySpec.builder(
+                                typeUtils.asElement(type).simpleName.asScopedProp(),
+                                type.asTypeName()
+                            ).delegate(codeBlock.build())
+                                .build()
+                        )
+                    }
+
+                    element.recurseParents(typeUtils) { type, e ->
+                        for (method in ElementFilter.methodsIn(e.enclosedElements)) {
+                            if (method.isProvider()) {
+                                val qualifier = method.qualifier()
+
+                                val codeBlock = CodeBlock.builder()
+                                codeBlock.add("return ")
+                                val methodType = typeUtils.asMemberOf(type, method) as ExecutableType
+                                codeBlock.add(provide(TypeKey(methodType.returnType, qualifier), context))
+
+                                addProperty(
+                                    PropertySpec.builder(
+                                        method.simpleName.asProp(),
+                                        methodType.returnType.asTypeName().javaToKotlinType(),
+                                        KModifier.OVERRIDE
+                                    )
+                                        .getter(
+                                            FunSpec.getterBuilder()
+                                                .addCode(codeBlock.build())
+                                                .build()
+                                        )
+                                        .build()
+                                )
                             }
                         }
-                        codeBlock.add(")")
-                        addCode(codeBlock.build())
                     }
-                    .build()
-            )
+                } catch (e: FailedToGenerateException) {
+                    // Create a stub module to prevent extra compile errors, the original one will still be reported.
+                }
+            }
             .build()
+    }
 
-        val out = File(generatedSourcesRoot).also { it.mkdir() }
-
-        file.writeTo(out)
+    private fun generateCreate(
+        element: TypeElement,
+        constructor: ExecutableElement?,
+        companion: TypeElement?,
+        injectModule: TypeSpec
+    ): FunSpec {
+        return FunSpec.builder("create")
+            .apply {
+                if (constructor != null) {
+                    addParameters(ParameterSpec.parametersOf(constructor))
+                }
+                if (companion != null) {
+                    receiver(companion.asType().asTypeName())
+                } else {
+                    receiver(KClass::class.asClassName().plusParameter(element.asType().asTypeName()))
+                }
+            }
+            .returns(element.asType().asTypeName())
+            .apply {
+                val codeBlock = CodeBlock.builder()
+                codeBlock.add("return %L.%N(", element.enclosingElement.toString(), injectModule)
+                if (constructor != null) {
+                    constructor.parameters.forEachIndexed { i, parameter ->
+                        if (i != 0) {
+                            codeBlock.add(", ")
+                        }
+                        codeBlock.add("%L", parameter.simpleName.toString())
+                    }
+                }
+                codeBlock.add(")")
+                addCode(codeBlock.build())
+            }
+            .build()
     }
 
     private fun collectTypes(
@@ -166,6 +188,8 @@ class InjectCompiler : AbstractProcessor() {
     ): Context {
 
         val providesMap = mutableMapOf<TypeKey, ExecutableElement>()
+        val providesContainer = mutableMapOf<TypeKey, Pair<String, MutableList<ExecutableElement>>>()
+
         val scoped = mutableMapOf<TypeMirror, TypeElement>()
 
         val elementScope = element.scopeType()
@@ -196,8 +220,31 @@ class InjectCompiler : AbstractProcessor() {
         element.recurseParents(typeUtils) { type, e ->
             for (method in ElementFilter.methodsIn(e.enclosedElements)) {
                 if (method.isProvides()) {
-                    providesMap[TypeKey(method.returnType, method.qualifier())] = method
-                    addScope(method.returnType, method.scopeType())
+                    if (method.getAnnotation(IntoMap::class.java) != null) {
+                        // Pair<A, B> -> Map<A, B>
+                        val declaredType = method.returnType as DeclaredType
+                        val mapType = typeUtils.getDeclaredType(
+                            elementUtils.getTypeElement(Map::class.java.canonicalName),
+                            declaredType.typeArguments[0], declaredType.typeArguments[1]
+                        )
+
+                        providesContainer.computeIfAbsent(TypeKey(mapType)) {
+                            "mapOf" to mutableListOf()
+                        }.second.add(method)
+                    } else if (method.getAnnotation(IntoSet::class.java) != null) {
+                        // A -> Set<A>
+                        val setType = typeUtils.getDeclaredType(
+                            elementUtils.getTypeElement(Set::class.java.canonicalName),
+                            method.returnType
+                        )
+
+                        providesContainer.computeIfAbsent(TypeKey((setType))) {
+                            "setOf" to mutableListOf()
+                        }.second.add(method)
+                    } else {
+                        providesMap[TypeKey(method.returnType, method.qualifier())] = method
+                        addScope(method.returnType, method.scopeType())
+                    }
                 }
                 if (method.isProvider()) {
                     val returnType = typeUtils.asElement(method.returnType)
@@ -229,6 +276,7 @@ class InjectCompiler : AbstractProcessor() {
             name = name,
             parents = parents,
             provides = providesMap,
+            providesContainer = providesContainer,
             scoped = scoped
         )
     }
@@ -250,6 +298,7 @@ class InjectCompiler : AbstractProcessor() {
             is Result.Provides -> provideProvides(result, context)
             is Result.Scoped -> provideScoped(key, result)
             is Result.Constructor -> provideConstructor(result.element, context)
+            is Result.Container -> provideContainer(result, context)
         }
     }
 
@@ -286,17 +335,6 @@ class InjectCompiler : AbstractProcessor() {
         return codeBlock.build()
     }
 
-    private fun provideBinds(
-        bindsElement: ExecutableElement,
-        context: Context
-    ): CodeBlock {
-        val codeBlock = CodeBlock.builder()
-        val concreate = bindsElement.parameters[0]
-        codeBlock.add(provide(TypeKey(concreate.asType(), concreate.qualifier()), context))
-        codeBlock.add(".%N", bindsElement.simpleName.asProp())
-        return codeBlock.build()
-    }
-
     private fun provideConstructor(
         element: Element,
         context: Context
@@ -323,16 +361,32 @@ class InjectCompiler : AbstractProcessor() {
         return codeBlock.build()
     }
 
+    private fun provideContainer(providesElement: Result.Container, context: Context): CodeBlock {
+        return CodeBlock.builder().apply {
+            add("${providesElement.creator}(")
+            providesElement.elements.forEachIndexed { index, element ->
+                if (index != 0) {
+                    add(", ")
+                }
+                add(provideProvides(Result.Provides(null, element), context))
+            }
+            add(")")
+        }.build()
+    }
+
     private fun Name.asProp(): String = toString().removePrefix("get").decapitalize()
 
 
     private fun Element.isModule() = getAnnotation(Module::class.java) != null
 
-    private fun ExecutableElement.isProvides(): Boolean = !modifiers.contains(Modifier.PRIVATE) && !modifiers.contains(Modifier.ABSTRACT) && returnType !is NoType
+    private fun ExecutableElement.isProvides(): Boolean =
+        !modifiers.contains(Modifier.PRIVATE) && !modifiers.contains(Modifier.ABSTRACT) && returnType !is NoType
 
-    private fun ExecutableElement.isProvider(): Boolean = modifiers.contains(Modifier.ABSTRACT) && parameters.isEmpty() && returnType !is NoType
+    private fun ExecutableElement.isProvider(): Boolean =
+        modifiers.contains(Modifier.ABSTRACT) && parameters.isEmpty() && returnType !is NoType
 
-    private fun ExecutableElement.isProp(): Boolean = simpleName.startsWith("get") && ((isExtension() && parameters.size == 1) || parameters.isEmpty())
+    private fun ExecutableElement.isProp(): Boolean =
+        simpleName.startsWith("get") && ((isExtension() && parameters.size == 1) || parameters.isEmpty())
 
     private fun Element.getCompanion(): TypeElement? = ElementFilter.typesIn(enclosedElements).firstOrNull()
 
@@ -346,6 +400,9 @@ class InjectCompiler : AbstractProcessor() {
     private fun Context.find(key: TypeKey): Result? {
         provides[key]?.let { result ->
             return@find Result.Provides(name, result)
+        }
+        providesContainer[key]?.let { (creator, elements) ->
+            return@find Result.Container(creator, elements)
         }
         scoped[key.type]?.let { result ->
             return@find Result.Scoped(name, result)
@@ -368,6 +425,7 @@ class InjectCompiler : AbstractProcessor() {
         val name: String? = null,
         val parents: List<Context>,
         val provides: Map<TypeKey, ExecutableElement>,
+        val providesContainer: Map<TypeKey, Pair<String, List<ExecutableElement>>>,
         val scoped: Map<TypeMirror, TypeElement> = emptyMap()
     ) {
         fun withoutScoped() = copy(scoped = emptyMap())
@@ -377,9 +435,19 @@ class InjectCompiler : AbstractProcessor() {
         class Provides(name: String?, val element: ExecutableElement) : Result(name)
         class Scoped(name: String?, val element: TypeElement) : Result(name)
         class Constructor(val element: TypeElement) : Result(null)
+        class Container(val creator: String, val elements: List<ExecutableElement>) : Result(null)
     }
 
-    data class TypeKey(val type: TypeMirror, val qualifier: Any? = null)
+    data class TypeKey(val type: TypeMirror, val qualifier: Any? = null) {
+        override fun equals(other: Any?): Boolean {
+            if (other !is TypeKey) return false
+            return qualifier == other.qualifier && type.asTypeName() == other.type.asTypeName()
+        }
+
+        override fun hashCode(): Int {
+            return Objects.hash(type.asTypeName(), qualifier)
+        }
+    }
 
     private fun AnnotationMirror.wrap(): AnnotationMirrorWrapper =
         AnnotationMirrorWrapper(annotationType.asTypeName(), elementValues.values.toList().map { it.value })

@@ -113,3 +113,4 @@ class ProvidesTest {
         assertThat(module.foo).isSameAs(foo)
     }
 }
+

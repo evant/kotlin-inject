@@ -1,5 +1,9 @@
 package me.tatarka.inject.compiler
 
+import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.ParameterizedTypeName
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+import com.squareup.kotlinpoet.TypeName
 import me.tatarka.inject.annotations.Scope
 import javax.lang.model.element.*
 import javax.lang.model.type.DeclaredType
@@ -27,3 +31,15 @@ fun TypeElement.recurseParents(typeUtils: Types, f: (DeclaredType, TypeElement) 
 
 fun ExecutableElement.isExtension() = parameters.isNotEmpty() && parameters[0].simpleName.startsWith("\$this")
 
+fun TypeName.javaToKotlinType(): TypeName = if (this is ParameterizedTypeName) {
+    (rawType.javaToKotlinType() as ClassName).parameterizedBy(
+        *typeArguments.map { it.javaToKotlinType() }.toTypedArray()
+    )
+} else {
+    when(toString()) {
+        "java.util.Map" -> ClassName.bestGuess("kotlin.collections.Map")
+        "java.util.Set" -> ClassName.bestGuess("kotlin.collections.Set")
+        "java.lang.String" -> ClassName.bestGuess("kotlin.String")
+        else -> this
+    }
+}

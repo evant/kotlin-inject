@@ -33,13 +33,13 @@ annotation class Qualifier
 annotation class Named(val value: String)
 
 @Target(ANNOTATION_CLASS)
-annotation class MultibindsKey
+annotation class FunArgs
 
-@MultibindsKey
-annotation class ClassKey(val value: KClass<*>)
+@FunArgs
+annotation class ClassArg(val value: KClass<*>)
 
-@MultibindsKey
-annotation class StringKey(val value: String)
+@FunArgs
+annotation class StringArg(val value: String)
 
 @Target(FUNCTION, PROPERTY_GETTER)
 annotation class IntoSet
