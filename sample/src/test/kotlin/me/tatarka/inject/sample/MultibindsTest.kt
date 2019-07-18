@@ -1,11 +1,13 @@
 package me.tatarka.inject.sample
 
-import assertk.assertAll
 import assertk.assertThat
 import assertk.assertions.containsOnly
-import assertk.assertions.isEqualTo
-import me.tatarka.inject.annotations.*
+import me.tatarka.inject.annotations.Inject
+import me.tatarka.inject.annotations.IntoMap
+import me.tatarka.inject.annotations.IntoSet
+import me.tatarka.inject.annotations.Module
 import org.junit.Test
+import kotlin.reflect.KClass
 
 data class FooValue(val name: String)
 
@@ -35,21 +37,6 @@ data class FooValue(val name: String)
 
     companion object
 }
-
-//@Module abstract class FunKeyModule {
-//
-//    abstract val items: (String) -> FooValue
-//
-////    abstract fun items(value: String): FooValue
-//
-//    @IntoFun @StringArg("1")
-//    fun fooValue1() = FooValue("1")
-//
-//    @IntoFun @StringArg("2")
-//    fun fooValue2() = FooValue("2")
-//
-//    companion object
-//}
 
 class MultibindsTest {
 

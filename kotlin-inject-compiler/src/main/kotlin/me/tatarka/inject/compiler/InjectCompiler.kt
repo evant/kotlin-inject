@@ -299,6 +299,7 @@ class InjectCompiler : AbstractProcessor() {
             is Result.Scoped -> provideScoped(key, result)
             is Result.Constructor -> provideConstructor(result.element, context)
             is Result.Container -> provideContainer(result, context)
+            is Result.Function -> provideFunction(result, context)
         }
     }
 
@@ -374,6 +375,14 @@ class InjectCompiler : AbstractProcessor() {
         }.build()
     }
 
+    private fun provideFunction(result: Result.Function, context: Context): CodeBlock {
+        return CodeBlock.builder().apply {
+            beginControlFlow("{")
+            add(provide(result.key, context))
+            endControlFlow()
+        }.build()
+    }
+
     private fun Name.asProp(): String = toString().removePrefix("get").decapitalize()
 
 
@@ -407,6 +416,12 @@ class InjectCompiler : AbstractProcessor() {
         scoped[key.type]?.let { result ->
             return@find Result.Scoped(name, result)
         }
+        if (key.type.toString().startsWith("kotlin.jvm.functions.Function0")) {
+            // Function0<T> -> T
+            val declaredType = key.type as DeclaredType
+            val fKey = TypeKey(declaredType.typeArguments[0], qualifier = key.qualifier)
+            return Result.Function(key = fKey)
+        }
         for (parent in parents) {
             val parentResult = parent.find(key)
             if (parentResult != null) {
@@ -436,6 +451,7 @@ class InjectCompiler : AbstractProcessor() {
         class Scoped(name: String?, val element: TypeElement) : Result(name)
         class Constructor(val element: TypeElement) : Result(null)
         class Container(val creator: String, val elements: List<ExecutableElement>) : Result(null)
+        class Function(val key: TypeKey): Result(null)
     }
 
     data class TypeKey(val type: TypeMirror, val qualifier: Any? = null) {
