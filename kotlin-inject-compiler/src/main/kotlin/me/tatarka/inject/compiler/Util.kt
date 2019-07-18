@@ -41,6 +41,7 @@ fun TypeName.javaToKotlinType(): TypeName = if (this is ParameterizedTypeName) {
         "java.util.Set" -> ClassName.bestGuess("kotlin.collections.Set")
         "java.lang.String" -> ClassName.bestGuess("kotlin.String")
         "kotlin.jvm.functions.Function0" -> ClassName.bestGuess("kotlin.Function0")
+        "kotlin.jvm.functions.Function1" -> ClassName.bestGuess("kotlin.Function1")
         else -> this
     }
 }

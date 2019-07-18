@@ -300,6 +300,7 @@ class InjectCompiler : AbstractProcessor() {
             is Result.Constructor -> provideConstructor(result.element, context)
             is Result.Container -> provideContainer(result, context)
             is Result.Function -> provideFunction(result, context)
+            is Result.Arg -> provideArg(result)
         }
     }
 
@@ -378,9 +379,26 @@ class InjectCompiler : AbstractProcessor() {
     private fun provideFunction(result: Result.Function, context: Context): CodeBlock {
         return CodeBlock.builder().apply {
             beginControlFlow("{")
-            add(provide(result.key, context))
+            val argMap = mutableMapOf<TypeMirror, String>()
+            result.args.forEachIndexed { index, arg ->
+                if (index != 0) {
+                    add(",")
+                }
+                val name = "arg$index"
+                argMap[arg] = name
+                add(" %L", name)
+            }
+            if (!result.args.isEmpty()) {
+                add(" ->")
+            }
+
+            add(provide(result.key, context.withArgs(argMap)))
             endControlFlow()
         }.build()
+    }
+
+    private fun provideArg(result: Result.Arg): CodeBlock {
+        return CodeBlock.of(result.argName)
     }
 
     private fun Name.asProp(): String = toString().removePrefix("get").decapitalize()
@@ -407,6 +425,12 @@ class InjectCompiler : AbstractProcessor() {
         }?.wrap()
 
     private fun Context.find(key: TypeKey): Result? {
+        for ((arg, name) in args) {
+            if (typeUtils.isSameType(arg, key.type)) {
+                return@find Result.Arg(name)
+            }
+        }
+
         provides[key]?.let { result ->
             return@find Result.Provides(name, result)
         }
@@ -419,8 +443,13 @@ class InjectCompiler : AbstractProcessor() {
         if (key.type.toString().startsWith("kotlin.jvm.functions.Function0")) {
             // Function0<T> -> T
             val declaredType = key.type as DeclaredType
-            val fKey = TypeKey(declaredType.typeArguments[0], qualifier = key.qualifier)
-            return Result.Function(key = fKey)
+            val fKey = TypeKey(declaredType.typeArguments[0])
+            return Result.Function(key = fKey, args = emptyList())
+        } else if (key.type.toString().startsWith("kotlin.jvm.functions.Function1")) {
+            // Function1<A, B> -> B
+            val declaredType = key.type as DeclaredType
+            val fKey = TypeKey(declaredType.typeArguments[1])
+            return Result.Function(key = fKey, args = listOf(declaredType.typeArguments[0]))
         }
         for (parent in parents) {
             val parentResult = parent.find(key)
@@ -441,9 +470,12 @@ class InjectCompiler : AbstractProcessor() {
         val parents: List<Context>,
         val provides: Map<TypeKey, ExecutableElement>,
         val providesContainer: Map<TypeKey, Pair<String, List<ExecutableElement>>>,
-        val scoped: Map<TypeMirror, TypeElement> = emptyMap()
+        val scoped: Map<TypeMirror, TypeElement> = emptyMap(),
+        val args: Map<TypeMirror, String> = emptyMap()
     ) {
         fun withoutScoped() = copy(scoped = emptyMap())
+
+        fun withArgs(args: Map<TypeMirror, String>) = copy(args = args)
     }
 
     sealed class Result(val name: String?) {
@@ -451,7 +483,8 @@ class InjectCompiler : AbstractProcessor() {
         class Scoped(name: String?, val element: TypeElement) : Result(name)
         class Constructor(val element: TypeElement) : Result(null)
         class Container(val creator: String, val elements: List<ExecutableElement>) : Result(null)
-        class Function(val key: TypeKey): Result(null)
+        class Function(val key: TypeKey, val args: List<TypeMirror>): Result(null)
+        class Arg(val argName: String): Result(null)
     }
 
     data class TypeKey(val type: TypeMirror, val qualifier: Any? = null) {
