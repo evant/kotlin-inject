@@ -24,7 +24,7 @@ abstract class MyModule {
 
     protected val Foo.binds: IFoo get() = this
 
-    protected fun bar() = Bar()
+    protected fun bar(): Bar = Bar()
 }
 
 fun main() {

@@ -40,7 +40,7 @@ class NamedFoo(val name: String)
     companion object
 }
 
-@Inject class QualifiedFoo(@Named("1") val foo1: NamedFoo, @Named("2") val foo2: NamedFoo)
+@Inject class QualifiedFoo(@Named("1") val foo1: @Named("1") NamedFoo, @Named("2") val foo2: NamedFoo)
 
 @Module abstract class Module9 {
     abstract val qualifiedFoo: QualifiedFoo
