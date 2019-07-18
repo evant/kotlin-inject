@@ -40,8 +40,6 @@ class NamedFoo(val name: String)
     companion object
 }
 
-@Inject class Foo2 : IFoo
-
 @Inject class QualifiedFoo(@Named("1") val foo1: NamedFoo, @Named("2") val foo2: NamedFoo)
 
 @Module abstract class Module9 {
@@ -57,7 +55,7 @@ class ModuleTest {
 
     @Before
     fun setup() {
-        barConstructorCount = 0
+        customScopeBarConstructorCount = 0
     }
 
     @Test

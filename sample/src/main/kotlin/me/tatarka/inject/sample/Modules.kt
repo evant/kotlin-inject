@@ -2,7 +2,9 @@ package me.tatarka.inject.sample
 
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Module
-import me.tatarka.inject.annotations.Singleton
+import me.tatarka.inject.annotations.Scope
+
+@Scope annotation class Singleton
 
 @Inject
 @Singleton

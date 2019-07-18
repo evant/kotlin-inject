@@ -2,7 +2,6 @@ package me.tatarka.inject.annotations
 
 import kotlin.annotation.AnnotationRetention.RUNTIME
 import kotlin.annotation.AnnotationTarget.*
-import kotlin.reflect.KClass
 
 @Retention(RUNTIME)
 @Target(CLASS)
@@ -16,12 +15,6 @@ annotation class Module
 @Target(ANNOTATION_CLASS)
 annotation class Scope
 
-@Scope
-@MustBeDocumented
-@Retention(RUNTIME)
-@Target(CLASS)
-annotation class Singleton
-
 @Retention(RUNTIME)
 @Target(ANNOTATION_CLASS)
 annotation class Qualifier
@@ -32,20 +25,8 @@ annotation class Qualifier
 @Target(VALUE_PARAMETER, FUNCTION, PROPERTY_GETTER, CLASS, TYPE)
 annotation class Named(val value: String)
 
-@Target(ANNOTATION_CLASS)
-annotation class FunArgs
-
-@FunArgs
-annotation class ClassArg(val value: KClass<*>)
-
-@FunArgs
-annotation class StringArg(val value: String)
-
 @Target(FUNCTION, PROPERTY_GETTER)
 annotation class IntoSet
 
 @Target(FUNCTION, PROPERTY_GETTER)
 annotation class IntoMap
-
-@Target(FUNCTION, PROPERTY_GETTER)
-annotation class IntoFun
