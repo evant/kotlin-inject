@@ -3,13 +3,15 @@ package me.tatarka.inject.compiler
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.plusParameter
 import me.tatarka.inject.annotations.*
+import me.tatarka.inject.compiler.ast.AstClass
+import me.tatarka.inject.compiler.ast.AstProvider
+import me.tatarka.inject.compiler.ast.AstType
 import java.io.File
 import java.util.*
 import javax.annotation.processing.*
 import javax.lang.model.SourceVersion
 import javax.lang.model.element.*
 import javax.lang.model.type.DeclaredType
-import javax.lang.model.type.ExecutableType
 import javax.lang.model.type.NoType
 import javax.lang.model.type.TypeMirror
 import javax.lang.model.util.ElementFilter
@@ -20,25 +22,28 @@ import kotlin.reflect.KClass
 
 private const val KAPT_KOTLIN_GENERATED_OPTION_NAME = "kapt.kotlin.generated"
 
-class InjectCompiler : AbstractProcessor() {
+class InjectCompiler : AbstractProcessor(), AstProvider {
 
     private lateinit var generatedSourcesRoot: String
     private lateinit var filer: Filer
-    private lateinit var typeUtils: Types
-    private lateinit var elementUtils: Elements
-    private lateinit var messager: Messager
+    override lateinit var types: Types
+    override lateinit var elements: Elements
+    override lateinit var messager: Messager
 
     override fun init(processingEnv: ProcessingEnvironment) {
         super.init(processingEnv)
         this.generatedSourcesRoot = processingEnv.options[KAPT_KOTLIN_GENERATED_OPTION_NAME]!!
         this.filer = processingEnv.filer
-        this.typeUtils = processingEnv.typeUtils
-        this.elementUtils = processingEnv.elementUtils
+        this.types = processingEnv.typeUtils
+        this.elements = processingEnv.elementUtils
         this.messager = processingEnv.messager
     }
 
     override fun process(elements: Set<TypeElement>, env: RoundEnvironment): Boolean {
         for (element in env.getElementsAnnotatedWith(Module::class.java)) {
+            if (element !is TypeElement) continue
+            val astClass = element.toAstClass() ?: continue
+
             val scope = element.scopeType()
             val scopedInjects =
                 if (scope != null) env.getElementsAnnotatedWith(scope).mapNotNull {
@@ -50,7 +55,7 @@ class InjectCompiler : AbstractProcessor() {
                     }
                 } else emptyList()
             try {
-                process(element as TypeElement, scope, scopedInjects)
+                process(astClass, scope, scopedInjects)
             } catch (e: FailedToGenerateException) {
                 // Continue so we can see all errors
                 continue
@@ -59,14 +64,14 @@ class InjectCompiler : AbstractProcessor() {
         return false
     }
 
-    private fun process(element: TypeElement, scope: TypeElement?, scopedInjects: Collection<TypeElement>) {
-        val constructor = element.constructor()
-        val companion = element.getCompanion()
+    private fun process(astClass: AstClass, scope: TypeElement?, scopedInjects: Collection<TypeElement>) {
+        val constructor = astClass.element.constructor()
+        val companion = astClass.element.getCompanion()
 
-        val injectModule = generateInjectModule(element, constructor, scopedInjects)
-        val createFunction = generateCreate(element, constructor, companion, injectModule)
+        val injectModule = generateInjectModule(astClass, constructor, scopedInjects)
+        val createFunction = generateCreate(astClass.element, constructor, companion, injectModule)
 
-        val file = FileSpec.builder(element.enclosingElement.toString(), "Inject${element.simpleName}")
+        val file = FileSpec.builder(astClass.element.enclosingElement.toString(), "Inject${astClass.element.simpleName}")
             .addType(injectModule)
             .addFunction(createFunction)
             .build()
@@ -77,14 +82,14 @@ class InjectCompiler : AbstractProcessor() {
     }
 
     private fun generateInjectModule(
-        element: TypeElement,
+        astClass: AstClass,
         constructor: ExecutableElement?,
         scopedInjects: Collection<TypeElement>
     ): TypeSpec {
-        val context = collectTypes(element, scopedInjects)
+        val context = collectTypes(astClass, scopedInjects)
 
-        return TypeSpec.classBuilder("Inject${element.simpleName}")
-            .superclass(element.asClassName())
+        return TypeSpec.classBuilder("Inject${astClass.element.simpleName}")
+            .superclass(astClass.element.asClassName())
             .apply {
                 if (constructor != null) {
                     val funSpec = FunSpec.constructorBuilder()
@@ -105,27 +110,28 @@ class InjectCompiler : AbstractProcessor() {
 
                         addProperty(
                             PropertySpec.builder(
-                                typeUtils.asElement(type).simpleName.asScopedProp(),
+                                types.asElement(type).simpleName.asScopedProp(),
                                 type.asTypeName()
                             ).delegate(codeBlock.build())
                                 .build()
                         )
                     }
 
-                    element.recurseParents(typeUtils) { type, e ->
-                        for (method in ElementFilter.methodsIn(e.enclosedElements)) {
-                            if (method.isProvider()) {
-                                val qualifier = method.qualifier()
+                    astClass.visitInheritanceChain { parentClass ->
+                        for (method in parentClass.methods) {
+                            if (method.element.isProvider()) {
+                                val qualifier = method.element.qualifier()
 
                                 val codeBlock = CodeBlock.builder()
                                 codeBlock.add("return ")
-                                val methodType = typeUtils.asMemberOf(type, method) as ExecutableType
-                                codeBlock.add(provide(TypeKey(methodType.returnType, qualifier), context))
+                                val returnType = method.returnTypeFor(astClass)
+
+                                codeBlock.add(provide(TypeKey(returnType.type, qualifier), context))
 
                                 addProperty(
                                     PropertySpec.builder(
-                                        method.simpleName.asProp(),
-                                        methodType.returnType.asTypeName().javaToKotlinType(),
+                                        method.name,
+                                        returnType.asTypeName(),
                                         KModifier.OVERRIDE
                                     )
                                         .getter(
@@ -181,7 +187,7 @@ class InjectCompiler : AbstractProcessor() {
     }
 
     private fun collectTypes(
-        element: TypeElement,
+        astClass: AstClass,
         scopedInjects: Collection<TypeElement>,
         name: String? = null,
         typesWithScope: MutableMap<TypeMirror, TypeElement> = mutableMapOf()
@@ -192,77 +198,78 @@ class InjectCompiler : AbstractProcessor() {
 
         val scoped = mutableMapOf<TypeMirror, TypeElement>()
 
-        val elementScope = element.scopeType()
+        val elementScope = astClass.element.scopeType()
 
         val itr = typesWithScope.iterator()
         while (itr.hasNext()) {
             val (type, typeScope) = itr.next()
             if (elementScope == typeScope) {
-                scoped[type] = element
+                scoped[type] = astClass.element
                 itr.remove()
             }
         }
 
         for (inject in scopedInjects) {
-            scoped[inject.asType()] = element
+            scoped[inject.asType()] = astClass.element
         }
 
         fun addScope(type: TypeMirror, scope: TypeElement?) {
             if (scope != null) {
                 if (scope == elementScope) {
-                    scoped[type] = element
+                    scoped[type] = astClass.element
                 } else {
                     typesWithScope[type] = scope
                 }
             }
         }
 
-        element.recurseParents(typeUtils) { type, e ->
-            for (method in ElementFilter.methodsIn(e.enclosedElements)) {
-                if (method.isProvides()) {
-                    if (method.getAnnotation(IntoMap::class.java) != null) {
+        astClass.visitInheritanceChain { parentClass ->
+            for (method in parentClass.methods) {
+                if (method.element.isProvides()) {
+                    if (method.element.getAnnotation(IntoMap::class.java) != null) {
                         // Pair<A, B> -> Map<A, B>
-                        val declaredType = method.returnType as DeclaredType
-                        val mapType = typeUtils.getDeclaredType(
-                            elementUtils.getTypeElement(Map::class.java.canonicalName),
+                        val declaredType = method.returnType.type as DeclaredType
+                        val mapType = types.getDeclaredType(
+                            elements.getTypeElement(Map::class.java.canonicalName),
                             declaredType.typeArguments[0], declaredType.typeArguments[1]
                         )
 
                         providesContainer.computeIfAbsent(TypeKey(mapType)) {
                             "mapOf" to mutableListOf()
-                        }.second.add(method)
-                    } else if (method.getAnnotation(IntoSet::class.java) != null) {
+                        }.second.add(method.element)
+                    } else if (method.element.getAnnotation(IntoSet::class.java) != null) {
                         // A -> Set<A>
-                        val setType = typeUtils.getDeclaredType(
-                            elementUtils.getTypeElement(Set::class.java.canonicalName),
-                            method.returnType
+                        val setType = types.getDeclaredType(
+                            elements.getTypeElement(Set::class.java.canonicalName),
+                            method.returnType.type
                         )
 
                         providesContainer.computeIfAbsent(TypeKey((setType))) {
                             "setOf" to mutableListOf()
-                        }.second.add(method)
+                        }.second.add(method.element)
                     } else {
-                        providesMap[TypeKey(method.returnType, method.qualifier())] = method
-                        addScope(method.returnType, method.scopeType())
+                        providesMap[TypeKey(method.element.returnType, method.element.qualifier())] = method.element
+                        addScope(method.element.returnType, method.element.scopeType())
                     }
                 }
-                if (method.isProvider()) {
-                    val returnType = typeUtils.asElement(method.returnType)
-                    addScope(method.returnType, returnType.scopeType())
+                if (method.element.isProvider()) {
+                    val returnType = types.asElement(method.element.returnType)
+                    addScope(method.element.returnType, returnType.scopeType())
                 }
             }
         }
 
         val parents = mutableListOf<Context>()
 
-        val constructor = element.constructor()
+        val constructor = astClass.element.constructor()
         if (constructor != null) {
             for (parameter in constructor.parameters) {
-                val elem = typeUtils.asElement(parameter.asType())
+                val elem = types.asElement(parameter.asType())
                 if (elem.isModule()) {
+                    val elemAstClass = (elem as TypeElement).toAstClass() ?: continue
                     parents.add(
                         collectTypes(
-                            elem as TypeElement,
+                            elemAstClass,
                             scopedInjects,
                             name = parameter.simpleName.toString(),
                             typesWithScope = typesWithScope
@@ -272,7 +279,7 @@ class InjectCompiler : AbstractProcessor() {
             }
         }
         return Context(
-            source = element,
+            source = astClass.element,
             name = name,
             parents = parents,
             provides = providesMap,
@@ -359,7 +366,7 @@ class InjectCompiler : AbstractProcessor() {
         if (result.name != null) {
             codeBlock.add("(%L as Inject%N).", result.name, result.element.simpleName)
         }
-        codeBlock.add("%N", typeUtils.asElement(key.type).simpleName.asScopedProp())
+        codeBlock.add("%N", types.asElement(key.type).simpleName.asScopedProp())
         return codeBlock.build()
     }
 
@@ -419,14 +426,19 @@ class InjectCompiler : AbstractProcessor() {
 
     private fun Element.constructor(): ExecutableElement? = ElementFilter.constructorsIn(enclosedElements).firstOrNull()
 
-    private fun Element.qualifier(): Any? =
-        annotationMirrors.find {
+    private fun Element.qualifier(): Any? {
+        return annotationMirrors.find {
             it.annotationType.asElement().getAnnotation(Qualifier::class.java) != null
         }?.wrap()
+    }
+
+    private fun AstType.qualifier(): Any? {
+        return annotations.filter { it.annotationMirror.annotationType.asElement().getAnnotation(Qualifier::class.java) != null }
+    }
 
     private fun Context.find(key: TypeKey): Result? {
         for ((arg, name) in args) {
-            if (typeUtils.isSameType(arg, key.type)) {
+            if (types.isSameType(arg, key.type)) {
                 return@find Result.Arg(name)
             }
         }
@@ -457,7 +469,7 @@ class InjectCompiler : AbstractProcessor() {
                 return parentResult
             }
         }
-        val element = typeUtils.asElement(key.type) as TypeElement
+        val element = types.asElement(key.type) as TypeElement
         if (element.getAnnotation(Inject::class.java) != null) {
             return Result.Constructor(element)
         }
@@ -486,6 +498,8 @@ class InjectCompiler : AbstractProcessor() {
         class Function(val key: TypeKey, val args: List<TypeMirror>): Result(null)
         class Arg(val argName: String): Result(null)
     }
+    
+    fun TypeKey(type: AstType): TypeKey = TypeKey(type.type, type.qualifier())
 
     data class TypeKey(val type: TypeMirror, val qualifier: Any? = null) {
         override fun equals(other: Any?): Boolean {
