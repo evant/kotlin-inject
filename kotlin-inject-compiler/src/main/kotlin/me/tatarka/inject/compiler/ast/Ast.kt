@@ -1,7 +1,7 @@
 package me.tatarka.inject.compiler.ast
 
-import com.squareup.kotlinpoet.TypeName
-import com.squareup.kotlinpoet.asTypeName
+import com.squareup.kotlinpoet.*
+import com.squareup.kotlinpoet.ClassName
 import kotlinx.metadata.*
 import kotlinx.metadata.jvm.annotations
 import kotlinx.metadata.jvm.getterSignature
@@ -54,7 +54,19 @@ interface AstProvider {
 
 sealed class AstElement(provider: AstProvider) : AstProvider by provider
 
-class AstClass(provider: AstProvider, val element: TypeElement, val kmClass: KmClass) : AstElement(provider) {
+class AstClass(provider: AstProvider, val element: TypeElement, internal val kmClass: KmClass) : AstElement(provider) {
+    val packageName: String get() = elements.getPackageOf(element).qualifiedName.toString()
+
+    val name: String get() = element.simpleName.toString()
+
+    val companion: AstClass? by lazy {
+        val companionName = kmClass.companionObject ?: return@lazy null
+        val companionType = ElementFilter.typesIn(element.enclosedElements).firstOrNull { type ->
+            type.simpleName.contentEquals(companionName)
+        }
+        companionType?.toAstClass()
+    }
+
     val superclass: AstClass? by lazy {
         val superclassType = element.superclass
         if (superclassType is NoType) return@lazy null
@@ -103,24 +115,30 @@ class AstClass(provider: AstProvider, val element: TypeElement, val kmClass: KmC
         superclass?.visitInheritanceChain(f)
         interfaces.forEach { it.visitInheritanceChain(f) }
     }
+
+    fun asClassName(): ClassName = element.asClassName()
 }
 
 
 sealed class AstMethod(provider: AstProvider, val element: ExecutableElement) : AstElement(provider) {
     abstract val name: String
 
+    abstract val modifiers: Set<AstModifier>
+
     abstract val receiverParameterType: AstType?
 
     abstract val returnType: AstType
 
     abstract fun returnTypeFor(enclosingClass: AstClass): AstType
+
+    inline fun <reified T : Annotation> annotationOf(): T? = element.getAnnotation(T::class.java)
 }
 
 class AstConstructor(
     provider: AstProvider,
-    val parent: AstClass,
-    val element: ExecutableElement,
-    val kmConstructor: KmConstructor
+    private val parent: AstClass,
+    internal val element: ExecutableElement,
+    private val kmConstructor: KmConstructor
 ) : AstElement(provider) {
     val type: AstType get() = parent.type
 
@@ -136,10 +154,22 @@ class AstConstructor(
     }
 }
 
-class AstFunction(provider: AstProvider, element: ExecutableElement, val kmFunction: KmFunction) :
+class AstFunction(provider: AstProvider, element: ExecutableElement, private val kmFunction: KmFunction) :
     AstMethod(provider, element) {
 
     override val name: String get() = kmFunction.name
+
+    override val modifiers: Set<AstModifier> by lazy {
+        val result = mutableSetOf<AstModifier>()
+        val flags = kmFunction.flags
+        if (Flag.Common.IS_PRIVATE(flags)) {
+            result.add(AstModifier.PRIVATE)
+        }
+        if (Flag.Common.IS_ABSTRACT(flags)) {
+            result.add(AstModifier.ABSTRACT)
+        }
+        result
+    }
 
     override val returnType: AstType
         get() = AstType(this, element.returnType, kmFunction.returnType)
@@ -167,10 +197,22 @@ class AstFunction(provider: AstProvider, element: ExecutableElement, val kmFunct
     }
 }
 
-class AstProperty(provider: AstProvider, element: ExecutableElement, val kmProperty: KmProperty) :
+class AstProperty(provider: AstProvider, element: ExecutableElement, private val kmProperty: KmProperty) :
     AstMethod(provider, element) {
 
     override val name: String get() = kmProperty.name
+
+    override val modifiers: Set<AstModifier> by lazy {
+        val result = mutableSetOf<AstModifier>()
+        val flags = kmProperty.flags
+        if (Flag.Common.IS_PRIVATE(flags)) {
+            result.add(AstModifier.PRIVATE)
+        }
+        if (Flag.Common.IS_ABSTRACT(flags)) {
+            result.add(AstModifier.ABSTRACT)
+        }
+        result
+    }
 
     override val returnType: AstType
         get() = AstType(this, element.returnType, kmProperty.returnType)
@@ -187,7 +229,7 @@ class AstProperty(provider: AstProvider, element: ExecutableElement, val kmPrope
         }
 }
 
-class AstType(provider: AstProvider, val type: TypeMirror, val kmType: KmType) : AstElement(provider) {
+class AstType(provider: AstProvider, val type: TypeMirror, private val kmType: KmType) : AstElement(provider) {
     val annotations: List<AstAnnotation> by lazy {
         kmType.annotations.map { annotation ->
             val mirror = provider.elements.getTypeElement(annotation.className.replace('/', '.'))
@@ -201,7 +243,9 @@ class AstType(provider: AstProvider, val type: TypeMirror, val kmType: KmType) :
         }
     }
 
-    fun asTypeName(): TypeName = type.asTypeName().javaToKotlinType()
+    fun isUnit(): Boolean = type is NoType
+
+    inline fun isNotUnit() = !isUnit()
 
     override fun equals(other: Any?): Boolean {
         if (other !is AstType) return false
@@ -217,7 +261,7 @@ class AstType(provider: AstProvider, val type: TypeMirror, val kmType: KmType) :
     }
 }
 
-class AstAnnotation(provider: AstProvider, val annotationType: DeclaredType, val kmAnnotation: KmAnnotation) :
+class AstAnnotation(provider: AstProvider, val annotationType: DeclaredType, private val kmAnnotation: KmAnnotation) :
     AstElement(provider) {
 
     override fun equals(other: Any?): Boolean {
@@ -236,9 +280,16 @@ class AstAnnotation(provider: AstProvider, val annotationType: DeclaredType, val
 
 class AstParam(provider: AstProvider, val element: VariableElement, val kmValueParameter: KmValueParameter) :
     AstElement(provider) {
+
+    val name: String get() = kmValueParameter.name
+
     val type: AstType by lazy {
         AstType(this, element.asType(), kmValueParameter.type!!)
     }
+}
+
+enum class AstModifier {
+    PRIVATE, ABSTRACT
 }
 
 private val KmClass.type: KmType
@@ -254,4 +305,9 @@ private val KmAnnotation.type: KmType
 private fun KClass<*>.toKmType(): KmType = KmType(0).apply {
     classifier = KmClassifier.Class(java.canonicalName)
 }
+
+fun AstType.asTypeName(): TypeName = type.asTypeName().javaToKotlinType()
+
+fun ParameterSpec.Companion.parametersOf(constructor: AstConstructor): List<ParameterSpec> =
+    parametersOf(constructor.element)
 

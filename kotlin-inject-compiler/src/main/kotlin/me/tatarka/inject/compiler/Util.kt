@@ -8,12 +8,11 @@ import kotlinx.metadata.KmClass
 import kotlinx.metadata.jvm.KotlinClassHeader
 import kotlinx.metadata.jvm.KotlinClassMetadata
 import me.tatarka.inject.annotations.Scope
-import javax.lang.model.element.*
-import javax.lang.model.type.DeclaredType
-import javax.lang.model.type.NoType
-import javax.lang.model.type.TypeMirror
-import javax.lang.model.util.Types
-import kotlin.reflect.KClass
+import me.tatarka.inject.compiler.ast.AstClass
+import me.tatarka.inject.compiler.ast.AstMethod
+import javax.lang.model.element.AnnotationMirror
+import javax.lang.model.element.Element
+import javax.lang.model.element.TypeElement
 
 fun Element.scope(): AnnotationMirror? = annotationMirrors.find {
     it.annotationType.asElement().getAnnotation(Scope::class.java) != null
@@ -21,7 +20,11 @@ fun Element.scope(): AnnotationMirror? = annotationMirrors.find {
 
 fun Element.scopeType(): TypeElement? = scope()?.let { it.annotationType.asElement() as TypeElement }
 
-fun Name.asScopedProp(): String = "_" + toString().decapitalize()
+fun AstClass.scopeType(): TypeElement? = element.scopeType()
+
+fun AstMethod.scopeType(): TypeElement? = element.scopeType()
+
+fun String.asScopedProp(): String = "_" + decapitalize()
 
 fun TypeName.javaToKotlinType(): TypeName = if (this is ParameterizedTypeName) {
     (rawType.javaToKotlinType() as ClassName).parameterizedBy(
