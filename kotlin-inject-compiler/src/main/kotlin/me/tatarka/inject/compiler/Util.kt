@@ -13,6 +13,7 @@ import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.NoType
 import javax.lang.model.type.TypeMirror
 import javax.lang.model.util.Types
+import kotlin.reflect.KClass
 
 fun Element.scope(): AnnotationMirror? = annotationMirrors.find {
     it.annotationType.asElement().getAnnotation(Scope::class.java) != null
@@ -21,19 +22,6 @@ fun Element.scope(): AnnotationMirror? = annotationMirrors.find {
 fun Element.scopeType(): TypeElement? = scope()?.let { it.annotationType.asElement() as TypeElement }
 
 fun Name.asScopedProp(): String = "_" + toString().decapitalize()
-
-fun TypeElement.recurseParents(typeUtils: Types, f: (DeclaredType, TypeElement) -> Unit) {
-    f(asType() as DeclaredType, this)
-    val superclass = superclass
-    if (superclass.toString() != "java.lang.Object" && superclass !is NoType) {
-        f(superclass as DeclaredType, typeUtils.asElement(superclass) as TypeElement)
-    }
-    for (iface in interfaces) {
-        f(iface as DeclaredType, typeUtils.asElement(iface) as TypeElement)
-    }
-}
-
-fun ExecutableElement.isExtension() = parameters.isNotEmpty() && parameters[0].simpleName.startsWith("\$this")
 
 fun TypeName.javaToKotlinType(): TypeName = if (this is ParameterizedTypeName) {
     (rawType.javaToKotlinType() as ClassName).parameterizedBy(
@@ -66,5 +54,3 @@ val TypeElement.metadata: KmClass? get() {
     if (metadata !is KotlinClassMetadata.Class) return null
     return metadata.toKmClass()
 }
-
-

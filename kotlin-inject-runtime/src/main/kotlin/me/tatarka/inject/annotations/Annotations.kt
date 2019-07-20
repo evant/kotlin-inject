@@ -22,7 +22,7 @@ annotation class Qualifier
 @Qualifier
 @MustBeDocumented
 @Retention(RUNTIME)
-@Target(VALUE_PARAMETER, FUNCTION, PROPERTY_GETTER, CLASS, TYPE)
+@Target(TYPE)
 annotation class Named(val value: String)
 
 @Target(FUNCTION, PROPERTY_GETTER)

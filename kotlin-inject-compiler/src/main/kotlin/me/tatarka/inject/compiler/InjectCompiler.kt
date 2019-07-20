@@ -3,9 +3,7 @@ package me.tatarka.inject.compiler
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.plusParameter
 import me.tatarka.inject.annotations.*
-import me.tatarka.inject.compiler.ast.AstClass
-import me.tatarka.inject.compiler.ast.AstProvider
-import me.tatarka.inject.compiler.ast.AstType
+import me.tatarka.inject.compiler.ast.*
 import java.io.File
 import java.util.*
 import javax.annotation.processing.*
@@ -13,7 +11,6 @@ import javax.lang.model.SourceVersion
 import javax.lang.model.element.*
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.NoType
-import javax.lang.model.type.TypeMirror
 import javax.lang.model.util.ElementFilter
 import javax.lang.model.util.Elements
 import javax.lang.model.util.Types
@@ -71,10 +68,11 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
         val injectModule = generateInjectModule(astClass, constructor, scopedInjects)
         val createFunction = generateCreate(astClass.element, constructor, companion, injectModule)
 
-        val file = FileSpec.builder(astClass.element.enclosingElement.toString(), "Inject${astClass.element.simpleName}")
-            .addType(injectModule)
-            .addFunction(createFunction)
-            .build()
+        val file =
+            FileSpec.builder(astClass.element.enclosingElement.toString(), "Inject${astClass.element.simpleName}")
+                .addType(injectModule)
+                .addFunction(createFunction)
+                .build()
 
         val out = File(generatedSourcesRoot).also { it.mkdir() }
 
@@ -110,7 +108,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
 
                         addProperty(
                             PropertySpec.builder(
-                                types.asElement(type).simpleName.asScopedProp(),
+                                types.asElement(type.type).simpleName.asScopedProp(),
                                 type.asTypeName()
                             ).delegate(codeBlock.build())
                                 .build()
@@ -120,13 +118,11 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
                     astClass.visitInheritanceChain { parentClass ->
                         for (method in parentClass.methods) {
                             if (method.element.isProvider()) {
-                                val qualifier = method.element.qualifier()
-
                                 val codeBlock = CodeBlock.builder()
                                 codeBlock.add("return ")
                                 val returnType = method.returnTypeFor(astClass)
 
-                                codeBlock.add(provide(TypeKey(returnType.type, qualifier), context))
+                                codeBlock.add(provide(TypeKey(returnType), context))
 
                                 addProperty(
                                     PropertySpec.builder(
@@ -190,13 +186,13 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
         astClass: AstClass,
         scopedInjects: Collection<TypeElement>,
         name: String? = null,
-        typesWithScope: MutableMap<TypeMirror, TypeElement> = mutableMapOf()
+        typesWithScope: MutableMap<AstType, TypeElement> = mutableMapOf()
     ): Context {
 
-        val providesMap = mutableMapOf<TypeKey, ExecutableElement>()
-        val providesContainer = mutableMapOf<TypeKey, Pair<String, MutableList<ExecutableElement>>>()
+        val providesMap = mutableMapOf<TypeKey, AstMethod>()
+        val providesContainer = mutableMapOf<TypeKey, Pair<String, MutableList<AstMethod>>>()
 
-        val scoped = mutableMapOf<TypeMirror, TypeElement>()
+        val scoped = mutableMapOf<AstType, TypeElement>()
 
         val elementScope = astClass.element.scopeType()
 
@@ -210,10 +206,12 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
         }
 
         for (inject in scopedInjects) {
-            scoped[inject.asType()] = astClass.element
+            inject.toAstClass()?.let {
+                scoped[it.type] = astClass.element
+            }
         }
 
-        fun addScope(type: TypeMirror, scope: TypeElement?) {
+        fun addScope(type: AstType, scope: TypeElement?) {
             if (scope != null) {
                 if (scope == elementScope) {
                     scoped[type] = astClass.element
@@ -228,33 +226,27 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
                 if (method.element.isProvides()) {
                     if (method.element.getAnnotation(IntoMap::class.java) != null) {
                         // Pair<A, B> -> Map<A, B>
-                        val declaredType = method.returnType.type as DeclaredType
-                        val mapType = types.getDeclaredType(
-                            elements.getTypeElement(Map::class.java.canonicalName),
-                            declaredType.typeArguments[0], declaredType.typeArguments[1]
-                        )
+                        val typeArgs = method.returnType.arguments
+                        val mapType = declaredTypeOf(Map::class, typeArgs[0], typeArgs[1])
 
                         providesContainer.computeIfAbsent(TypeKey(mapType)) {
                             "mapOf" to mutableListOf()
-                        }.second.add(method.element)
+                        }.second.add(method)
                     } else if (method.element.getAnnotation(IntoSet::class.java) != null) {
                         // A -> Set<A>
-                        val setType = types.getDeclaredType(
-                            elements.getTypeElement(Set::class.java.canonicalName),
-                            method.returnType.type
-                        )
+                        val setType = declaredTypeOf(Set::class, method.returnType)
 
-                        providesContainer.computeIfAbsent(TypeKey((setType))) {
+                        providesContainer.computeIfAbsent(TypeKey(setType)) {
                             "setOf" to mutableListOf()
-                        }.second.add(method.element)
+                        }.second.add(method)
                     } else {
-                        providesMap[TypeKey(method.element.returnType, method.element.qualifier())] = method.element
-                        addScope(method.element.returnType, method.element.scopeType())
+                        providesMap[TypeKey(method.returnType)] = method
+                        addScope(method.returnType, method.element.scopeType())
                     }
                 }
                 if (method.element.isProvider()) {
                     val returnType = types.asElement(method.element.returnType)
-                    addScope(method.element.returnType, returnType.scopeType())
+                    addScope(method.returnType, returnType.scopeType())
                 }
             }
         }
@@ -296,7 +288,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
         if (result == null) {
             messager.printMessage(
                 Diagnostic.Kind.ERROR,
-                "Cannot find an @Inject constructor or @Provides for class: ${key.type} on ${context.source}",
+                "Cannot find an @Inject constructor or @Provides for class: $key on ${context.source}",
                 context.source
             )
             throw FailedToGenerateException()
@@ -304,7 +296,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
         return when (result) {
             is Result.Provides -> provideProvides(result, context)
             is Result.Scoped -> provideScoped(key, result)
-            is Result.Constructor -> provideConstructor(result.element, context)
+            is Result.Constructor -> provideConstructor(result.constructor, context)
             is Result.Container -> provideContainer(result, context)
             is Result.Function -> provideFunction(result, context)
             is Result.Arg -> provideArg(result)
@@ -312,50 +304,54 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
     }
 
     private fun provideProvides(
-        providesElement: Result.Provides,
+        providesResult: Result.Provides,
         context: Context
     ): CodeBlock {
         val codeBlock = CodeBlock.builder()
-        if (providesElement.name != null) {
-            codeBlock.add("%L.", providesElement.name)
+        if (providesResult.name != null) {
+            codeBlock.add("%L.", providesResult.name)
         }
-        val element = providesElement.element
-        val isExtension = element.isExtension()
-        if (element.isProp()) {
-            if (isExtension) {
-                codeBlock.add(provide(TypeKey(element.parameters[0].asType()), context))
-                codeBlock.add(".")
-            }
-            codeBlock.add("%N", element.simpleName.asProp())
-        } else {
-            if (isExtension) {
-                codeBlock.add(provide(TypeKey(element.parameters[0].asType()), context))
-                codeBlock.add(".")
-            }
-            codeBlock.add("%N(", element.simpleName)
-            element.parameters.drop(if (isExtension) 1 else 0).forEachIndexed { i, param ->
-                if (i != 0) {
-                    codeBlock.add(",")
+        val method = providesResult.method
+
+        val receiverParamType = method.receiverParameterType
+
+        when (method) {
+            is AstProperty -> {
+                if (receiverParamType != null) {
+                    codeBlock.add(provide(TypeKey(receiverParamType), context))
+                    codeBlock.add(".")
                 }
-                codeBlock.add(provide(TypeKey(param.asType()), context))
+                codeBlock.add("%N", method.name)
             }
-            codeBlock.add(")")
+            is AstFunction -> {
+                if (receiverParamType != null) {
+                    codeBlock.add(provide(TypeKey(receiverParamType), context))
+                    codeBlock.add(".")
+                }
+                codeBlock.add("%N(", method.name)
+                method.parameters.forEachIndexed { i, param ->
+                    if (i != 0) {
+                        codeBlock.add(",")
+                    }
+                    codeBlock.add(provide(TypeKey(param.type), context))
+                }
+                codeBlock.add(")")
+            }
         }
         return codeBlock.build()
     }
 
     private fun provideConstructor(
-        element: Element,
+        constructor: AstConstructor,
         context: Context
     ): CodeBlock {
         val codeBlock = CodeBlock.builder()
-        codeBlock.add("%T(", element.asType().asTypeName())
-        val constructor = element.constructor()!!
+        codeBlock.add("%T(", constructor.type.asTypeName())
         constructor.parameters.forEachIndexed { i, param ->
             if (i != 0) {
                 codeBlock.add(",")
             }
-            codeBlock.add(provide(TypeKey(param.asType(), param.qualifier()), context))
+            codeBlock.add(provide(TypeKey(param.type), context))
         }
         codeBlock.add(")")
         return codeBlock.build()
@@ -366,18 +362,18 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
         if (result.name != null) {
             codeBlock.add("(%L as Inject%N).", result.name, result.element.simpleName)
         }
-        codeBlock.add("%N", types.asElement(key.type).simpleName.asScopedProp())
+        codeBlock.add("%N", types.asElement(key.type.type).simpleName.asScopedProp())
         return codeBlock.build()
     }
 
-    private fun provideContainer(providesElement: Result.Container, context: Context): CodeBlock {
+    private fun provideContainer(containerResult: Result.Container, context: Context): CodeBlock {
         return CodeBlock.builder().apply {
-            add("${providesElement.creator}(")
-            providesElement.elements.forEachIndexed { index, element ->
+            add("${containerResult.creator}(")
+            containerResult.methods.forEachIndexed { index, method ->
                 if (index != 0) {
                     add(", ")
                 }
-                add(provideProvides(Result.Provides(null, element), context))
+                add(provideProvides(Result.Provides(null, method), context))
             }
             add(")")
         }.build()
@@ -386,7 +382,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
     private fun provideFunction(result: Result.Function, context: Context): CodeBlock {
         return CodeBlock.builder().apply {
             beginControlFlow("{")
-            val argMap = mutableMapOf<TypeMirror, String>()
+            val argMap = mutableMapOf<AstType, String>()
             result.args.forEachIndexed { index, arg ->
                 if (index != 0) {
                     add(",")
@@ -395,7 +391,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
                 argMap[arg] = name
                 add(" %L", name)
             }
-            if (!result.args.isEmpty()) {
+            if (result.args.isNotEmpty()) {
                 add(" ->")
             }
 
@@ -419,26 +415,19 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
     private fun ExecutableElement.isProvider(): Boolean =
         modifiers.contains(Modifier.ABSTRACT) && parameters.isEmpty() && returnType !is NoType
 
-    private fun ExecutableElement.isProp(): Boolean =
-        simpleName.startsWith("get") && ((isExtension() && parameters.size == 1) || parameters.isEmpty())
-
     private fun Element.getCompanion(): TypeElement? = ElementFilter.typesIn(enclosedElements).firstOrNull()
 
     private fun Element.constructor(): ExecutableElement? = ElementFilter.constructorsIn(enclosedElements).firstOrNull()
 
-    private fun Element.qualifier(): Any? {
-        return annotationMirrors.find {
+    private fun AstType.qualifier(): List<AstAnnotation> {
+        return annotations.filter {
             it.annotationType.asElement().getAnnotation(Qualifier::class.java) != null
-        }?.wrap()
-    }
-
-    private fun AstType.qualifier(): Any? {
-        return annotations.filter { it.annotationMirror.annotationType.asElement().getAnnotation(Qualifier::class.java) != null }
+        }
     }
 
     private fun Context.find(key: TypeKey): Result? {
         for ((arg, name) in args) {
-            if (types.isSameType(arg, key.type)) {
+            if (arg == key.type) {
                 return@find Result.Arg(name)
             }
         }
@@ -452,26 +441,28 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
         scoped[key.type]?.let { result ->
             return@find Result.Scoped(name, result)
         }
-        if (key.type.toString().startsWith("kotlin.jvm.functions.Function0")) {
+        if (key.type.toString().startsWith("kotlin.Function0")) {
             // Function0<T> -> T
-            val declaredType = key.type as DeclaredType
-            val fKey = TypeKey(declaredType.typeArguments[0])
+            val fKey = TypeKey(key.type.arguments[0])
             return Result.Function(key = fKey, args = emptyList())
-        } else if (key.type.toString().startsWith("kotlin.jvm.functions.Function1")) {
+        } else if (key.type.toString().startsWith("kotlin.Function1")) {
             // Function1<A, B> -> B
-            val declaredType = key.type as DeclaredType
-            val fKey = TypeKey(declaredType.typeArguments[1])
-            return Result.Function(key = fKey, args = listOf(declaredType.typeArguments[0]))
+            val fKey = TypeKey(key.type.arguments[1])
+            return Result.Function(
+                key = fKey,
+                args = listOf(key.type.arguments[0])
+            )
         }
-        for (parent in parents) {
-            val parentResult = parent.find(key)
+        for (p in parents) {
+            val parentResult = p.find(key)
             if (parentResult != null) {
                 return parentResult
             }
         }
-        val element = types.asElement(key.type) as TypeElement
+        val element = types.asElement(key.type.type) as TypeElement
         if (element.getAnnotation(Inject::class.java) != null) {
-            return Result.Constructor(element)
+            val astClass = element.toAstClass() ?: return null
+            return Result.Constructor(astClass.constructors[0])
         }
         return null
     }
@@ -480,28 +471,28 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
         val source: Element? = null,
         val name: String? = null,
         val parents: List<Context>,
-        val provides: Map<TypeKey, ExecutableElement>,
-        val providesContainer: Map<TypeKey, Pair<String, List<ExecutableElement>>>,
-        val scoped: Map<TypeMirror, TypeElement> = emptyMap(),
-        val args: Map<TypeMirror, String> = emptyMap()
+        val provides: Map<TypeKey, AstMethod>,
+        val providesContainer: Map<TypeKey, Pair<String, List<AstMethod>>>,
+        val scoped: Map<AstType, TypeElement> = emptyMap(),
+        val args: Map<AstType, String> = emptyMap()
     ) {
         fun withoutScoped() = copy(scoped = emptyMap())
 
-        fun withArgs(args: Map<TypeMirror, String>) = copy(args = args)
+        fun withArgs(args: Map<AstType, String>) = copy(args = args)
     }
 
     sealed class Result(val name: String?) {
-        class Provides(name: String?, val element: ExecutableElement) : Result(name)
+        class Provides(name: String?, val method: AstMethod) : Result(name)
         class Scoped(name: String?, val element: TypeElement) : Result(name)
-        class Constructor(val element: TypeElement) : Result(null)
-        class Container(val creator: String, val elements: List<ExecutableElement>) : Result(null)
-        class Function(val key: TypeKey, val args: List<TypeMirror>): Result(null)
-        class Arg(val argName: String): Result(null)
+        class Constructor(val constructor: AstConstructor) : Result(null)
+        class Container(val creator: String, val methods: List<AstMethod>) : Result(null)
+        class Function(val key: TypeKey, val args: List<AstType>) : Result(null)
+        class Arg(val argName: String) : Result(null)
     }
-    
-    fun TypeKey(type: AstType): TypeKey = TypeKey(type.type, type.qualifier())
 
-    data class TypeKey(val type: TypeMirror, val qualifier: Any? = null) {
+    inner class TypeKey(val type: AstType) {
+        val qualifier = type.qualifier()
+
         override fun equals(other: Any?): Boolean {
             if (other !is TypeKey) return false
             return qualifier == other.qualifier && type.asTypeName() == other.type.asTypeName()
@@ -509,6 +500,10 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
 
         override fun hashCode(): Int {
             return Objects.hash(type.asTypeName(), qualifier)
+        }
+
+        override fun toString(): String {
+            return if (qualifier.isNotEmpty()) "${qualifier.joinToString(" ")} $type" else type.toString()
         }
     }
 
