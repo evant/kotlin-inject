@@ -21,6 +21,24 @@ val appModule = AppModule::class.create()
 val repo = appModule.repo
 ```
 
+## Download
+
+```groovy
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+    id 'org.jetbrains.kotlin.kapt'
+}
+
+repositories {
+  maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+}
+
+dependencies {
+    kapt "me.tatarka.inject:kotlin-inject-compiler:0.0.1-SNAPSHOT"
+    implementation "me.tatarka.inject:kotlin-inject-runtime:0.0.1-SNAPSHOT"
+}
+```
+
 ## Usage
 
 Let's go through the above example line-by line and see what it's doing.
