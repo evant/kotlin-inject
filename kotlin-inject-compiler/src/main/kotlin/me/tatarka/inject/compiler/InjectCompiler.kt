@@ -90,7 +90,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
                 if (constructor != null) {
                     val funSpec = FunSpec.constructorBuilder()
                     for (parameter in constructor.parameters) {
-                        val p = ParameterSpec.get(parameter.element)
+                        val p = parameter.asParameterSpec()
                         funSpec.addParameter(p)
                         addSuperclassConstructorParameter("%N", p)
                     }
@@ -242,7 +242,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
                     }
                 }
                 if (method.isProvider()) {
-                    val returnType = types.asElement(method.element.returnType)
+                    val returnType = types.asElement(method.returnType.type)
                     addScope(method.returnType, returnType.scopeType())
                 }
             }
@@ -253,7 +253,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
         val constructor = astClass.constructors.firstOrNull()
         if (constructor != null) {
             for (parameter in constructor.parameters) {
-                val elem = types.asElement(parameter.element.asType())
+                val elem = types.asElement(parameter.type.type)
                 if (elem.isModule()) {
                     val elemAstClass = (elem as TypeElement).toAstClass()
                     parents.add(
@@ -283,11 +283,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
     ): CodeBlock {
         val result = context.find(key)
         if (result == null) {
-            messager.printMessage(
-                Diagnostic.Kind.ERROR,
-                "Cannot find an @Inject constructor or @Provides for class: $key on ${context.source}",
-                context.source?.element
-            )
+            error("Cannot find an @Inject constructor or @Provides for class: $key on ${context.source}", context.source)
             throw FailedToGenerateException()
         }
         return when (result) {

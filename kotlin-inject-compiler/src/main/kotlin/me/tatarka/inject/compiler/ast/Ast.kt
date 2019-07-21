@@ -9,6 +9,7 @@ import kotlinx.metadata.jvm.signature
 import me.tatarka.inject.compiler.javaToKotlinType
 import me.tatarka.inject.compiler.metadata
 import javax.annotation.processing.Messager
+import javax.lang.model.element.Element
 import javax.lang.model.element.ExecutableElement
 import javax.lang.model.element.TypeElement
 import javax.lang.model.element.VariableElement
@@ -48,11 +49,17 @@ interface AstProvider {
             klass.toKmType()
         )
     }
+
+    fun error(message: String, element: AstElement?) {
+        messager.printMessage(Diagnostic.Kind.ERROR, message, element?.element)
+    }
 }
 
-sealed class AstElement(provider: AstProvider) : AstProvider by provider
+sealed class AstElement(provider: AstProvider) : AstProvider by provider {
+    internal abstract val element: Element
+}
 
-class AstClass(provider: AstProvider, val element: TypeElement, internal val kmClass: KmClass?) : AstElement(provider) {
+class AstClass(provider: AstProvider, override val element: TypeElement, internal val kmClass: KmClass?) : AstElement(provider) {
 
     val packageName: String get() = elements.getPackageOf(element).qualifiedName.toString()
 
@@ -121,7 +128,7 @@ class AstClass(provider: AstProvider, val element: TypeElement, internal val kmC
 }
 
 
-sealed class AstMethod(provider: AstProvider, val element: ExecutableElement) : AstElement(provider) {
+sealed class AstMethod(provider: AstProvider, override val element: ExecutableElement) : AstElement(provider) {
     abstract val name: String
 
     abstract val modifiers: Set<AstModifier>
@@ -132,13 +139,15 @@ sealed class AstMethod(provider: AstProvider, val element: ExecutableElement) : 
 
     abstract fun returnTypeFor(enclosingClass: AstClass): AstType
 
-    inline fun <reified T : Annotation> annotationOf(): T? = element.getAnnotation(T::class.java)
+    inline fun <reified T : Annotation> annotationOf(): T? = annotationOf(T::class)
+
+    fun <T: Annotation> annotationOf(klass: KClass<T>): T? = element.getAnnotation(klass.java)
 }
 
 class AstConstructor(
     provider: AstProvider,
     private val parent: AstClass,
-    internal val element: ExecutableElement,
+    override val element: ExecutableElement,
     private val kmConstructor: KmConstructor?
 ) : AstElement(provider) {
     val type: AstType get() = parent.type
@@ -233,6 +242,8 @@ class AstProperty(provider: AstProvider, element: ExecutableElement, private val
 }
 
 class AstType(provider: AstProvider, val type: TypeMirror, private val kmType: KmType?) : AstElement(provider) {
+    override val element: Element get() = types.asElement(type)
+
     val annotations: List<AstAnnotation> by lazy {
         if (kmType != null) {
             kmType.annotations.map { annotation ->
@@ -279,6 +290,7 @@ class AstType(provider: AstProvider, val type: TypeMirror, private val kmType: K
 
 class AstAnnotation(provider: AstProvider, val annotationType: DeclaredType, private val kmAnnotation: KmAnnotation) :
     AstElement(provider) {
+    override val element: Element get() = types.asElement(annotationType)
 
     override fun equals(other: Any?): Boolean {
         if (other !is AstAnnotation) return false
@@ -294,7 +306,7 @@ class AstAnnotation(provider: AstProvider, val annotationType: DeclaredType, pri
     }
 }
 
-class AstParam(provider: AstProvider, val element: VariableElement, val kmValueParameter: KmValueParameter) :
+class AstParam(provider: AstProvider, override val element: VariableElement, val kmValueParameter: KmValueParameter) :
     AstElement(provider) {
 
     val name: String get() = kmValueParameter.name
@@ -329,3 +341,4 @@ fun AstType.asTypeName(): TypeName {
 fun ParameterSpec.Companion.parametersOf(constructor: AstConstructor): List<ParameterSpec> =
     parametersOf(constructor.element)
 
+fun AstParam.asParameterSpec(): ParameterSpec = ParameterSpec.get(element)
