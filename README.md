@@ -69,6 +69,37 @@ Finally, you can create an instance of your module with the generated `.create()
 
 ## Features
 
+### Module Arguments
+
+If you need to pass any instances into your module you can declare them as constructor args. You can then pass them into
+the generated create function.
+
+```kotlin
+@Module abstract class MyModule(protected val foo: Foo)
+```
+
+```kotlin
+MyModule::class.create(Foo())
+```
+
+If the argument is another module, it's dependencies will also be available to the child module. This allows you to 
+compose them into a graph.
+
+```kotlin
+@Module abstract class ParentModule {
+    protected fun provideFoo(): Foo = ...
+}
+
+@Module abstract class ChildModule(val parent: ParentModule) {
+    abstract val foo: Foo
+}
+```
+
+```kotlin
+val parent = ParentModule::class.create()
+val child = ChildModule::class.create(parent)
+```
+
 ### Type Alias Support
 
 If you have multiple instances of the same type you want to differentiate, you can use type aliases. They will be 
@@ -78,7 +109,7 @@ treated as separate types for the purposes of injection.
 typealias Dep1 = Dep
 typealias Dep2 = Dep
 
-@Modlue MyModlue {
+@Modlue abstract class MyModlue {
     fun dep1(): Dep1 = Dep("one")
     fun dep2(): Dep2 = Dep("two")
 
@@ -123,7 +154,7 @@ You can collect multiple bindings into a `Map` or `Set` by using the `@IntoMap` 
 For a set, return the type you want to put into a set, then you can inject or provide a `Set<MyType>`.
 
 ```kotlin
-@Module MyModule {
+@Module abstract class MyModule {
     abstract val allFoos: Set<Foo>
 
     @IntoSet protected fun provideFoo1(): Foo = Foo("1")
@@ -134,7 +165,7 @@ For a set, return the type you want to put into a set, then you can inject or pr
 For a map, return a `Pair<Key, Value>`.
 
 ```kotlin
-@Module MyModule {
+@Module abstract class MyModule {
     abstract val fooMap: Map<String, Foo>
     
     @IntoMap protected fun provideFoo1(): Pair<String, Foo> = "1" to Foo("1")
