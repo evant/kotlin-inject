@@ -10,17 +10,13 @@ interface ModuleInterface {
     val foo: Foo
 }
 
-@Module abstract class InterfaceModule : ModuleInterface {
-    companion object
-}
+@Module abstract class InterfaceModule : ModuleInterface
 
 interface GenericModuleInterface<T> {
     val foo: T
 }
 
-@Module abstract class GenericInterfaceModule : GenericModuleInterface<Foo> {
-    companion object
-}
+@Module abstract class GenericInterfaceModule : GenericModuleInterface<Foo>
 
 class InheritanceTest {
     @Test fun generates_a_module_that_provides_a_dep_defined_in_an_implemented_interface() {

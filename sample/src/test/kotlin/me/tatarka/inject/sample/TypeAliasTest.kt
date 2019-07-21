@@ -19,8 +19,6 @@ typealias NamedFoo2 = NamedFoo
 
     fun foo1(): NamedFoo1 = NamedFoo("1")
     fun foo2(): NamedFoo2 = NamedFoo("2")
-
-    companion object
 }
 
 @Inject class AliasedFoo(val foo1: NamedFoo1, val foo2: NamedFoo2)
@@ -30,8 +28,6 @@ typealias NamedFoo2 = NamedFoo
 
     fun foo1(): NamedFoo1 = NamedFoo("1")
     fun foo2(): NamedFoo2 = NamedFoo("2")
-
-    companion object
 }
 
 class QualifierTest {

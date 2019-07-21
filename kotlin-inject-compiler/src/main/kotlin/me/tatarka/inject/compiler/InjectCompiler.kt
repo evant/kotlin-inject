@@ -273,7 +273,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
                         collectTypes(
                             elemAstClass,
                             scopedInjects,
-                            name = parameter.name,
+                            name = if (name != null) "$name.${parameter.name}" else parameter.name,
                             typesWithScope = typesWithScope
                         )
                     )

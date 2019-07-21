@@ -17,8 +17,6 @@ class ProvidesFoo(val bar: ProvidesBar? = null)
     abstract val foo: ProvidesFoo
 
     fun foo() = ProvidesFoo().also { providesCalled = true }
-
-    companion object
 }
 
 @Module abstract class ProvidesFunctionArgModule {
@@ -27,8 +25,6 @@ class ProvidesFoo(val bar: ProvidesBar? = null)
     abstract val foo: ProvidesFoo
 
     fun foo(bar: ProvidesBar) = ProvidesFoo(bar).also { providesCalled = true }
-
-    companion object
 }
 
 @Module abstract class ProvidesValModule {
@@ -38,8 +34,6 @@ class ProvidesFoo(val bar: ProvidesBar? = null)
 
     val provideFoo
         get() = ProvidesFoo().also { providesCalled = true }
-
-    companion object
 }
 
 @Module abstract class ProvidesExtensionFunctionModule {
@@ -48,8 +42,6 @@ class ProvidesFoo(val bar: ProvidesBar? = null)
     abstract val foo: ProvidesFoo
 
     fun ProvidesBar.provideFoo() = ProvidesFoo(this).also { providesCalled = true }
-
-    companion object
 }
 
 @Module abstract class ProvidesExtensionValModule {
@@ -59,14 +51,10 @@ class ProvidesFoo(val bar: ProvidesBar? = null)
 
     val ProvidesBar.provideFoo
         get() = ProvidesFoo(this).also { providesCalled = true }
-
-    companion object
 }
 
 @Module abstract class ProvidesValConstructorModule(val provideFoo: ProvidesFoo) {
     abstract val foo: ProvidesFoo
-
-    companion object
 }
 
 class ProvidesTest {

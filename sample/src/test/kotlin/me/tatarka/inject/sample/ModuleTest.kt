@@ -13,20 +13,15 @@ import org.junit.Test
 
 @Module abstract class Module1 {
     abstract val foo: Foo
-
-    companion object
 }
 
 @Inject class Bar(val foo: Foo)
 
 @Module abstract class Module2 {
     abstract val bar: Bar
-
-    companion object
 }
 
 interface IFoo
-
 
 class ModuleTest {
 

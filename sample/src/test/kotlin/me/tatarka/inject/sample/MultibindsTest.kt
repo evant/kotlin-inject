@@ -21,8 +21,6 @@ data class FooValue(val name: String)
     @get:IntoSet
     val fooValue2
         get() = FooValue("2")
-
-    companion object
 }
 
 @Module abstract class DynamicKeyModule {
@@ -34,8 +32,6 @@ data class FooValue(val name: String)
 
     @IntoMap
     fun fooValue2() = "2" to FooValue("2")
-
-    companion object
 }
 
 class MultibindsTest {
