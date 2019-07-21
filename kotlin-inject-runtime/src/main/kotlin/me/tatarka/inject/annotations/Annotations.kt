@@ -16,17 +16,9 @@ annotation class Module
 annotation class Scope
 
 @Retention(RUNTIME)
-@Target(ANNOTATION_CLASS)
-annotation class Qualifier
-
-@Qualifier
-@MustBeDocumented
-@Retention(RUNTIME)
-@Target(TYPE)
-annotation class Named(val value: String)
-
 @Target(FUNCTION, PROPERTY_GETTER)
 annotation class IntoSet
 
+@Retention(RUNTIME)
 @Target(FUNCTION, PROPERTY_GETTER)
 annotation class IntoMap

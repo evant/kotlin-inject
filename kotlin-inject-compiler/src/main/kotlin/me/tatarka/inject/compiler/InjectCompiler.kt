@@ -37,7 +37,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
     override fun process(elements: Set<TypeElement>, env: RoundEnvironment): Boolean {
         for (element in env.getElementsAnnotatedWith(Module::class.java)) {
             if (element !is TypeElement) continue
-            val astClass = element.toAstClass() ?: continue
+            val astClass = element.toAstClass()
 
             val scope = astClass.scopeType()
             val scopedInjects =
@@ -204,9 +204,8 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
         }
 
         for (inject in scopedInjects) {
-            inject.toAstClass()?.let {
-                scoped[it.type] = astClass
-            }
+            val injectClass = inject.toAstClass()
+            scoped[injectClass.type] = injectClass
         }
 
         fun addScope(type: AstType, scope: TypeElement?) {
@@ -256,7 +255,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
             for (parameter in constructor.parameters) {
                 val elem = types.asElement(parameter.element.asType())
                 if (elem.isModule()) {
-                    val elemAstClass = (elem as TypeElement).toAstClass() ?: continue
+                    val elemAstClass = (elem as TypeElement).toAstClass()
                     parents.add(
                         collectTypes(
                             elemAstClass,
@@ -413,12 +412,6 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
             is AstProperty -> true
         } && receiverParameterType == null && returnType.isNotUnit()
 
-    private fun AstType.qualifier(): List<AstAnnotation> {
-        return annotations.filter {
-            it.annotationType.asElement().getAnnotation(Qualifier::class.java) != null
-        }
-    }
-
     private fun Context.find(key: TypeKey): Result? {
         for ((arg, name) in args) {
             if (arg == key.type) {
@@ -455,7 +448,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
         }
         val element = types.asElement(key.type.type) as TypeElement
         if (element.getAnnotation(Inject::class.java) != null) {
-            val astClass = element.toAstClass() ?: return null
+            val astClass = element.toAstClass()
             return Result.Constructor(astClass.constructors[0])
         }
         return null
@@ -485,7 +478,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
     }
 
     inner class TypeKey(val type: AstType) {
-        val qualifier = type.qualifier()
+        val qualifier = type.abbreviatedTypeName
 
         override fun equals(other: Any?): Boolean {
             if (other !is TypeKey) return false
@@ -497,7 +490,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
         }
 
         override fun toString(): String {
-            return if (qualifier.isNotEmpty()) "${qualifier.joinToString(" ")} $type" else type.toString()
+            return qualifier ?: type.toString()
         }
     }
 

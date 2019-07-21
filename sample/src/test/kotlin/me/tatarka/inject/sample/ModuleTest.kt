@@ -52,11 +52,11 @@ class ModuleTest {
 
     @Test
     fun generates_a_module_that_constructs_different_values_based_on_the_named_qualifier() {
-        val module = ConstructorNamedModule.create()
+        val module = ConstructorAliasedModule.create()
 
         assertAll {
-            assertThat(module.qualifiedFoo.foo1.name).isEqualTo("1")
-            assertThat(module.qualifiedFoo.foo2.name).isEqualTo("2")
+            assertThat(module.aliasedFoo.foo1.name).isEqualTo("1")
+            assertThat(module.aliasedFoo.foo2.name).isEqualTo("2")
         }
     }
 }

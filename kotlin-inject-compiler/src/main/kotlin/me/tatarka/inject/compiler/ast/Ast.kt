@@ -19,6 +19,7 @@ import javax.lang.model.type.TypeMirror
 import javax.lang.model.util.ElementFilter
 import javax.lang.model.util.Elements
 import javax.lang.model.util.Types
+import javax.tools.Diagnostic
 import kotlin.reflect.KClass
 
 interface AstProvider {
@@ -26,19 +27,16 @@ interface AstProvider {
     val elements: Elements
     val messager: Messager
 
-    fun TypeElement.toAstClass(): AstClass? {
-        val metadata = metadata ?: return null
+    fun TypeElement.toAstClass(): AstClass {
         return AstClass(this@AstProvider, this, metadata)
     }
 
-    fun KClass<*>.toAstClass(): AstClass? {
-        return elements.getTypeElement(java.canonicalName)?.toAstClass()
-    }
+    fun KClass<*>.toAstClass(): AstClass = elements.getTypeElement(java.canonicalName).toAstClass()
 
     fun declaredTypeOf(astClass: AstClass, vararg astTypes: AstType): AstType {
         return AstType(
             this, types.getDeclaredType(astClass.element, *astTypes.map { it.type }.toTypedArray()),
-            astClass.kmClass.type
+            astClass.kmClass?.type
         )
     }
 
@@ -54,13 +52,14 @@ interface AstProvider {
 
 sealed class AstElement(provider: AstProvider) : AstProvider by provider
 
-class AstClass(provider: AstProvider, val element: TypeElement, internal val kmClass: KmClass) : AstElement(provider) {
+class AstClass(provider: AstProvider, val element: TypeElement, internal val kmClass: KmClass?) : AstElement(provider) {
+
     val packageName: String get() = elements.getPackageOf(element).qualifiedName.toString()
 
     val name: String get() = element.simpleName.toString()
 
     val companion: AstClass? by lazy {
-        val companionName = kmClass.companionObject ?: return@lazy null
+        val companionName = kmClass?.companionObject ?: return@lazy null
         val companionType = ElementFilter.typesIn(element.enclosedElements).firstOrNull { type ->
             type.simpleName.contentEquals(companionName)
         }
@@ -84,22 +83,24 @@ class AstClass(provider: AstProvider, val element: TypeElement, internal val kmC
     val constructors: List<AstConstructor> by lazy {
         ElementFilter.constructorsIn(element.enclosedElements).mapNotNull { constructor ->
             //TODO: not sure how to match constructors
-            AstConstructor(this, this, constructor, kmClass.constructors[0])
+            AstConstructor(this, this, constructor, kmClass?.constructors?.first())
         }
     }
 
     val methods: List<AstMethod> by lazy {
         ElementFilter.methodsIn(element.enclosedElements).mapNotNull { method ->
-            for (property in kmClass.properties) {
-                val javaName = property.getterSignature?.name ?: continue
-                if (method.simpleName.contentEquals(javaName)) {
-                    return@mapNotNull AstProperty(this, method, property)
+            if (kmClass != null) {
+                for (property in kmClass.properties) {
+                    val javaName = property.getterSignature?.name ?: continue
+                    if (method.simpleName.contentEquals(javaName)) {
+                        return@mapNotNull AstProperty(this, method, property)
+                    }
                 }
-            }
-            for (function in kmClass.functions) {
-                val javaName = function.signature?.name
-                if (method.simpleName.contentEquals(javaName)) {
-                    return@mapNotNull AstFunction(this, method, function)
+                for (function in kmClass.functions) {
+                    val javaName = function.signature?.name
+                    if (method.simpleName.contentEquals(javaName)) {
+                        return@mapNotNull AstFunction(this, method, function)
+                    }
                 }
             }
             null
@@ -107,7 +108,7 @@ class AstClass(provider: AstProvider, val element: TypeElement, internal val kmC
     }
 
     val type: AstType by lazy {
-        AstType(this, element.asType(), kmClass.type)
+        AstType(this, element.asType(), kmClass?.type)
     }
 
     fun visitInheritanceChain(f: (AstClass) -> Unit) {
@@ -138,15 +139,17 @@ class AstConstructor(
     provider: AstProvider,
     private val parent: AstClass,
     internal val element: ExecutableElement,
-    private val kmConstructor: KmConstructor
+    private val kmConstructor: KmConstructor?
 ) : AstElement(provider) {
     val type: AstType get() = parent.type
 
     val parameters: List<AstParam> by lazy {
         element.parameters.mapNotNull { element ->
-            for (parameter in kmConstructor.valueParameters) {
-                if (element.simpleName.contentEquals(parameter.name)) {
-                    return@mapNotNull AstParam(this, element, parameter)
+            if (kmConstructor != null) {
+                for (parameter in kmConstructor.valueParameters) {
+                    if (element.simpleName.contentEquals(parameter.name)) {
+                        return@mapNotNull AstParam(this, element, parameter)
+                    }
                 }
             }
             null
@@ -229,22 +232,35 @@ class AstProperty(provider: AstProvider, element: ExecutableElement, private val
         }
 }
 
-class AstType(provider: AstProvider, val type: TypeMirror, private val kmType: KmType) : AstElement(provider) {
+class AstType(provider: AstProvider, val type: TypeMirror, private val kmType: KmType?) : AstElement(provider) {
     val annotations: List<AstAnnotation> by lazy {
-        kmType.annotations.map { annotation ->
-            val mirror = provider.elements.getTypeElement(annotation.className.replace('/', '.'))
-            AstAnnotation(this, mirror.asType() as DeclaredType, annotation)
+        if (kmType != null) {
+            kmType.annotations.map { annotation ->
+                val mirror = provider.elements.getTypeElement(annotation.className.replace('/', '.'))
+                AstAnnotation(this, mirror.asType() as DeclaredType, annotation)
+            }
+        } else {
+            emptyList()
         }
     }
 
+    val abbreviatedTypeName: String? get() {
+        return (kmType?.abbreviatedType?.classifier as? KmClassifier.TypeAlias)?.name?.replace('/', '.')
+    }
+
     val arguments: List<AstType> by lazy {
-        (type as DeclaredType).typeArguments.zip(kmType.arguments).map { (a1, a2) ->
-            AstType(this, a1, a2.type!!)
+        if (kmType != null) {
+            (type as DeclaredType).typeArguments.zip(kmType.arguments).map { (a1, a2) ->
+                AstType(this, a1, a2.type!!)
+            }
+        } else {
+            emptyList()
         }
     }
 
     fun isUnit(): Boolean = type is NoType
 
+    @Suppress("NOTHING_TO_INLINE")
     inline fun isNotUnit() = !isUnit()
 
     override fun equals(other: Any?): Boolean {
@@ -306,7 +322,9 @@ private fun KClass<*>.toKmType(): KmType = KmType(0).apply {
     classifier = KmClassifier.Class(java.canonicalName)
 }
 
-fun AstType.asTypeName(): TypeName = type.asTypeName().javaToKotlinType()
+fun AstType.asTypeName(): TypeName {
+    return abbreviatedTypeName?.let { ClassName.bestGuess(it) } ?: type.asTypeName().javaToKotlinType()
+}
 
 fun ParameterSpec.Companion.parametersOf(constructor: AstConstructor): List<ParameterSpec> =
     parametersOf(constructor.element)
