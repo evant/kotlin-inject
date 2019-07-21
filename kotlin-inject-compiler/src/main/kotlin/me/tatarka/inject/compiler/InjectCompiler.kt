@@ -307,6 +307,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
             is Result.Container -> provideContainer(result, context)
             is Result.Function -> provideFunction(result, context)
             is Result.Arg -> provideArg(result)
+            is Result.Lazy -> provideLazy(result, context)
         }
     }
 
@@ -409,6 +410,14 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
         }.build()
     }
 
+    private fun provideLazy(result: Result.Lazy, context: Context): CodeBlock {
+        return CodeBlock.builder().apply {
+            beginControlFlow("lazy {")
+            add(provide(result.key, context))
+            endControlFlow()
+        }.build()
+    }
+
     private fun provideArg(result: Result.Arg): CodeBlock {
         return CodeBlock.of(result.argName)
     }
@@ -448,6 +457,10 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
             val fKey = TypeKey(key.type.arguments.last())
             return Result.Function(key = fKey, args = key.type.arguments.dropLast(1))
         }
+        if (key.type.name == "kotlin.Lazy") {
+            val lKey = TypeKey(key.type.arguments[0])
+            return Result.Lazy(key = lKey)
+        }
         for (p in parents) {
             val parentResult = p.find(key)
             if (parentResult != null) {
@@ -483,6 +496,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
         class Container(val creator: String, val methods: List<AstMethod>) : Result(null)
         class Function(val key: TypeKey, val args: List<AstType>) : Result(null)
         class Arg(val argName: String) : Result(null)
+        class Lazy(val key: TypeKey): Result(null)
     }
 
     inner class TypeKey(val type: AstType) {

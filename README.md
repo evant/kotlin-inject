@@ -150,6 +150,8 @@ injecting a function that returns the dependency instead of the dependency direc
 The simplest case is you take no args, this gives you a function that can create the dep.
 
 ```kotlin
+@Inject class Foo
+
 @Inject class MyClass(fooCreator: () -> Foo) {
     init {
         val foo = fooCreator()
@@ -167,5 +169,17 @@ arguments to the dependency.
     init {
         val foo = fooCreator("1", "2")
     }
+}
+```
+
+### Lazy
+
+Similarly, you can inject a `Lazy<MyType>` to construct and re-use and instance lazily.
+
+```kotlin
+@Inject class Foo
+
+@Inject class MyClass(lazyFoo: Lazy<Foo>) {
+    val foo by lazyFoo
 }
 ```
