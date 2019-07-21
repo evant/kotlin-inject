@@ -72,35 +72,35 @@ class ProvidesFoo(val bar: ProvidesBar? = null)
 class ProvidesTest {
 
     @Test fun generates_a_module_that_provides_a_dep_from_a_function() {
-        val module = ProvidesFunctionModule.create()
+        val module = ProvidesFunctionModule::class.create()
 
         module.foo
         assertThat(module.providesCalled).isTrue()
     }
 
     @Test fun generates_a_module_that_provides_a_dep_from_a_function_with_arg() {
-        val module = ProvidesFunctionArgModule.create()
+        val module = ProvidesFunctionArgModule::class.create()
 
         assertThat(module.foo.bar).isNotNull()
         assertThat(module.providesCalled).isTrue()
     }
 
     @Test fun generates_a_module_that_provides_a_dep_from_a_val() {
-        val module = ProvidesValModule.create()
+        val module = ProvidesValModule::class.create()
 
         module.foo
         assertThat(module.providesCalled).isTrue()
     }
 
     @Test fun generates_a_module_that_provides_a_deb_from_an_extension_function() {
-        val module = ProvidesExtensionFunctionModule.create()
+        val module = ProvidesExtensionFunctionModule::class.create()
 
         assertThat(module.foo.bar).isNotNull()
         assertThat(module.providesCalled).isTrue()
     }
 
     @Test fun generates_a_module_that_provides_a_deb_from_an_extension_val() {
-        val module = ProvidesExtensionValModule.create()
+        val module = ProvidesExtensionValModule::class.create()
 
         assertThat(module.foo.bar).isNotNull()
         assertThat(module.providesCalled).isTrue()
@@ -108,7 +108,7 @@ class ProvidesTest {
 
     @Test fun generates_a_module_that_provides_a_dep_from_a_constructor_val() {
         val foo = ProvidesFoo()
-        val module = ProvidesValConstructorModule.create(foo)
+        val module = ProvidesValConstructorModule::class.create(foo)
 
         assertThat(module.foo).isSameAs(foo)
     }

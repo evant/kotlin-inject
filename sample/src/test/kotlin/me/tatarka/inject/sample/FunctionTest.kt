@@ -11,28 +11,24 @@ import org.junit.Test
 
 @Module abstract class FunctionModule {
     abstract val fooProvider: () -> FunctionFoo
-
-    companion object
 }
 
 @Inject class PartialFunctionBar(val foo: FunctionFoo, val name: String)
 
 @Module abstract class PartialFunctionModule {
     abstract val barFactory: (name: String) -> PartialFunctionBar
-
-    companion object
 }
 
 class FunctionTest {
 
     @Test fun generates_a_module_that_provides_a_function_that_returns_a_dep() {
-        val module = FunctionModule.create()
+        val module = FunctionModule::class.create()
 
         assertThat(module.fooProvider()).isNotNull()
     }
 
     @Test fun generates_a_module_that_provides_a_function_that_partially_creates_a_dep() {
-        val module = PartialFunctionModule.create()
+        val module = PartialFunctionModule::class.create()
 
         assertThat(module.barFactory("name").name).isEqualTo("name")
     }

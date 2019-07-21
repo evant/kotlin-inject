@@ -40,7 +40,7 @@ class ScopeTest {
 
     @Test
     fun generates_a_module_where_a_custom_scope_constructor_is_only_called_once() {
-        val module = CustomScopeConstructorModule.create()
+        val module = CustomScopeConstructorModule::class.create()
         module.bar
         module.bar
 
@@ -49,11 +49,11 @@ class ScopeTest {
 
     @Test
     fun generates_a_module_where_a_singleton_constructor_is_instantiated_in_the_parent_module() {
-        val parent = CustomScopeConstructorModule.create()
-        val module1 = ParentScopedModule.create(parent)
+        val parent = CustomScopeConstructorModule::class.create()
+        val module1 = ParentScopedModule::class.create(parent)
         module1.bar
         module1.bar
-        val module2 = ParentScopedModule.create(parent)
+        val module2 = ParentScopedModule::class.create(parent)
         module1.bar
         module2.bar
 

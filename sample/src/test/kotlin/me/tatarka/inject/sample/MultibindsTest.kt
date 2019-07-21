@@ -42,14 +42,14 @@ class MultibindsTest {
 
     @Test
     fun generates_a_module_that_provides_multiple_items_into_a_set() {
-        val module = SetModule.create()
+        val module = SetModule::class.create()
 
         assertThat(module.items).containsOnly(FooValue("1"), FooValue("2"))
     }
 
     @Test
     fun generates_a_module_that_provides_multiple_items_into_a_map() {
-        val module = DynamicKeyModule.create()
+        val module = DynamicKeyModule::class.create()
 
         assertThat(module.items).containsOnly(
             "1" to FooValue("1"),
@@ -59,7 +59,7 @@ class MultibindsTest {
 
 //    @Test
 //    fun generates_a_module_that_provides_multiple_items_into_a_fun() {
-//        val module = FunKeyModule.create()
+//        val module = FunKeyModule::class.create()
 //
 //        assertAll {
 //            assertThat(module.items("1")).isEqualTo(FooValue("1"))

@@ -59,7 +59,8 @@ sealed class AstElement(provider: AstProvider) : AstProvider by provider {
     internal abstract val element: Element
 }
 
-class AstClass(provider: AstProvider, override val element: TypeElement, internal val kmClass: KmClass?) : AstElement(provider) {
+class AstClass(provider: AstProvider, override val element: TypeElement, internal val kmClass: KmClass?) :
+    AstElement(provider) {
 
     val packageName: String get() = elements.getPackageOf(element).qualifiedName.toString()
 
@@ -141,7 +142,7 @@ sealed class AstMethod(provider: AstProvider, override val element: ExecutableEl
 
     inline fun <reified T : Annotation> annotationOf(): T? = annotationOf(T::class)
 
-    fun <T: Annotation> annotationOf(klass: KClass<T>): T? = element.getAnnotation(klass.java)
+    fun <T : Annotation> annotationOf(klass: KClass<T>): T? = element.getAnnotation(klass.java)
 }
 
 class AstConstructor(
@@ -255,9 +256,10 @@ class AstType(provider: AstProvider, val type: TypeMirror, private val kmType: K
         }
     }
 
-    val abbreviatedTypeName: String? get() {
-        return (kmType?.abbreviatedType?.classifier as? KmClassifier.TypeAlias)?.name?.replace('/', '.')
-    }
+    val abbreviatedTypeName: String?
+        get() {
+            return (kmType?.abbreviatedType?.classifier as? KmClassifier.TypeAlias)?.name?.replace('/', '.')
+        }
 
     val arguments: List<AstType> by lazy {
         if (kmType != null) {

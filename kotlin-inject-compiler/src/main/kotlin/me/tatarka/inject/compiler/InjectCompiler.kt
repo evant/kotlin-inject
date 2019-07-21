@@ -2,7 +2,10 @@ package me.tatarka.inject.compiler
 
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.plusParameter
-import me.tatarka.inject.annotations.*
+import me.tatarka.inject.annotations.Inject
+import me.tatarka.inject.annotations.IntoMap
+import me.tatarka.inject.annotations.IntoSet
+import me.tatarka.inject.annotations.Module
 import me.tatarka.inject.compiler.ast.*
 import java.io.File
 import java.util.*
@@ -12,14 +15,17 @@ import javax.lang.model.element.Element
 import javax.lang.model.element.TypeElement
 import javax.lang.model.util.Elements
 import javax.lang.model.util.Types
-import javax.tools.Diagnostic
 import kotlin.reflect.KClass
 
-private const val KAPT_KOTLIN_GENERATED_OPTION_NAME = "kapt.kotlin.generated"
+private const val OPTION_KAPT_KOTLIN_GENERATED = "kapt.kotlin.generated"
+
+private const val OPTION_GENERATE_COMPANION_EXTENSIONS = "me.tatarka.inject.generateCompanionExtensions"
 
 class InjectCompiler : AbstractProcessor(), AstProvider {
 
     private lateinit var generatedSourcesRoot: String
+    private var generateCompanionExtensions: Boolean = false
+
     private lateinit var filer: Filer
     override lateinit var types: Types
     override lateinit var elements: Elements
@@ -27,7 +33,8 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
 
     override fun init(processingEnv: ProcessingEnvironment) {
         super.init(processingEnv)
-        this.generatedSourcesRoot = processingEnv.options[KAPT_KOTLIN_GENERATED_OPTION_NAME]!!
+        this.generatedSourcesRoot = processingEnv.options[OPTION_KAPT_KOTLIN_GENERATED]!!
+        this.generateCompanionExtensions = processingEnv.options[OPTION_GENERATE_COMPANION_EXTENSIONS]?.toBoolean() ?: false
         this.filer = processingEnv.filer
         this.types = processingEnv.typeUtils
         this.elements = processingEnv.elementUtils
@@ -61,10 +68,9 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
 
     private fun process(astClass: AstClass, scope: TypeElement?, scopedInjects: Collection<TypeElement>) {
         val constructor = astClass.constructors.firstOrNull()
-        val companion = astClass.companion
 
         val injectModule = generateInjectModule(astClass, constructor, scopedInjects)
-        val createFunction = generateCreate(astClass, constructor, companion, injectModule)
+        val createFunction = generateCreate(astClass, constructor, injectModule)
 
         val file =
             FileSpec.builder(astClass.packageName, "Inject${astClass.name}")
@@ -148,7 +154,6 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
     private fun generateCreate(
         element: AstClass,
         constructor: AstConstructor?,
-        companion: AstClass?,
         injectModule: TypeSpec
     ): FunSpec {
         return FunSpec.builder("create")
@@ -156,8 +161,16 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
                 if (constructor != null) {
                     addParameters(ParameterSpec.parametersOf(constructor))
                 }
-                if (companion != null) {
-                    receiver(companion.type.asTypeName())
+                if (generateCompanionExtensions) {
+                    val companion = element.companion
+                    if (companion != null) {
+                        receiver(companion.type.asTypeName())
+                    } else {
+                        error("""Missing companion for class: ${element.asClassName()}.
+                            |When you have the option me.tatarka.inject.generateCompanionExtensions=true you must declare a companion option on the module class for the extension function to apply to.
+                            |You can do so by adding 'companion object' to the class.
+                        """.trimMargin(), element)
+                    }
                 } else {
                     receiver(KClass::class.asClassName().plusParameter(element.type.asTypeName()))
                 }
@@ -499,4 +512,5 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
 
     override fun getSupportedSourceVersion(): SourceVersion = SourceVersion.latestSupported()
 
+    override fun getSupportedOptions(): Set<String> = setOf(OPTION_GENERATE_COMPANION_EXTENSIONS)
 }

@@ -38,7 +38,7 @@ class QualifierTest {
 
     @Test
     fun generates_a_module_that_provides_different_values_based_on_the_type_alias_name() {
-        val module = ProvidesAliasedModule.create()
+        val module = ProvidesAliasedModule::class.create()
 
         assertAll {
             assertThat(module.foo1.name).isEqualTo("1")
@@ -48,7 +48,7 @@ class QualifierTest {
 
     @Test
     fun generates_a_module_that_constructs_different_values_based_on_the_type_alias_name() {
-        val module = ConstructorAliasedModule.create()
+        val module = ConstructorAliasedModule::class.create()
 
         assertAll {
             assertThat(module.aliasedFoo.foo1.name).isEqualTo("1")

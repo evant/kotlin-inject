@@ -37,14 +37,14 @@ class ModuleTest {
 
     @Test
     fun generates_a_module_that_provides_a_dep_with_no_arguments() {
-        val module = Module1.create()
+        val module = Module1::class.create()
 
         assertThat(module.foo).isNotNull()
     }
 
     @Test
     fun generates_a_module_that_provides_a_dep_with_an_argument() {
-        val module = Module2.create()
+        val module = Module2::class.create()
 
         assertThat(module.bar).isNotNull()
         assertThat(module.bar.foo).isNotNull()
@@ -52,7 +52,7 @@ class ModuleTest {
 
     @Test
     fun generates_a_module_that_constructs_different_values_based_on_the_named_qualifier() {
-        val module = ConstructorAliasedModule.create()
+        val module = ConstructorAliasedModule::class.create()
 
         assertAll {
             assertThat(module.aliasedFoo.foo1.name).isEqualTo("1")

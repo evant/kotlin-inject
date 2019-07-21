@@ -24,13 +24,13 @@ interface GenericModuleInterface<T> {
 
 class InheritanceTest {
     @Test fun generates_a_module_that_provides_a_dep_defined_in_an_implemented_interface() {
-        val module = InterfaceModule.create()
+        val module = InterfaceModule::class.create()
 
         assertThat(module.foo).isNotNull()
     }
 
     @Test fun generates_a_module_that_provides_a_dep_defined_in_a_generic_implemented_interface() {
-        val module = GenericInterfaceModule.create()
+        val module = GenericInterfaceModule::class.create()
 
         assertThat(module.foo).hasClass(Foo::class)
     }
