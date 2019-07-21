@@ -1,0 +1,63 @@
+apply plugin: 'signing'
+apply plugin: 'maven-publish'
+
+group = 'me.tatarka.inject'
+version = '0.0.1-SNAPSHOT'
+
+task sourcesJar(type: Jar) {
+    from sourceSets.main.allJava
+    archiveClassifier = 'sources'
+}
+
+task javadocJar(type: Jar) {
+    from javadoc
+    archiveClassifier = 'javadoc'
+}
+
+publishing {
+    publications {
+        lib(MavenPublication) {
+            from components.java
+            artifact sourcesJar
+            artifact javadocJar
+
+            pom {
+                name = 'kotlin-inject'
+                description = 'A compile-time dependency injection library for kotlin'
+                url = 'https://github.com/evant/kotlin-inject'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'evant'
+                        name = 'Evan Tatarka'
+                    }
+                }
+                scm {
+                    connection = 'https://github.com/evant/kotlin-inject.git'
+                    developerConnection = 'https://github.com/evant/kotlin-inject.git'
+                    url = 'https://github.com/evant/kotlin-inject'
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            def releasesRepoUrl = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
+            def snapshotsRepoUrl = 'https://oss.sonatype.org/content/repositories/snapshots'
+            url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+            credentials {
+                username project.findProperty('sonatype.username')
+                password project.findProperty('sonatype.password')
+            }
+        }
+    }
+}
+
+signing {
+    sign publishing.publications.lib
+}
