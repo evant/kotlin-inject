@@ -126,6 +126,10 @@ class AstClass(provider: AstProvider, override val element: TypeElement, interna
     }
 
     fun asClassName(): ClassName = element.asClassName()
+
+    override fun toString(): String {
+        return if (packageName == "kotlin") name else "$packageName.$name"
+    }
 }
 
 
@@ -245,6 +249,18 @@ class AstProperty(provider: AstProvider, element: ExecutableElement, private val
 class AstType(provider: AstProvider, val type: TypeMirror, private val kmType: KmType?) : AstElement(provider) {
     override val element: Element get() = types.asElement(type)
 
+    val name: String get() {
+        return if (kmType != null) {
+            when (val c = kmType.classifier) {
+                is KmClassifier.Class -> c.name.replace('/', '.')
+                is KmClassifier.TypeAlias -> c.name.replace('/', '.')
+                is KmClassifier.TypeParameter -> type.asTypeName().toString()
+            }
+        } else {
+            type.asTypeName().toString()
+        }
+    }
+
     val annotations: List<AstAnnotation> by lazy {
         if (kmType != null) {
             kmType.annotations.map { annotation ->
@@ -286,7 +302,8 @@ class AstType(provider: AstProvider, val type: TypeMirror, private val kmType: K
     }
 
     override fun toString(): String {
-        return type.asTypeName().javaToKotlinType().toString()
+        val n = name
+        return if (n.substringBeforeLast('.') == "kotlin") n.removePrefix("kotlin.") else n
     }
 }
 

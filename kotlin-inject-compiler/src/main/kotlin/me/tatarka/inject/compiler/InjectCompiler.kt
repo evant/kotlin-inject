@@ -292,9 +292,10 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
 
     private fun provide(
         key: TypeKey,
-        context: Context
+        context: Context,
+        find: (TypeKey) -> Result? = { context.find(it) }
     ): CodeBlock {
-        val result = context.find(key)
+        val result = find(key)
         if (result == null) {
             error("Cannot find an @Inject constructor or @Provides for class: $key on ${context.source}", context.source)
             throw FailedToGenerateException()
@@ -335,11 +336,12 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
                     codeBlock.add(".")
                 }
                 codeBlock.add("%N(", method.name)
+                val size = method.parameters.size
                 method.parameters.forEachIndexed { i, param ->
                     if (i != 0) {
                         codeBlock.add(",")
                     }
-                    codeBlock.add(provide(TypeKey(param.type), context))
+                    codeBlock.add(provide(TypeKey(param.type), context) { context.findWithIndex(it, i, size)})
                 }
                 codeBlock.add(")")
             }
@@ -353,11 +355,12 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
     ): CodeBlock {
         val codeBlock = CodeBlock.builder()
         codeBlock.add("%T(", constructor.type.asTypeName())
+        val size = constructor.parameters.size
         constructor.parameters.forEachIndexed { i, param ->
             if (i != 0) {
                 codeBlock.add(",")
             }
-            codeBlock.add(provide(TypeKey(param.type), context))
+            codeBlock.add(provide(TypeKey(param.type), context) { context.findWithIndex(it, i, size)})
         }
         codeBlock.add(")")
         return codeBlock.build()
@@ -388,20 +391,20 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
     private fun provideFunction(result: Result.Function, context: Context): CodeBlock {
         return CodeBlock.builder().apply {
             beginControlFlow("{")
-            val argMap = mutableMapOf<AstType, String>()
+            val argList = mutableListOf<Pair<AstType, String>>()
             result.args.forEachIndexed { index, arg ->
                 if (index != 0) {
                     add(",")
                 }
                 val name = "arg$index"
-                argMap[arg] = name
+                argList.add(arg to name)
                 add(" %L", name)
             }
             if (result.args.isNotEmpty()) {
                 add(" ->")
             }
 
-            add(provide(result.key, context.withArgs(argMap)))
+            add(provide(result.key, context.withArgs(argList)))
             endControlFlow()
         }.build()
     }
@@ -421,33 +424,29 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
             is AstProperty -> true
         } && receiverParameterType == null && returnType.isNotUnit()
 
-    private fun Context.find(key: TypeKey): Result? {
-        for ((arg, name) in args) {
-            if (arg == key.type) {
-                return@find Result.Arg(name)
+    private fun Context.findWithIndex(key: TypeKey, index: Int, size: Int): Result? {
+        val indexFromEnd = size - index - 1
+        args.asReversed().forEachIndexed { i, (type, name) ->
+            if (i == indexFromEnd && type ==  key.type) {
+                return Result.Arg(name)
             }
         }
+        return find(key)
+    }
 
+    private fun Context.find(key: TypeKey): Result? {
         provides[key]?.let { result ->
-            return@find Result.Provides(name, result)
+            return Result.Provides(name, result)
         }
         providesContainer[key]?.let { (creator, elements) ->
-            return@find Result.Container(creator, elements)
+            return Result.Container(creator, elements)
         }
         scoped[key.type]?.let { result ->
-            return@find Result.Scoped(name, result)
+            return Result.Scoped(name, result)
         }
-        if (key.type.toString().startsWith("kotlin.Function0")) {
-            // Function0<T> -> T
-            val fKey = TypeKey(key.type.arguments[0])
-            return Result.Function(key = fKey, args = emptyList())
-        } else if (key.type.toString().startsWith("kotlin.Function1")) {
-            // Function1<A, B> -> B
-            val fKey = TypeKey(key.type.arguments[1])
-            return Result.Function(
-                key = fKey,
-                args = listOf(key.type.arguments[0])
-            )
+        if (key.type.name.matches(Regex("kotlin\\.Function[0-9]+.*"))) {
+            val fKey = TypeKey(key.type.arguments.last())
+            return Result.Function(key = fKey, args = key.type.arguments.dropLast(1))
         }
         for (p in parents) {
             val parentResult = p.find(key)
@@ -470,11 +469,11 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
         val provides: Map<TypeKey, AstMethod>,
         val providesContainer: Map<TypeKey, Pair<String, List<AstMethod>>>,
         val scoped: Map<AstType, AstClass> = emptyMap(),
-        val args: Map<AstType, String> = emptyMap()
+        val args: List<Pair<AstType, String>> = emptyList()
     ) {
         fun withoutScoped() = copy(scoped = emptyMap())
 
-        fun withArgs(args: Map<AstType, String>) = copy(args = args)
+        fun withArgs(args: List<Pair<AstType, String>>) = copy(args = args)
     }
 
     sealed class Result(val name: String?) {
