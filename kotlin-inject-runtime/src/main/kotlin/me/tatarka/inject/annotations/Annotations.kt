@@ -16,9 +16,9 @@ annotation class Module
 annotation class Scope
 
 @Retention(RUNTIME)
-@Target(FUNCTION, PROPERTY_GETTER)
+@Target(FUNCTION, PROPERTY)
 annotation class IntoSet
 
 @Retention(RUNTIME)
-@Target(FUNCTION, PROPERTY_GETTER)
+@Target(FUNCTION, PROPERTY)
 annotation class IntoMap

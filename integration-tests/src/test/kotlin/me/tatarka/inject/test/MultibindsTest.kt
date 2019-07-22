@@ -12,11 +12,10 @@ data class FooValue(val name: String)
 @Module abstract class SetModule {
     abstract val items: Set<FooValue>
 
-    @get:IntoSet
-    val fooValue1
-        get() = FooValue("1")
+    @IntoSet
+    fun fooValue1() = FooValue("1")
 
-    @get:IntoSet
+    @IntoSet
     val fooValue2
         get() = FooValue("2")
 }
@@ -29,7 +28,8 @@ data class FooValue(val name: String)
     fun fooValue1() = "1" to FooValue("1")
 
     @IntoMap
-    fun fooValue2() = "2" to FooValue("2")
+    val fooValue2
+        get() = "2" to FooValue("2")
 }
 
 class MultibindsTest {

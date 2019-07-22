@@ -6,6 +6,7 @@ import kotlinx.metadata.*
 import kotlinx.metadata.jvm.annotations
 import kotlinx.metadata.jvm.getterSignature
 import kotlinx.metadata.jvm.signature
+import kotlinx.metadata.jvm.syntheticMethodForAnnotations
 import me.tatarka.inject.compiler.javaToKotlinType
 import me.tatarka.inject.compiler.metadata
 import javax.annotation.processing.Messager
@@ -148,7 +149,7 @@ sealed class AstMethod(provider: AstProvider, override val element: ExecutableEl
 
     inline fun <reified T : Annotation> annotationOf(): T? = annotationOf(T::class)
 
-    fun <T : Annotation> annotationOf(klass: KClass<T>): T? = element.getAnnotation(klass.java)
+    abstract fun <T : Annotation> annotationOf(klass: KClass<T>): T?
 }
 
 class AstConstructor(
@@ -204,6 +205,10 @@ class AstFunction(provider: AstProvider, element: ExecutableElement, private val
             null
         }
     }
+
+    override fun <T : Annotation> annotationOf(klass: KClass<T>): T? {
+        return element.getAnnotation(klass.java)
+    }
 }
 
 class AstProperty(provider: AstProvider, element: ExecutableElement, private val kmProperty: KmProperty) :
@@ -236,6 +241,20 @@ class AstProperty(provider: AstProvider, element: ExecutableElement, private val
         get() = kmProperty.receiverParameterType?.let {
             AstType(this, element.parameters[0].asType(), it)
         }
+
+    private val annotatedElement: Element? by lazy {
+        val javaName = kmProperty.syntheticMethodForAnnotations?.name ?: return@lazy null
+        for (method in ElementFilter.methodsIn(element.enclosingElement.enclosedElements)) {
+            if (method.simpleName.contentEquals(javaName)) {
+                return@lazy method
+            }
+        }
+        null
+    }
+
+    override fun <T : Annotation> annotationOf(klass: KClass<T>): T? {
+        return annotatedElement?.getAnnotation(klass.java)
+    }
 }
 
 class AstType(provider: AstProvider, val type: TypeMirror, private val kmType: KmType?) : AstElement(provider) {
