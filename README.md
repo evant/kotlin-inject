@@ -1,4 +1,5 @@
 # kotlin-inject
+[![CircleCI](https://circleci.com/gh/evant/kotlin-inject.svg?style=svg&circle-token=8792fa19911be92d6a1d66dd45ece3bf6712f778)](https://circleci.com/gh/evant/kotlin-inject)
 
 A compile-time dependency injection library for kotlin.
 
