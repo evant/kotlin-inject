@@ -32,3 +32,5 @@ fun main() {
     println(module.baz)
 }
 
+
+@Module abstract class MyModule2

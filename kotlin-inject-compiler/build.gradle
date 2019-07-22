@@ -1,3 +1,5 @@
+import org.gradle.internal.jvm.Jvm
+
 plugins {
     id 'org.jetbrains.kotlin.jvm'
     id 'org.jetbrains.kotlin.kapt'
@@ -17,7 +19,9 @@ dependencies {
     testImplementation "org.jetbrains.kotlin:kotlin-test"
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit"
 
-    testImplementation 'com.willowtreeapps.assertk:assertk-jvm:0.17'
+    testImplementation 'com.willowtreeapps.assertk:assertk-jvm:0.19'
+
+    testImplementation gradleTestKit()
 }
 
 sourceCompatibility = 1.8

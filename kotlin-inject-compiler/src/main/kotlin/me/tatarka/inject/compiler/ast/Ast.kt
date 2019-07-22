@@ -66,6 +66,8 @@ class AstClass(provider: AstProvider, override val element: TypeElement, interna
 
     val name: String get() = element.simpleName.toString()
 
+    val modifiers: Set<AstModifier> by lazy { collectModifiers(kmClass?.flags) }
+
     val companion: AstClass? by lazy {
         val companionName = kmClass?.companionObject ?: return@lazy null
         val companionType = ElementFilter.typesIn(element.enclosedElements).firstOrNull { type ->
@@ -128,7 +130,7 @@ class AstClass(provider: AstProvider, override val element: TypeElement, interna
     fun asClassName(): ClassName = element.asClassName()
 
     override fun toString(): String {
-        return if (packageName == "kotlin") name else "$packageName.$name"
+        return if (packageName.isEmpty() || packageName == "kotlin") name else "$packageName.$name"
     }
 }
 
@@ -176,17 +178,7 @@ class AstFunction(provider: AstProvider, element: ExecutableElement, private val
 
     override val name: String get() = kmFunction.name
 
-    override val modifiers: Set<AstModifier> by lazy {
-        val result = mutableSetOf<AstModifier>()
-        val flags = kmFunction.flags
-        if (Flag.Common.IS_PRIVATE(flags)) {
-            result.add(AstModifier.PRIVATE)
-        }
-        if (Flag.Common.IS_ABSTRACT(flags)) {
-            result.add(AstModifier.ABSTRACT)
-        }
-        result
-    }
+    override val modifiers: Set<AstModifier> by lazy { collectModifiers(kmFunction.flags) }
 
     override val returnType: AstType
         get() = AstType(this, element.returnType, kmFunction.returnType)
@@ -361,3 +353,16 @@ fun ParameterSpec.Companion.parametersOf(constructor: AstConstructor): List<Para
     parametersOf(constructor.element)
 
 fun AstParam.asParameterSpec(): ParameterSpec = ParameterSpec.get(element)
+
+private fun collectModifiers(flags: Flags?): Set<AstModifier> {
+    val result = mutableSetOf<AstModifier>()
+    if (flags == null) return result
+    if (Flag.Common.IS_PRIVATE(flags)) {
+        result.add(AstModifier.PRIVATE)
+    }
+    if (Flag.Common.IS_ABSTRACT(flags)) {
+        result.add(AstModifier.ABSTRACT)
+    }
+    return result
+}
+

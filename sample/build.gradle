@@ -1,7 +1,6 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm'
     id 'org.jetbrains.kotlin.kapt'
-    id 'java'
 }
 
 repositories {
@@ -20,7 +19,7 @@ dependencies {
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit"
     testImplementation 'org.jetbrains.kotlin:kotlin-reflect'
 
-    testImplementation 'com.willowtreeapps.assertk:assertk-jvm:0.17'
+    testImplementation 'com.willowtreeapps.assertk:assertk-jvm:0.19'
 }
 
 sourceCompatibility = 1.8

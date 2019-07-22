@@ -67,6 +67,14 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
     }
 
     private fun process(astClass: AstClass, scope: TypeElement?, scopedInjects: Collection<TypeElement>) {
+        if (AstModifier.ABSTRACT !in astClass.modifiers) {
+            error("@Module class: $astClass must be abstract", astClass)
+            throw FailedToGenerateException()
+        } else if (AstModifier.PRIVATE in astClass.modifiers) {
+            error("@Module class: $astClass must not be private", astClass)
+            throw FailedToGenerateException()
+        }
+
         val constructor = astClass.constructors.firstOrNull()
 
         val injectModule = generateInjectModule(astClass, constructor, scopedInjects)
@@ -178,7 +186,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
             .returns(element.type.asTypeName())
             .apply {
                 val codeBlock = CodeBlock.builder()
-                codeBlock.add("return %L.%N(", element.packageName, injectModule)
+                codeBlock.add("return %N(", injectModule)
                 if (constructor != null) {
                     constructor.parameters.forEachIndexed { i, parameter ->
                         if (i != 0) {
@@ -250,8 +258,15 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
                             "setOf" to mutableListOf()
                         }.second.add(method)
                     } else {
-                        providesMap[TypeKey(method.returnType)] = method
-                        addScope(method.returnType, method.scopeType())
+                        val key = TypeKey(method.returnType)
+                        val oldValue = providesMap[key]
+                        if (oldValue == null) {
+                            providesMap[key] = method
+                            addScope(method.returnType, method.scopeType())
+                        } else {
+                            error("Cannot provide: $key", method)
+                            error("as it is already provided", oldValue)
+                        }
                     }
                 }
                 if (method.isProvider()) {
@@ -297,7 +312,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
     ): CodeBlock {
         val result = find(key)
         if (result == null) {
-            error("Cannot find an @Inject constructor or @Provides for class: $key on ${context.source}", context.source)
+            error("Cannot find an @Inject constructor or provider for: $key", context.source)
             throw FailedToGenerateException()
         }
         return when (result) {
