@@ -1,4 +1,4 @@
-package me.tatarka.inject.compiler
+package me.tatarka.inject.test
 
 import assertk.Assert
 import assertk.assertions.isInstanceOf
@@ -22,7 +22,7 @@ class ProjectCompiler(private val root: File) {
             """
            include ':kotlin-inject-compiler'
            include ':kotlin-inject-runtime'
-           project(':kotlin-inject-compiler').projectDir = new File('${File(".").absolutePath}')
+           project(':kotlin-inject-compiler').projectDir = new File('${File("../kotlin-inject-compiler").absolutePath}')
            project(':kotlin-inject-runtime').projectDir = new File('${File("../kotlin-inject-runtime").absolutePath}')
         """.trimIndent()
         )

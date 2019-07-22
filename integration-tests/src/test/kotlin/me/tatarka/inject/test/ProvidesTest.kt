@@ -1,4 +1,4 @@
-package me.tatarka.inject.sample
+package me.tatarka.inject.test
 
 import assertk.assertThat
 import assertk.assertions.isNotNull

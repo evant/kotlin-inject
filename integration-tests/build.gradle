@@ -19,6 +19,7 @@ dependencies {
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit"
     testImplementation 'org.jetbrains.kotlin:kotlin-reflect'
 
+    testImplementation gradleTestKit()
     testImplementation 'com.willowtreeapps.assertk:assertk-jvm:0.19'
 }
 

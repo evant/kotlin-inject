@@ -1,13 +1,11 @@
-package me.tatarka.inject.sample
+package me.tatarka.inject.test
 
 import assertk.assertThat
 import assertk.assertions.containsOnly
-import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.IntoMap
 import me.tatarka.inject.annotations.IntoSet
 import me.tatarka.inject.annotations.Module
 import org.junit.Test
-import kotlin.reflect.KClass
 
 data class FooValue(val name: String)
 
