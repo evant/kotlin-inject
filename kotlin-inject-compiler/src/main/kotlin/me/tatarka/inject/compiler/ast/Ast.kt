@@ -122,6 +122,10 @@ class AstClass(provider: AstProvider, override val element: TypeElement, interna
         AstType(this, element.asType(), kmClass?.type)
     }
 
+    inline fun <reified T : Annotation> annotationOf(): T? = annotationOf(T::class)
+
+    fun <T : Annotation> annotationOf(klass: KClass<T>): T? = element.getAnnotation(klass.java)
+
     fun visitInheritanceChain(f: (AstClass) -> Unit) {
         f(this)
         superclass?.visitInheritanceChain(f)
@@ -344,6 +348,10 @@ class AstParam(provider: AstProvider, override val element: VariableElement, val
     val type: AstType by lazy {
         AstType(this, element.asType(), kmValueParameter.type!!)
     }
+
+    inline fun <reified T : Annotation> annotationOf(): T? = annotationOf(T::class)
+
+    fun <T : Annotation> annotationOf(klass: KClass<T>): T? = element.getAnnotation(klass.java)
 }
 
 enum class AstModifier {

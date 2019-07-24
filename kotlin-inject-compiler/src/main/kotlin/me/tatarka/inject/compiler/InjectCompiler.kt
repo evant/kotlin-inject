@@ -291,9 +291,8 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
         val constructor = astClass.constructors.firstOrNull()
         if (constructor != null) {
             for (parameter in constructor.parameters) {
-                val elem = types.asElement(parameter.type.type)
-                if (elem.isModule()) {
-                    val elemAstClass = (elem as TypeElement).toAstClass()
+                if (parameter.isModule()) {
+                    val elemAstClass = (types.asElement(parameter.type.type) as TypeElement).toAstClass()
                     parents.add(
                         collectTypes(
                             elemAstClass,
@@ -447,7 +446,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
         return CodeBlock.of(result.argName)
     }
 
-    private fun Element.isModule() = getAnnotation(Module::class.java) != null
+    private fun AstParam.isModule() = annotationOf<Module>() != null
 
     private fun AstMethod.isProvides(): Boolean = annotationOf<Provides>() != null
 

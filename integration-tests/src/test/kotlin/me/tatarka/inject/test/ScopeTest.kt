@@ -23,11 +23,11 @@ var customScopeBarConstructorCount = 0
     abstract val bar: CustomScopeBar
 }
 
-@Module abstract class ParentScopedModule(val parent: CustomScopeConstructorModule) {
+@Module abstract class ParentScopedModule(@Module val parent: CustomScopeConstructorModule) {
     abstract val bar: CustomScopeBar
 }
 
-@Module abstract class ParentParentScopedModule(val parent: ParentScopedModule) {
+@Module abstract class ParentParentScopedModule(@Module val parent: ParentScopedModule) {
     abstract val bar: CustomScopeBar
 }
 

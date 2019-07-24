@@ -101,15 +101,15 @@ the generated create function. You can optionally annotate it with `@Provides` t
 MyModule::class.create(Foo())
 ```
 
-If the argument is another module, it's dependencies will also be available to the child module. This allows you to 
-compose them into a graph.
+If the argument is another module, you can annotate it with `@Module` and it's dependencies will also be available to the 
+child module. This allows you to compose them into a graph.
 
 ```kotlin
 @Module abstract class ParentModule {
     protected fun provideFoo(): Foo = ...
 }
 
-@Module abstract class ChildModule(val parent: ParentModule) {
+@Module abstract class ChildModule(@Module val parent: ParentModule) {
     abstract val foo: Foo
 }
 ```
