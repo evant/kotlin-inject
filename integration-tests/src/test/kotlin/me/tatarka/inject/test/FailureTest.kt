@@ -39,15 +39,64 @@ class FailureTest {
     }
 
     @Test
+    fun fails_if_provides_is_private() {
+        assertThat {
+            ProjectCompiler(testProjectDir.root).source(
+                "test.kt", """
+                    import me.tatarka.inject.annotations.Module
+                    import me.tatarka.inject.annotations.Provides
+                    
+                    @Module abstract class MyModule {
+                        @Provides private fun providesString(): String = "one"
+                    }
+                """.trimIndent()
+            ).compile()
+        }.isFailure().output().contains("@Provides method must not be private")
+    }
+
+    @Test
+    fun fails_if_provides_is_abstract() {
+        assertThat {
+            ProjectCompiler(testProjectDir.root).source(
+                "test.kt", """
+                    import me.tatarka.inject.annotations.Module
+                    import me.tatarka.inject.annotations.Provides
+                    
+                    @Module abstract class MyModule {
+                        @Provides abstract fun providesString(): String
+                    }
+                """.trimIndent()
+            ).compile()
+        }.isFailure().output().contains("@Provides method must not be abstract")
+    }
+
+    @Test
+    fun fails_if_provides_returns_unit() {
+        assertThat {
+            ProjectCompiler(testProjectDir.root).source(
+                "test.kt", """
+                    import me.tatarka.inject.annotations.Module
+                    import me.tatarka.inject.annotations.Provides
+                    
+                    @Module abstract class MyModule {
+                        @Provides fun providesUnit() { }
+                    }
+                """.trimIndent()
+            ).compile()
+        }.isFailure().output().contains("@Provides method must return a value")
+    }
+
+    @Test
     fun fails_if_the_same_type_is_provided_more_than_once() {
         assertThat {
             ProjectCompiler(testProjectDir.root).source(
                 "test.kt", """
                     import me.tatarka.inject.annotations.Module
+                    import me.tatarka.inject.annotations.Provides
                     
                     @Module abstract class MyModule {
-                        fun providesString1(): String = "one"
-                        fun providesString2(): String = "two"
+                        @Provides fun providesString1(): String = "one"
+                        @Provides fun providesString2(): String = "two"
                     }
                 """.trimIndent()
             ).compile()

@@ -6,6 +6,7 @@ import assertk.assertions.isSameAs
 import assertk.assertions.isTrue
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Module
+import me.tatarka.inject.annotations.Provides
 import org.junit.Test
 
 class ProvidesFoo(val bar: ProvidesBar? = null)
@@ -16,6 +17,7 @@ class ProvidesFoo(val bar: ProvidesBar? = null)
 
     abstract val foo: ProvidesFoo
 
+    @Provides
     fun foo() = ProvidesFoo().also { providesCalled = true }
 }
 
@@ -24,6 +26,7 @@ class ProvidesFoo(val bar: ProvidesBar? = null)
 
     abstract val foo: ProvidesFoo
 
+    @Provides
     fun foo(bar: ProvidesBar) = ProvidesFoo(bar).also { providesCalled = true }
 }
 
@@ -32,6 +35,7 @@ class ProvidesFoo(val bar: ProvidesBar? = null)
 
     abstract val foo: ProvidesFoo
 
+    @Provides
     val provideFoo
         get() = ProvidesFoo().also { providesCalled = true }
 }
@@ -41,6 +45,7 @@ class ProvidesFoo(val bar: ProvidesBar? = null)
 
     abstract val foo: ProvidesFoo
 
+    @Provides
     fun ProvidesBar.provideFoo() = ProvidesFoo(this).also { providesCalled = true }
 }
 
@@ -49,11 +54,12 @@ class ProvidesFoo(val bar: ProvidesBar? = null)
 
     abstract val foo: ProvidesFoo
 
+    @Provides
     val ProvidesBar.provideFoo
         get() = ProvidesFoo(this).also { providesCalled = true }
 }
 
-@Module abstract class ProvidesValConstructorModule(val provideFoo: ProvidesFoo) {
+@Module abstract class ProvidesValConstructorModule(@Provides val provideFoo: ProvidesFoo) {
     abstract val foo: ProvidesFoo
 }
 

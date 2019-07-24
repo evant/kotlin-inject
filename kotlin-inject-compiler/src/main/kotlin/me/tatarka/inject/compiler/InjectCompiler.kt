@@ -2,10 +2,7 @@ package me.tatarka.inject.compiler
 
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.plusParameter
-import me.tatarka.inject.annotations.Inject
-import me.tatarka.inject.annotations.IntoMap
-import me.tatarka.inject.annotations.IntoSet
-import me.tatarka.inject.annotations.Module
+import me.tatarka.inject.annotations.*
 import me.tatarka.inject.compiler.ast.*
 import java.io.File
 import java.util.*
@@ -242,6 +239,19 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
         astClass.visitInheritanceChain { parentClass ->
             for (method in parentClass.methods) {
                 if (method.isProvides()) {
+                    if (method.modifiers.contains(AstModifier.PRIVATE)) {
+                        error("@Provides method must not be private", method)
+                        continue
+                    }
+                    if (method.modifiers.contains(AstModifier.ABSTRACT)) {
+                        error("@Provides method must not be abstract", method)
+                        continue
+                    }
+                    if (method.returnType.isUnit()) {
+                        error("@Provides method must return a value", method)
+                        continue
+                    }
+
                     if (method.annotationOf<IntoMap>() != null) {
                         // Pair<A, B> -> Map<A, B>
                         val typeArgs = method.returnType.arguments
@@ -439,8 +449,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
 
     private fun Element.isModule() = getAnnotation(Module::class.java) != null
 
-    private fun AstMethod.isProvides(): Boolean =
-        !modifiers.contains(AstModifier.PRIVATE) && !modifiers.contains(AstModifier.ABSTRACT) && returnType.isNotUnit()
+    private fun AstMethod.isProvides(): Boolean = annotationOf<Provides>() != null
 
     private fun AstMethod.isProvider(): Boolean =
         modifiers.contains(AstModifier.ABSTRACT) && when (this) {

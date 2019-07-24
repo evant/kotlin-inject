@@ -3,17 +3,19 @@ package me.tatarka.inject.test
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import me.tatarka.inject.annotations.Module
+import me.tatarka.inject.annotations.Provides
 import org.junit.Test
 
 @Module abstract class ParentModule {
+    @Provides
     fun foo() = NamedFoo("parent")
 }
 
-@Module abstract class SimpleChildModule(val parent: ParentModule) {
+@Module abstract class SimpleChildModule(@Module val parent: ParentModule) {
     abstract val foo: NamedFoo
 }
 
-@Module abstract class SimpleChildModule2(val parent: SimpleChildModule) {
+@Module abstract class SimpleChildModule2(@Module val parent: SimpleChildModule) {
     abstract val foo: NamedFoo
 }
 

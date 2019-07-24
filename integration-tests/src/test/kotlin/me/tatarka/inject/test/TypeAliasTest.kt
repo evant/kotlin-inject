@@ -5,6 +5,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Module
+import me.tatarka.inject.annotations.Provides
 import org.junit.Test
 
 class NamedFoo(val name: String)
@@ -17,8 +18,8 @@ typealias NamedFoo2 = NamedFoo
 
     abstract val foo2: NamedFoo2
 
-    fun foo1(): NamedFoo1 = NamedFoo("1")
-    fun foo2(): NamedFoo2 = NamedFoo("2")
+    @Provides fun foo1(): NamedFoo1 = NamedFoo("1")
+    @Provides fun foo2(): NamedFoo2 = NamedFoo("2")
 }
 
 @Inject class AliasedFoo(val foo1: NamedFoo1, val foo2: NamedFoo2)
@@ -26,8 +27,8 @@ typealias NamedFoo2 = NamedFoo
 @Module abstract class ConstructorAliasedModule {
     abstract val aliasedFoo: AliasedFoo
 
-    fun foo1(): NamedFoo1 = NamedFoo("1")
-    fun foo2(): NamedFoo2 = NamedFoo("2")
+    @Provides fun foo1(): NamedFoo1 = NamedFoo("1")
+    @Provides fun foo2(): NamedFoo2 = NamedFoo("2")
 }
 
 class QualifierTest {

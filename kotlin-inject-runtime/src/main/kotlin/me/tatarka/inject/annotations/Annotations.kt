@@ -8,8 +8,12 @@ import kotlin.annotation.AnnotationTarget.*
 annotation class Inject
 
 @Retention(RUNTIME)
-@Target(CLASS)
+@Target(CLASS, VALUE_PARAMETER)
 annotation class Module
+
+@Retention(RUNTIME)
+@Target(FUNCTION, PROPERTY)
+annotation class Provides
 
 @Retention(RUNTIME)
 @Target(ANNOTATION_CLASS)

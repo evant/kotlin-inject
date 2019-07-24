@@ -5,6 +5,7 @@ import assertk.assertions.containsOnly
 import me.tatarka.inject.annotations.IntoMap
 import me.tatarka.inject.annotations.IntoSet
 import me.tatarka.inject.annotations.Module
+import me.tatarka.inject.annotations.Provides
 import org.junit.Test
 
 data class FooValue(val name: String)
@@ -12,10 +13,10 @@ data class FooValue(val name: String)
 @Module abstract class SetModule {
     abstract val items: Set<FooValue>
 
-    @IntoSet
+    @Provides @IntoSet
     fun fooValue1() = FooValue("1")
 
-    @IntoSet
+    @Provides @IntoSet
     val fooValue2
         get() = FooValue("2")
 }
@@ -24,10 +25,10 @@ data class FooValue(val name: String)
 
     abstract val items: Map<String, FooValue>
 
-    @IntoMap
+    @Provides @IntoMap
     fun fooValue1() = "1" to FooValue("1")
 
-    @IntoMap
+    @Provides @IntoMap
     val fooValue2
         get() = "2" to FooValue("2")
 }
