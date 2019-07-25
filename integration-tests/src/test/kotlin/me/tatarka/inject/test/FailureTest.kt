@@ -120,4 +120,24 @@ class FailureTest {
             ).compile()
         }.isFailure().output().contains("Cannot find an @Inject constructor or provider for: String")
     }
+
+    @Test
+    fun fails_if_module_does_not_have_scope_to_provide_dependency() {
+        assertThat {
+            ProjectCompiler(testProjectDir.root).source(
+                "test.kt", """
+                    import me.tatarka.inject.annotations.Module
+                    import me.tatarka.inject.annotations.Scope
+                    import me.tatarka.inject.annotations.Inject
+
+                    @Scope annotation class MyScope
+                    @MyScope @Inject class Foo
+
+                    @Module abstract class MyModule {
+                        abstract val f: Foo
+                    }
+                """.trimIndent()
+            ).compile()
+        }.isFailure().output().contains("Cannot find module with scope: @MyScope to inject Foo")
+    }
 }

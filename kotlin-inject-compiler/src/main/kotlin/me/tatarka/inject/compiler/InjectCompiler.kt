@@ -493,6 +493,11 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
         val element = types.asElement(key.type.type) as TypeElement
         if (element.getAnnotation(Inject::class.java) != null) {
             val astClass = element.toAstClass()
+            val scope = element.scopeType()
+            if (scope != null && scope != source?.scopeType()) {
+                error("Cannot find module with scope: @$scope to inject $astClass", astClass)
+                return null
+            }
             return Result.Constructor(astClass.constructors[0])
         }
         return null
