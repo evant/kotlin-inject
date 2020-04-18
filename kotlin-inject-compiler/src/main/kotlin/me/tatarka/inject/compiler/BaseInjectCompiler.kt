@@ -1,6 +1,6 @@
 package me.tatarka.inject.compiler
 
-import me.tatarka.inject.compiler.ast.AstProvider
+import me.tatarka.inject.compiler.ast.ModelAstProvider
 import javax.annotation.processing.AbstractProcessor
 import javax.annotation.processing.Filer
 import javax.annotation.processing.Messager
@@ -11,7 +11,7 @@ import javax.lang.model.util.Types
 
 private const val OPTION_GENERATE_COMPANION_EXTENSIONS = "me.tatarka.inject.generateCompanionExtensions"
 
-abstract class BaseInjectCompiler : AbstractProcessor(), AstProvider {
+abstract class BaseInjectCompiler : AbstractProcessor(), ModelAstProvider {
 
     var generateCompanionExtensions: Boolean = false
         private set

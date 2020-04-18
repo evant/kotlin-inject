@@ -5,7 +5,6 @@ import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.plusParameter
 import me.tatarka.inject.annotations.*
 import me.tatarka.inject.compiler.ast.*
 import java.util.*
-import javax.lang.model.element.TypeElement
 import kotlin.reflect.KClass
 
 class InjectGenerator(provider: AstProvider, private val generateCompanionExtensions: Boolean) :
@@ -39,7 +38,7 @@ class InjectGenerator(provider: AstProvider, private val generateCompanionExtens
         val context = collectTypes(astClass, scopedInjects)
 
         return TypeSpec.classBuilder("Inject${astClass.name}")
-            .addOriginatingElement(astClass.element)
+            .addOriginatingElement(astClass)
             .superclass(astClass.asClassName())
             .apply {
                 if (constructor != null) {
@@ -61,7 +60,7 @@ class InjectGenerator(provider: AstProvider, private val generateCompanionExtens
 
                         addProperty(
                             PropertySpec.builder(
-                                types.asElement(type.type).simpleName.toString().asScopedProp(),
+                                type.asElement().simpleName.asScopedProp(),
                                 type.asTypeName()
                             ).delegate(codeBlock.build())
                                 .build()
@@ -237,7 +236,7 @@ class InjectGenerator(provider: AstProvider, private val generateCompanionExtens
         if (constructor != null) {
             for (parameter in constructor.parameters) {
                 if (parameter.isComponent()) {
-                    val elemAstClass = (types.asElement(parameter.type.type) as TypeElement).toAstClass()
+                    val elemAstClass = parameter.type.toAstClass()
                     parents.add(
                         collectTypes(
                             elemAstClass,
@@ -341,7 +340,7 @@ class InjectGenerator(provider: AstProvider, private val generateCompanionExtens
         if (result.name != null) {
             codeBlock.add("(%L as Inject%N).", result.name, result.astClass.name)
         }
-        codeBlock.add("%N", types.asElement(key.type.type).simpleName.toString().asScopedProp())
+        codeBlock.add("%N", key.type.asElement().simpleName.asScopedProp())
         return codeBlock.build()
     }
 

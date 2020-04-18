@@ -10,17 +10,20 @@ import kotlinx.metadata.jvm.KotlinClassMetadata
 import me.tatarka.inject.annotations.Scope
 import me.tatarka.inject.compiler.ast.AstClass
 import me.tatarka.inject.compiler.ast.AstElement
-import javax.lang.model.element.AnnotationMirror
 import javax.lang.model.element.Element
 import javax.lang.model.element.TypeElement
+import kotlin.reflect.KClass
 
-fun Element.scope(): AnnotationMirror? = annotationMirrors.find {
-    it.annotationType.asElement().getAnnotation(Scope::class.java) != null
-}
+fun <T : Annotation> Element.typeAnnotatedWith(type: KClass<T>) =
+    annotationMirrors.find {
+        it.annotationType.asElement().getAnnotation(type.java) != null
+    }?.annotationType?.asElement() as? TypeElement
 
-fun Element.scopeType(): TypeElement? = scope()?.let { it.annotationType.asElement() as TypeElement }
+inline fun <reified T : Annotation> Element.typeAnnotatedWith() = typeAnnotatedWith(T::class)
 
-fun AstElement.scopeType(): AstClass? = element.scopeType()?.toAstClass()
+fun Element.scopeType(): TypeElement? = typeAnnotatedWith<Scope>()
+
+fun AstElement.scopeType(): AstClass? = typeAnnotatedWith<Scope>()
 
 fun String.asScopedProp(): String = "_" + decapitalize()
 
@@ -30,7 +33,7 @@ fun TypeName.javaToKotlinType(): TypeName = if (this is ParameterizedTypeName) {
     )
 } else {
     val s = toString()
-    when(s) {
+    when (s) {
         "java.util.Map" -> ClassName.bestGuess("kotlin.collections.Map")
         "java.util.Set" -> ClassName.bestGuess("kotlin.collections.Set")
         "java.lang.String" -> ClassName.bestGuess("kotlin.String")
@@ -46,19 +49,20 @@ fun TypeName.javaToKotlinType(): TypeName = if (this is ParameterizedTypeName) {
     }
 }
 
-val TypeElement.metadata: KmClass? get() {
-    val meta = getAnnotation(Metadata::class.java) ?: return null
-    val header = KotlinClassHeader(
-        kind =  meta.kind,
-        bytecodeVersion = meta.bytecodeVersion,
-        data1 = meta.data1,
-        data2 = meta.data2,
-        extraInt = meta.extraInt,
-        extraString = meta.extraString,
-        metadataVersion = meta.metadataVersion,
-        packageName = meta.packageName
-    )
-    val metadata = KotlinClassMetadata.read(header) ?: return null
-    if (metadata !is KotlinClassMetadata.Class) return null
-    return metadata.toKmClass()
-}
+val TypeElement.metadata: KmClass?
+    get() {
+        val meta = getAnnotation(Metadata::class.java) ?: return null
+        val header = KotlinClassHeader(
+            kind = meta.kind,
+            bytecodeVersion = meta.bytecodeVersion,
+            data1 = meta.data1,
+            data2 = meta.data2,
+            extraInt = meta.extraInt,
+            extraString = meta.extraString,
+            metadataVersion = meta.metadataVersion,
+            packageName = meta.packageName
+        )
+        val metadata = KotlinClassMetadata.read(header) ?: return null
+        if (metadata !is KotlinClassMetadata.Class) return null
+        return metadata.toKmClass()
+    }
