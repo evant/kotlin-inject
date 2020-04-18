@@ -16,6 +16,8 @@ class ProjectCompiler(private val root: File) {
     }
 
     fun compile() {
+        val kotlinVersion = "1.3.72"
+
         val settingsFile = root.resolve("settings.gradle")
 
         settingsFile.writeText(
@@ -32,8 +34,8 @@ class ProjectCompiler(private val root: File) {
         buildFile.writeText(
             """
             plugins {
-                id 'org.jetbrains.kotlin.jvm' version '1.3.31'
-                id 'org.jetbrains.kotlin.kapt' version '1.3.31'
+                id 'org.jetbrains.kotlin.jvm' version '${kotlinVersion}'
+                id 'org.jetbrains.kotlin.kapt' version '${kotlinVersion}'
             }
             
             repositories {
@@ -41,7 +43,7 @@ class ProjectCompiler(private val root: File) {
             }
             
             dependencies {
-                implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.3.31'
+                implementation 'org.jetbrains.kotlin:kotlin-stdlib'
                 kapt project(':kotlin-inject-compiler')
                 implementation project(':kotlin-inject-runtime')
             }

@@ -17,12 +17,12 @@ class FailureTest {
         assertThat {
             ProjectCompiler(testProjectDir.root).source(
                 "test.kt", """
-                    import me.tatarka.inject.annotations.Module
+                    import me.tatarka.inject.annotations.Component
                     
-                    @Module class MyModule
+                    @Component class MyComponent
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().contains("@Module class: MyModule must be abstract")
+        }.isFailure().output().contains("@Component class: MyComponent must be abstract")
     }
 
     @Test
@@ -30,12 +30,12 @@ class FailureTest {
         assertThat {
             ProjectCompiler(testProjectDir.root).source(
                 "test.kt", """
-                    import me.tatarka.inject.annotations.Module
+                    import me.tatarka.inject.annotations.Component
                     
-                    @Module private abstract class MyModule
+                    @Component private abstract class MyComponent
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().contains("@Module class: MyModule must not be private")
+        }.isFailure().output().contains("@Component class: MyComponent must not be private")
     }
 
     @Test
@@ -43,10 +43,10 @@ class FailureTest {
         assertThat {
             ProjectCompiler(testProjectDir.root).source(
                 "test.kt", """
-                    import me.tatarka.inject.annotations.Module
+                    import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Provides
                     
-                    @Module abstract class MyModule {
+                    @Component abstract class MyComponent {
                         @Provides private fun providesString(): String = "one"
                     }
                 """.trimIndent()
@@ -59,10 +59,10 @@ class FailureTest {
         assertThat {
             ProjectCompiler(testProjectDir.root).source(
                 "test.kt", """
-                    import me.tatarka.inject.annotations.Module
+                    import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Provides
                     
-                    @Module abstract class MyModule {
+                    @Component abstract class MyComponent {
                         @Provides abstract fun providesString(): String
                     }
                 """.trimIndent()
@@ -75,10 +75,10 @@ class FailureTest {
         assertThat {
             ProjectCompiler(testProjectDir.root).source(
                 "test.kt", """
-                    import me.tatarka.inject.annotations.Module
+                    import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Provides
                     
-                    @Module abstract class MyModule {
+                    @Component abstract class MyComponent {
                         @Provides fun providesUnit() { }
                     }
                 """.trimIndent()
@@ -91,10 +91,10 @@ class FailureTest {
         assertThat {
             ProjectCompiler(testProjectDir.root).source(
                 "test.kt", """
-                    import me.tatarka.inject.annotations.Module
+                    import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Provides
                     
-                    @Module abstract class MyModule {
+                    @Component abstract class MyComponent {
                         @Provides fun providesString1(): String = "one"
                         @Provides fun providesString2(): String = "two"
                     }
@@ -111,9 +111,9 @@ class FailureTest {
         assertThat {
             ProjectCompiler(testProjectDir.root).source(
                 "test.kt", """
-                    import me.tatarka.inject.annotations.Module
+                    import me.tatarka.inject.annotations.Component
                     
-                    @Module abstract class MyModule {
+                    @Component abstract class MyComponent {
                         abstract val s: String                 
                     }
                 """.trimIndent()
@@ -126,14 +126,14 @@ class FailureTest {
         assertThat {
             ProjectCompiler(testProjectDir.root).source(
                 "test.kt", """
-                    import me.tatarka.inject.annotations.Module
+                    import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Scope
                     import me.tatarka.inject.annotations.Inject
 
                     @Scope annotation class MyScope
                     @MyScope @Inject class Foo
 
-                    @Module abstract class MyModule {
+                    @Component abstract class MyComponent {
                         abstract val f: Foo
                     }
                 """.trimIndent()

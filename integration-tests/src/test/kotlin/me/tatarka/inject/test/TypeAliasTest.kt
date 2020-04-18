@@ -4,7 +4,7 @@ import assertk.assertAll
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import me.tatarka.inject.annotations.Inject
-import me.tatarka.inject.annotations.Module
+import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Provides
 import kotlin.test.Test
 
@@ -13,7 +13,7 @@ class NamedFoo(val name: String)
 typealias NamedFoo1 = NamedFoo
 typealias NamedFoo2 = NamedFoo
 
-@Module abstract class ProvidesAliasedModule {
+@Component abstract class ProvidesAliasedComponent {
     abstract val foo1: NamedFoo1
 
     abstract val foo2: NamedFoo2
@@ -24,39 +24,32 @@ typealias NamedFoo2 = NamedFoo
 
 @Inject class AliasedFoo(val foo1: NamedFoo1, val foo2: NamedFoo2)
 
-@Module abstract class ConstructorAliasedModule {
+@Component abstract class ConstructorAliasedComponent {
     abstract val aliasedFoo: AliasedFoo
 
     @Provides fun foo1(): NamedFoo1 = NamedFoo("1")
     @Provides fun foo2(): NamedFoo2 = NamedFoo("2")
 }
 
-inline fun <reified T> aliasCheck() {
-    when (T::class) {
-        NamedFoo1::class -> TODO()
-        NamedFoo2::class -> TODO()
-    }
-}
-
 class QualifierTest {
 
     @Test
-    fun generates_a_module_that_provides_different_values_based_on_the_type_alias_name() {
-        val module = ProvidesAliasedModule::class.create()
+    fun generates_a_component_that_provides_different_values_based_on_the_type_alias_name() {
+        val component = ProvidesAliasedComponent::class.create()
 
         assertAll {
-            assertThat(module.foo1.name).isEqualTo("1")
-            assertThat(module.foo2.name).isEqualTo("2")
+            assertThat(component.foo1.name).isEqualTo("1")
+            assertThat(component.foo2.name).isEqualTo("2")
         }
     }
 
     @Test
-    fun generates_a_module_that_constructs_different_values_based_on_the_type_alias_name() {
-        val module = ConstructorAliasedModule::class.create()
+    fun generates_a_component_that_constructs_different_values_based_on_the_type_alias_name() {
+        val component = ConstructorAliasedComponent::class.create()
 
         assertAll {
-            assertThat(module.aliasedFoo.foo1.name).isEqualTo("1")
-            assertThat(module.aliasedFoo.foo2.name).isEqualTo("2")
+            assertThat(component.aliasedFoo.foo1.name).isEqualTo("1")
+            assertThat(component.aliasedFoo.foo2.name).isEqualTo("2")
         }
     }
 }

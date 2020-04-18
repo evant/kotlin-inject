@@ -3,7 +3,7 @@ package me.tatarka.inject.test
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import me.tatarka.inject.annotations.Inject
-import me.tatarka.inject.annotations.Module
+import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Scope
 import kotlin.test.Test
 import kotlin.test.BeforeTest
@@ -19,15 +19,15 @@ var customScopeBarConstructorCount = 0
     }
 }
 
-@CustomScope @Module abstract class CustomScopeConstructorModule {
+@CustomScope @Component abstract class CustomScopeConstructorComponent {
     abstract val bar: CustomScopeBar
 }
 
-@Module abstract class ParentScopedModule(@Module val parent: CustomScopeConstructorModule) {
+@Component abstract class ParentScopedComponent(@Component val parent: CustomScopeConstructorComponent) {
     abstract val bar: CustomScopeBar
 }
 
-@Module abstract class ParentParentScopedModule(@Module val parent: ParentScopedModule) {
+@Component abstract class ParentParentScopedComponent(@Component val parent: ParentScopedComponent) {
     abstract val bar: CustomScopeBar
 }
 
@@ -38,37 +38,37 @@ class ScopeTest {
     }
 
     @Test
-    fun generates_a_module_where_a_custom_scope_constructor_is_only_called_once() {
-        val module = CustomScopeConstructorModule::class.create()
-        module.bar
-        module.bar
+    fun generates_a_component_where_a_custom_scope_constructor_is_only_called_once() {
+        val component = CustomScopeConstructorComponent::class.create()
+        component.bar
+        component.bar
 
         assertThat(customScopeBarConstructorCount).isEqualTo(1)
     }
 
     @Test
-    fun generates_a_module_where_a_singleton_constructor_is_instantiated_in_the_parent_module() {
-        val parent = CustomScopeConstructorModule::class.create()
-        val module1 = ParentScopedModule::class.create(parent)
-        module1.bar
-        module1.bar
-        val module2 = ParentScopedModule::class.create(parent)
-        module1.bar
-        module2.bar
+    fun generates_a_component_where_a_singleton_constructor_is_instantiated_in_the_parent_component() {
+        val parent = CustomScopeConstructorComponent::class.create()
+        val component1 = ParentScopedComponent::class.create(parent)
+        component1.bar
+        component1.bar
+        val component2 = ParentScopedComponent::class.create(parent)
+        component1.bar
+        component2.bar
 
         assertThat(customScopeBarConstructorCount).isEqualTo(1)
     }
 
     @Test
-    fun generates_a_module_where_a_singleton_constructor_is_instantiated_in_the_parent2_module() {
-        val parent = CustomScopeConstructorModule::class.create()
-        val child = ParentScopedModule::class.create(parent)
-        val module1 = ParentParentScopedModule::class.create(child)
-        module1.bar
-        module1.bar
-        val module2 = ParentParentScopedModule::class.create(child)
-        module1.bar
-        module2.bar
+    fun generates_a_component_where_a_singleton_constructor_is_instantiated_in_the_parent2_component() {
+        val parent = CustomScopeConstructorComponent::class.create()
+        val child = ParentScopedComponent::class.create(parent)
+        val component1 = ParentParentScopedComponent::class.create(child)
+        component1.bar
+        component1.bar
+        val component2 = ParentParentScopedComponent::class.create(child)
+        component1.bar
+        component2.bar
 
         assertThat(customScopeBarConstructorCount).isEqualTo(1)
     }

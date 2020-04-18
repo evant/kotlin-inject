@@ -4,13 +4,13 @@ import assertk.assertThat
 import assertk.assertions.containsOnly
 import me.tatarka.inject.annotations.IntoMap
 import me.tatarka.inject.annotations.IntoSet
-import me.tatarka.inject.annotations.Module
+import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Provides
 import kotlin.test.Test
 
 data class FooValue(val name: String)
 
-@Module abstract class SetModule {
+@Component abstract class SetComponent {
     abstract val items: Set<FooValue>
 
     @Provides @IntoSet
@@ -21,7 +21,7 @@ data class FooValue(val name: String)
         get() = FooValue("2")
 }
 
-@Module abstract class DynamicKeyModule {
+@Component abstract class DynamicKeyModule {
 
     abstract val items: Map<String, FooValue>
 
@@ -36,29 +36,29 @@ data class FooValue(val name: String)
 class MultibindsTest {
 
     @Test
-    fun generates_a_module_that_provides_multiple_items_into_a_set() {
-        val module = SetModule::class.create()
+    fun generates_a_component_that_provides_multiple_items_into_a_set() {
+        val component = SetComponent::class.create()
 
-        assertThat(module.items).containsOnly(FooValue("1"), FooValue("2"))
+        assertThat(component.items).containsOnly(FooValue("1"), FooValue("2"))
     }
 
     @Test
-    fun generates_a_module_that_provides_multiple_items_into_a_map() {
-        val module = DynamicKeyModule::class.create()
+    fun generates_a_component_that_provides_multiple_items_into_a_map() {
+        val component = DynamicKeyModule::class.create()
 
-        assertThat(module.items).containsOnly(
+        assertThat(component.items).containsOnly(
             "1" to FooValue("1"),
             "2" to FooValue("2")
         )
     }
 
 //    @Test
-//    fun generates_a_module_that_provides_multiple_items_into_a_fun() {
-//        val module = FunKeyModule::class.create()
+//    fun generates_a_component_that_provides_multiple_items_into_a_fun() {
+//        val component = FunKeyModule::class.create()
 //
 //        assertAll {
-//            assertThat(module.items("1")).isEqualTo(FooValue("1"))
-//            assertThat(module.items("2")).isEqualTo(FooValue("2"))
+//            assertThat(component.items("1")).isEqualTo(FooValue("1"))
+//            assertThat(component.items("2")).isEqualTo(FooValue("2"))
 //        }
 //    }
 }

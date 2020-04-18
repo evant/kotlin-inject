@@ -4,7 +4,7 @@
 A compile-time dependency injection library for kotlin.
 
 ```kotlin
-@Module abstract class AppModule {
+@Component abstract class AppComponent {
     abstract val repo: Repository
     
     @Provides protected fun jsonParser() = JsonParser()
@@ -18,8 +18,8 @@ interface Http
 @Inject class Repository(private val api: Api)
 ```
 ```kotlin
-val appModule = AppModule::class.create()
-val repo = appModule.repo
+val appComponent = AppComponent::class.create()
+val repo = appComponent.repo
 ```
 
 ## Download
@@ -45,15 +45,15 @@ dependencies {
 Let's go through the above example line-by line and see what it's doing.
 
 ```kotlin
-@Module abstract class Module {
+@Component abstract class AppComponent {
 ```
-The building block of kotlin-inject is a module which you declare with an `@Module` annotation on an abstract class. An
-implementation of this module will be generated for you.
+The building block of kotlin-inject is a module which you declare with an `@Component` annotation on an abstract class. An
+implementation of this component will be generated for you.
 
 ```kotlin
     abstract val repo: Repository
 ```
-In you module you can declare abstract read-only properties or functions to return an instance of a given type. This is
+In you component you can declare abstract read-only properties or functions to return an instance of a given type. This is
 where the magic happens. kotlin-inject will figure out how to construct that type for you in it's generated
 implementation. How does it know how to do this? There's a few ways:
 
@@ -80,43 +80,43 @@ For your own dependencies you can simply annotate the class with `@Inject`. This
 create an instance, no other configuration required!
 
 ```kotlin
-val appModule = AppModule::class.create()
-val repo = appModule.repo
+val appComponent = AppComponent::class.create()
+val repo = appComponent.repo
 ```
 
-Finally, you can create an instance of your module with the generated `.create()` extension function.
+Finally, you can create an instance of your component with the generated `.create()` extension function.
 
 ## Features
 
-### Module Arguments
+### Component Arguments
 
-If you need to pass any instances into your module you can declare them as constructor args. You can then pass them into
+If you need to pass any instances into your component you can declare them as constructor args. You can then pass them into
 the generated create function. You can optionally annotate it with `@Provides` to provide the value to the dependency graph.
 
 ```kotlin
-@Module abstract class MyModule(@Provides protected val foo: Foo)
+@Module abstract class MyComponent(@Provides protected val foo: Foo)
 ```
 
 ```kotlin
-MyModule::class.create(Foo())
+MyComponent::class.create(Foo())
 ```
 
-If the argument is another module, you can annotate it with `@Module` and it's dependencies will also be available to the 
-child module. This allows you to compose them into a graph.
+If the argument is another component, you can annotate it with `@Component` and it's dependencies will also be available to the 
+child component. This allows you to compose them into a graph.
 
 ```kotlin
-@Module abstract class ParentModule {
+@Module abstract class ParentComponent {
     protected fun provideFoo(): Foo = ...
 }
 
-@Module abstract class ChildModule(@Module val parent: ParentModule) {
+@Module abstract class ChildComponent(@Module val parent: ParentComponent) {
     abstract val foo: Foo
 }
 ```
 
 ```kotlin
-val parent = ParentModule::class.create()
-val child = ChildModule::class.create(parent)
+val parent = ParentComponent::class.create()
+val child = ChildComponent::class.create(parent)
 ```
 
 ### Type Alias Support
@@ -128,7 +128,7 @@ treated as separate types for the purposes of injection.
 typealias Dep1 = Dep
 typealias Dep2 = Dep
 
-@Modlue abstract class MyModlue {
+@Modlue abstract class MyComponent {
     @Provides fun dep1(): Dep1 = Dep("one")
     @Provides fun dep2(): Dep2 = Dep("two")
 
@@ -141,7 +141,7 @@ typealias Dep2 = Dep
 ### Scopes
 
 By default kotlin-inject will create a new instance of a dependency each place it's injected. If you want to re-use an
-instance you can scope it to a module. The instance will live as long as that module does.
+instance you can scope it to a component. The instance will live as long as that component does.
 
 First create your scope annotation.
 ```kotlin
@@ -149,16 +149,16 @@ First create your scope annotation.
 annotation class MyScope
 ```
 
-Then annotate your module with that scope annotation.
+Then annotate your component with that scope annotation.
 
 ```kotlin
-@MyScope @Module abstract class MyModule()
+@MyScope @Component abstract class MyComponent()
 ```
 
 Finally, annotate your provides and `@Inject` classes with that scope.
 
 ```kotlin
-@MyScope @Module abstract class MyModule {
+@MyScope @Component abstract class MyModule {
     @MyScope @Provides
     protected fun provideFoo() = ...
 }
@@ -173,7 +173,7 @@ You can collect multiple bindings into a `Map` or `Set` by using the `@IntoMap` 
 For a set, return the type you want to put into a set, then you can inject or provide a `Set<MyType>`.
 
 ```kotlin
-@Module abstract class MyModule {
+@Component abstract class MyComponent {
     abstract val allFoos: Set<Foo>
 
     @IntoSet @Provides
@@ -186,7 +186,7 @@ For a set, return the type you want to put into a set, then you can inject or pr
 For a map, return a `Pair<Key, Value>`.
 
 ```kotlin
-@Module abstract class MyModule {
+@Component abstract class MyComponent {
     abstract val fooMap: Map<String, Foo>
     
     @IntoMap @Provides
@@ -198,7 +198,7 @@ For a map, return a `Pair<Key, Value>`.
 
 ### Function Support
 
-Sometimes you want to delay the creation of a dependency of provide additional params manually. You can do this by 
+Sometimes you want to delay the creation of a dependency or provide additional params manually. You can do this by 
 injecting a function that returns the dependency instead of the dependency directly.
 
 The simplest case is you take no args, this gives you a function that can create the dep.

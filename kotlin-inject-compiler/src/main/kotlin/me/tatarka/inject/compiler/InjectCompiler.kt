@@ -40,22 +40,22 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
     }
 
     override fun process(elements: Set<TypeElement>, env: RoundEnvironment): Boolean {
-        for (element in env.getElementsAnnotatedWith(Module::class.java)) {
+        for (element in env.getElementsAnnotatedWith(Component::class.java)) {
             if (element !is TypeElement) continue
             val astClass = element.toAstClass()
 
             val scope = astClass.scopeType()
             val scopedInjects =
                 if (scope != null) env.getElementsAnnotatedWith(scope).mapNotNull {
-                    // skip module itself, we only want @Inject's annotated with the scope
-                    if (it.getAnnotation(Module::class.java) != null) {
+                    // skip component itself, we only want @Inject's annotated with the scope
+                    if (it.getAnnotation(Component::class.java) != null) {
                         null
                     } else {
                         it as? TypeElement
                     }
                 } else emptyList()
             try {
-                process(astClass, scope, scopedInjects)
+                process(astClass, scopedInjects)
             } catch (e: FailedToGenerateException) {
                 // Continue so we can see all errors
                 continue
@@ -64,23 +64,23 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
         return false
     }
 
-    private fun process(astClass: AstClass, scope: TypeElement?, scopedInjects: Collection<TypeElement>) {
+    private fun process(astClass: AstClass, scopedInjects: Collection<TypeElement>) {
         if (AstModifier.ABSTRACT !in astClass.modifiers) {
-            error("@Module class: $astClass must be abstract", astClass)
+            error("@Component class: $astClass must be abstract", astClass)
             throw FailedToGenerateException()
         } else if (AstModifier.PRIVATE in astClass.modifiers) {
-            error("@Module class: $astClass must not be private", astClass)
+            error("@Component class: $astClass must not be private", astClass)
             throw FailedToGenerateException()
         }
 
         val constructor = astClass.constructors.firstOrNull()
 
-        val injectModule = generateInjectModule(astClass, constructor, scopedInjects)
-        val createFunction = generateCreate(astClass, constructor, injectModule)
+        val injectComponent = generateInjectComponent(astClass, constructor, scopedInjects)
+        val createFunction = generateCreate(astClass, constructor, injectComponent)
 
         val file =
             FileSpec.builder(astClass.packageName, "Inject${astClass.name}")
-                .addType(injectModule)
+                .addType(injectComponent)
                 .addFunction(createFunction)
                 .build()
 
@@ -89,7 +89,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
         file.writeTo(out)
     }
 
-    private fun generateInjectModule(
+    private fun generateInjectComponent(
         astClass: AstClass,
         constructor: AstConstructor?,
         scopedInjects: Collection<TypeElement>
@@ -151,7 +151,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
                         }
                     }
                 } catch (e: FailedToGenerateException) {
-                    // Create a stub module to prevent extra compile errors, the original one will still be reported.
+                    // Create a stub component to prevent extra compile errors, the original one will still be reported.
                 }
             }
             .build()
@@ -160,7 +160,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
     private fun generateCreate(
         element: AstClass,
         constructor: AstConstructor?,
-        injectModule: TypeSpec
+        injectComponent: TypeSpec
     ): FunSpec {
         return FunSpec.builder("create")
             .apply {
@@ -174,7 +174,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
                     } else {
                         error(
                             """Missing companion for class: ${element.asClassName()}.
-                            |When you have the option me.tatarka.inject.generateCompanionExtensions=true you must declare a companion option on the module class for the extension function to apply to.
+                            |When you have the option me.tatarka.inject.generateCompanionExtensions=true you must declare a companion option on the component class for the extension function to apply to.
                             |You can do so by adding 'companion object' to the class.
                         """.trimMargin(), element
                         )
@@ -186,7 +186,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
             .returns(element.type.asTypeName())
             .apply {
                 val codeBlock = CodeBlock.builder()
-                codeBlock.add("return %N(", injectModule)
+                codeBlock.add("return %N(", injectComponent)
                 if (constructor != null) {
                     constructor.parameters.forEachIndexed { i, parameter ->
                         if (i != 0) {
@@ -294,7 +294,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
         val constructor = astClass.constructors.firstOrNull()
         if (constructor != null) {
             for (parameter in constructor.parameters) {
-                if (parameter.isModule()) {
+                if (parameter.isComponent()) {
                     val elemAstClass = (types.asElement(parameter.type.type) as TypeElement).toAstClass()
                     parents.add(
                         collectTypes(
@@ -449,7 +449,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
         return CodeBlock.of(result.argName)
     }
 
-    private fun AstParam.isModule() = annotationOf<Module>() != null
+    private fun AstParam.isComponent() = annotationOf<Component>() != null
 
     private fun AstMethod.isProvides(): Boolean = annotationOf<Provides>() != null
 
@@ -550,7 +550,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
     private class FailedToGenerateException : Exception()
 
     override fun getSupportedAnnotationTypes(): Set<String> = setOf(
-        Module::class.java.canonicalName,
+        Component::class.java.canonicalName,
         Inject::class.java.canonicalName
     )
 

@@ -9,7 +9,7 @@ annotation class Inject
 
 @Retention(RUNTIME)
 @Target(CLASS, VALUE_PARAMETER)
-annotation class Module
+annotation class Component
 
 @Retention(RUNTIME)
 @Target(FUNCTION, PROPERTY)
