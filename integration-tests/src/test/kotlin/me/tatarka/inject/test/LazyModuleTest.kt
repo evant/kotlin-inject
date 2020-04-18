@@ -4,7 +4,7 @@ import assertk.assertThat
 import assertk.assertions.isSameAs
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Module
-import org.junit.Test
+import kotlin.test.Test
 
 @Inject class LazyFoo
 

@@ -4,7 +4,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import me.tatarka.inject.annotations.Module
 import me.tatarka.inject.annotations.Provides
-import org.junit.Test
+import kotlin.test.Test
 
 @Module abstract class ParentModule {
     @Provides

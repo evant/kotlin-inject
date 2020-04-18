@@ -6,8 +6,8 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isNotNull
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Module
-import org.junit.Before
-import org.junit.Test
+import kotlin.test.BeforeTest
+import kotlin.test.Test
 
 @Inject class Foo : IFoo
 
@@ -25,7 +25,7 @@ interface IFoo
 
 class ModuleTest {
 
-    @Before
+    @BeforeTest
     fun setup() {
         customScopeBarConstructorCount = 0
     }

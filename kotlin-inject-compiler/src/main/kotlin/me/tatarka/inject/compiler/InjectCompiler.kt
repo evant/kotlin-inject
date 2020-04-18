@@ -8,7 +8,6 @@ import java.io.File
 import java.util.*
 import javax.annotation.processing.*
 import javax.lang.model.SourceVersion
-import javax.lang.model.element.Element
 import javax.lang.model.element.TypeElement
 import javax.lang.model.util.Elements
 import javax.lang.model.util.Types
@@ -18,6 +17,7 @@ private const val OPTION_KAPT_KOTLIN_GENERATED = "kapt.kotlin.generated"
 
 private const val OPTION_GENERATE_COMPANION_EXTENSIONS = "me.tatarka.inject.generateCompanionExtensions"
 
+@ExperimentalStdlibApi
 class InjectCompiler : AbstractProcessor(), AstProvider {
 
     private lateinit var generatedSourcesRoot: String
@@ -31,7 +31,8 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
     override fun init(processingEnv: ProcessingEnvironment) {
         super.init(processingEnv)
         this.generatedSourcesRoot = processingEnv.options[OPTION_KAPT_KOTLIN_GENERATED]!!
-        this.generateCompanionExtensions = processingEnv.options[OPTION_GENERATE_COMPANION_EXTENSIONS]?.toBoolean() ?: false
+        this.generateCompanionExtensions =
+            processingEnv.options[OPTION_GENERATE_COMPANION_EXTENSIONS]?.toBoolean() ?: false
         this.filer = processingEnv.filer
         this.types = processingEnv.typeUtils
         this.elements = processingEnv.elementUtils
@@ -171,10 +172,12 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
                     if (companion != null) {
                         receiver(companion.type.asTypeName())
                     } else {
-                        error("""Missing companion for class: ${element.asClassName()}.
+                        error(
+                            """Missing companion for class: ${element.asClassName()}.
                             |When you have the option me.tatarka.inject.generateCompanionExtensions=true you must declare a companion option on the module class for the extension function to apply to.
                             |You can do so by adding 'companion object' to the class.
-                        """.trimMargin(), element)
+                        """.trimMargin(), element
+                        )
                     }
                 } else {
                     receiver(KClass::class.asClassName().plusParameter(element.type.asTypeName()))
@@ -366,7 +369,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
                     if (i != 0) {
                         codeBlock.add(",")
                     }
-                    codeBlock.add(provide(TypeKey(param.type), context) { context.findWithIndex(it, i, size)})
+                    codeBlock.add(provide(TypeKey(param.type), context) { context.findWithIndex(it, i, size) })
                 }
                 codeBlock.add(")")
             }
@@ -385,7 +388,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
             if (i != 0) {
                 codeBlock.add(",")
             }
-            codeBlock.add(provide(TypeKey(param.type), context) { context.findWithIndex(it, i, size)})
+            codeBlock.add(provide(TypeKey(param.type), context) { context.findWithIndex(it, i, size) })
         }
         codeBlock.add(")")
         return codeBlock.build()
@@ -459,7 +462,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
     private fun Context.findWithIndex(key: TypeKey, index: Int, size: Int): Result? {
         val indexFromEnd = size - index - 1
         args.asReversed().forEachIndexed { i, (type, name) ->
-            if (i == indexFromEnd && type ==  key.type) {
+            if (i == indexFromEnd && type == key.type) {
                 return Result.Arg(name)
             }
         }
@@ -490,8 +493,8 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
                 return parentResult
             }
         }
-        val element = types.asElement(key.type.type) as TypeElement
-        if (element.getAnnotation(Inject::class.java) != null) {
+        val element = types.asElement(key.type.type) as TypeElement?
+        if (element?.getAnnotation(Inject::class.java) != null) {
             val astClass = element.toAstClass()
             val scope = element.scopeType()
             if (scope != null && scope != source?.scopeType()) {
@@ -524,7 +527,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
         class Container(val creator: String, val methods: List<AstMethod>) : Result(null)
         class Function(val key: TypeKey, val args: List<AstType>) : Result(null)
         class Arg(val argName: String) : Result(null)
-        class Lazy(val key: TypeKey): Result(null)
+        class Lazy(val key: TypeKey) : Result(null)
     }
 
     inner class TypeKey(val type: AstType) {

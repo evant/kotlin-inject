@@ -7,7 +7,8 @@ import assertk.assertions.isTrue
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Module
 import me.tatarka.inject.annotations.Provides
-import org.junit.Test
+import kotlin.reflect.full.createInstance
+import kotlin.test.Test
 
 class ProvidesFoo(val bar: ProvidesBar? = null)
 @Inject class ProvidesBar
@@ -74,8 +75,9 @@ class ProvidesTest {
 
     @Test fun generates_a_module_that_provides_a_dep_from_a_function_with_arg() {
         val module = ProvidesFunctionArgModule::class.create()
+        val foo: ProvidesFoo = module.foo
 
-        assertThat(module.foo.bar).isNotNull()
+        assertThat(foo.bar).isNotNull()
         assertThat(module.providesCalled).isTrue()
     }
 

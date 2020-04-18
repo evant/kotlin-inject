@@ -6,7 +6,7 @@ import me.tatarka.inject.annotations.IntoMap
 import me.tatarka.inject.annotations.IntoSet
 import me.tatarka.inject.annotations.Module
 import me.tatarka.inject.annotations.Provides
-import org.junit.Test
+import kotlin.test.Test
 
 data class FooValue(val name: String)
 

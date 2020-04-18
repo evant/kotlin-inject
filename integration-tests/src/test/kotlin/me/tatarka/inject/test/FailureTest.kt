@@ -5,8 +5,8 @@ import assertk.assertThat
 import assertk.assertions.contains
 import assertk.assertions.isFailure
 import org.junit.Rule
-import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import kotlin.test.Test
 
 class FailureTest {
     @get:Rule

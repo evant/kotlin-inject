@@ -6,7 +6,7 @@ import assertk.assertions.isEqualTo
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Module
 import me.tatarka.inject.annotations.Provides
-import org.junit.Test
+import kotlin.test.Test
 
 class NamedFoo(val name: String)
 
@@ -29,6 +29,13 @@ typealias NamedFoo2 = NamedFoo
 
     @Provides fun foo1(): NamedFoo1 = NamedFoo("1")
     @Provides fun foo2(): NamedFoo2 = NamedFoo("2")
+}
+
+inline fun <reified T> aliasCheck() {
+    when (T::class) {
+        NamedFoo1::class -> TODO()
+        NamedFoo2::class -> TODO()
+    }
 }
 
 class QualifierTest {

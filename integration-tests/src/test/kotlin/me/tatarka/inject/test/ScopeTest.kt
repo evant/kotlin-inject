@@ -5,8 +5,8 @@ import assertk.assertions.isEqualTo
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Module
 import me.tatarka.inject.annotations.Scope
-import org.junit.Before
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.BeforeTest
 
 @Scope
 annotation class CustomScope
@@ -32,7 +32,7 @@ var customScopeBarConstructorCount = 0
 }
 
 class ScopeTest {
-    @Before
+    @BeforeTest
     fun setup() {
         customScopeBarConstructorCount = 0
     }
