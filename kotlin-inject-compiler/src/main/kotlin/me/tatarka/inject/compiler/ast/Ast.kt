@@ -51,6 +51,10 @@ interface AstProvider {
         )
     }
 
+    fun warn(message: String, element: AstElement? = null) {
+        messager.printMessage(Diagnostic.Kind.WARNING, message, element?.element)
+    }
+
     fun error(message: String, element: AstElement?) {
         messager.printMessage(Diagnostic.Kind.ERROR, message, element?.element)
     }
@@ -58,7 +62,17 @@ interface AstProvider {
 
 sealed class AstElement(provider: AstProvider) : AstProvider by provider {
     internal abstract val element: Element
+
+    override fun equals(other: Any?): Boolean {
+        return other is AstClass && element == other.element
+    }
+
+    override fun hashCode(): Int {
+        return element.hashCode()
+    }
 }
+
+private class BasicElement(provider: AstProvider, override val element: Element) : AstElement(provider)
 
 class AstClass(provider: AstProvider, override val element: TypeElement, internal val kmClass: KmClass?) :
     AstElement(provider) {
@@ -264,17 +278,18 @@ class AstProperty(provider: AstProvider, element: ExecutableElement, private val
 class AstType(provider: AstProvider, val type: TypeMirror, private val kmType: KmType?) : AstElement(provider) {
     override val element: Element get() = types.asElement(type)
 
-    val name: String get() {
-        return if (kmType != null) {
-            when (val c = kmType.classifier) {
-                is KmClassifier.Class -> c.name.replace('/', '.')
-                is KmClassifier.TypeAlias -> c.name.replace('/', '.')
-                is KmClassifier.TypeParameter -> type.asTypeName().toString()
+    val name: String
+        get() {
+            return if (kmType != null) {
+                when (val c = kmType.classifier) {
+                    is KmClassifier.Class -> c.name.replace('/', '.')
+                    is KmClassifier.TypeAlias -> c.name.replace('/', '.')
+                    is KmClassifier.TypeParameter -> type.asTypeName().toString()
+                }
+            } else {
+                type.asTypeName().toString()
             }
-        } else {
-            type.asTypeName().toString()
         }
-    }
 
     val annotations: List<AstAnnotation> by lazy {
         if (kmType != null) {
@@ -307,6 +322,10 @@ class AstType(provider: AstProvider, val type: TypeMirror, private val kmType: K
     @Suppress("NOTHING_TO_INLINE")
     inline fun isNotUnit() = !isUnit()
 
+    fun asElement(): AstElement = BasicElement(this, element)
+
+    fun toAstClass(): AstClass = (element as TypeElement).toAstClass()
+
     override fun equals(other: Any?): Boolean {
         if (other !is AstType) return false
         return asTypeName() == other.asTypeName()
@@ -336,7 +355,8 @@ class AstAnnotation(provider: AstProvider, val annotationType: DeclaredType, pri
     }
 
     override fun toString(): String {
-        return "@$annotationType(${kmAnnotation.arguments.toList().joinToString(separator = ", ") { (name, value) -> "$name=${value.value}" }})"
+        return "@$annotationType(${kmAnnotation.arguments.toList()
+            .joinToString(separator = ", ") { (name, value) -> "$name=${value.value}" }})"
     }
 }
 

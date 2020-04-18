@@ -9,7 +9,7 @@ import kotlinx.metadata.jvm.KotlinClassHeader
 import kotlinx.metadata.jvm.KotlinClassMetadata
 import me.tatarka.inject.annotations.Scope
 import me.tatarka.inject.compiler.ast.AstClass
-import me.tatarka.inject.compiler.ast.AstMethod
+import me.tatarka.inject.compiler.ast.AstElement
 import javax.lang.model.element.AnnotationMirror
 import javax.lang.model.element.Element
 import javax.lang.model.element.TypeElement
@@ -20,9 +20,7 @@ fun Element.scope(): AnnotationMirror? = annotationMirrors.find {
 
 fun Element.scopeType(): TypeElement? = scope()?.let { it.annotationType.asElement() as TypeElement }
 
-fun AstClass.scopeType(): TypeElement? = element.scopeType()
-
-fun AstMethod.scopeType(): TypeElement? = element.scopeType()
+fun AstElement.scopeType(): AstClass? = element.scopeType()?.toAstClass()
 
 fun String.asScopedProp(): String = "_" + decapitalize()
 
