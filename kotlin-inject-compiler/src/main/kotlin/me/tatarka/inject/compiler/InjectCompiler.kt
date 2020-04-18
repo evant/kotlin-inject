@@ -4,7 +4,6 @@ import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.plusParameter
 import me.tatarka.inject.annotations.*
 import me.tatarka.inject.compiler.ast.*
-import java.io.File
 import java.util.*
 import javax.annotation.processing.*
 import javax.lang.model.SourceVersion
@@ -84,9 +83,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
                 .addFunction(createFunction)
                 .build()
 
-        val out = File(generatedSourcesRoot).also { it.mkdir() }
-
-        file.writeTo(out)
+        file.writeTo(filer)
     }
 
     private fun generateInjectComponent(
@@ -97,6 +94,7 @@ class InjectCompiler : AbstractProcessor(), AstProvider {
         val context = collectTypes(astClass, scopedInjects)
 
         return TypeSpec.classBuilder("Inject${astClass.name}")
+            .addOriginatingElement(astClass.element)
             .superclass(astClass.asClassName())
             .apply {
                 if (constructor != null) {
