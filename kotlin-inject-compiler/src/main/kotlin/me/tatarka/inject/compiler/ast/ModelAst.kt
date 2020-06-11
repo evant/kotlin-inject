@@ -38,15 +38,6 @@ interface ModelAstProvider :
 
     override fun KClass<*>.toAstClass(): AstClass = elements.getTypeElement(java.canonicalName).toAstClass()
 
-    override fun declaredTypeOf(astClass: AstClass, vararg astTypes: AstType): AstType {
-        require(astClass is ModelAstClass)
-        return ModelAstType(
-            this,
-            declaredType(astClass.element, astTypes.asList()),
-            astClass.kmClass?.type
-        )
-    }
-
     override fun declaredTypeOf(klass: KClass<*>, vararg astTypes: AstType): AstType {
         val type = elements.getTypeElement(klass.java.canonicalName)
         return ModelAstType(
@@ -81,8 +72,8 @@ interface ModelAstProvider :
 private interface ModelAstElement : ModelAstProvider, AstAnnotated {
     val element: Element
 
-    override fun <T : Annotation> annotationOf(klass: KClass<T>): T? {
-        return element.getAnnotation(klass.java)
+    override fun <T : Annotation> hasAnnotation(kclass: KClass<T>): Boolean {
+        return element.getAnnotation(kclass.java) != null
     }
 
     override fun <T : Annotation> typeAnnotatedWith(kclass: KClass<T>): AstClass? {
@@ -119,25 +110,25 @@ private class ModelAstClass(
         companionType?.toAstClass()
     }
 
-    override val superclass: AstClass? by lazy {
-        val superclassType = element.superclass
-        if (superclassType is NoType) return@lazy null
-        val superclass = provider.types.asElement(superclassType) as TypeElement
-        superclass.toAstClass()
-    }
-
-    override val interfaces: List<AstClass> by lazy {
-        element.interfaces.mapNotNull { ifaceType ->
-            val iface = provider.types.asElement(ifaceType) as TypeElement
-            iface.toAstClass()
+    override val superTypes: List<AstClass> by lazy {
+        mutableListOf<AstClass>().apply {
+            val superclassType = element.superclass
+            if (superclassType !is NoType) {
+                val superclass = provider.types.asElement(superclassType) as TypeElement
+                add(superclass.toAstClass())
+            }
+            addAll(element.interfaces.mapNotNull { ifaceType ->
+                val iface = provider.types.asElement(ifaceType) as TypeElement
+                iface.toAstClass()
+            })
         }
     }
 
-    override val constructors: List<AstConstructor> by lazy {
+    override val primaryConstructor: AstConstructor? by lazy {
         ElementFilter.constructorsIn(element.enclosedElements).mapNotNull { constructor ->
             //TODO: not sure how to match constructors
             ModelAstConstructor(this, this, constructor, kmClass?.constructors?.first())
-        }
+        }.firstOrNull()
     }
 
     override val methods: List<AstMethod> by lazy {
@@ -274,8 +265,8 @@ private class ModelAstProperty(
         null
     }
 
-    override fun <T : Annotation> annotationOf(klass: KClass<T>): T? {
-        return annotatedElement?.getAnnotation(klass.java)
+    override fun <T : Annotation> hasAnnotation(kclass: KClass<T>): Boolean {
+        return annotatedElement?.getAnnotation(kclass.java) != null
     }
 }
 

@@ -15,7 +15,7 @@ class ScopedInjectCompiler : BaseInjectCompiler() {
             val scopeType = element.scopeType() ?: continue
             val scopedInjects = scopedInjects(scopeType, env)
 
-            val generator = InjectGenerator(this, generateCompanionExtensions)
+            val generator = InjectGenerator(this, options)
 
             try {
                 val astClass = element.toAstClass()

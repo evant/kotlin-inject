@@ -7,7 +7,7 @@ import me.tatarka.inject.compiler.ast.*
 import java.util.*
 import kotlin.reflect.KClass
 
-class InjectGenerator(provider: AstProvider, private val generateCompanionExtensions: Boolean) :
+class InjectGenerator(provider: AstProvider, private val options: Options) :
     AstProvider by provider {
 
     fun generate(astClass: AstClass, scopedInjects: Collection<AstClass> = emptyList()): FileSpec {
@@ -19,7 +19,7 @@ class InjectGenerator(provider: AstProvider, private val generateCompanionExtens
             throw FailedToGenerateException()
         }
 
-        val constructor = astClass.constructors.firstOrNull()
+        val constructor = astClass.primaryConstructor
 
         val injectComponent = generateInjectComponent(astClass, constructor, scopedInjects)
         val createFunction = generateCreate(astClass, constructor, injectComponent)
@@ -109,7 +109,7 @@ class InjectGenerator(provider: AstProvider, private val generateCompanionExtens
                 if (constructor != null) {
                     addParameters(ParameterSpec.parametersOf(constructor))
                 }
-                if (generateCompanionExtensions) {
+                if (options.generateCompanionExtensions) {
                     val companion = element.companion
                     if (companion != null) {
                         receiver(companion.type.asTypeName())
@@ -196,7 +196,7 @@ class InjectGenerator(provider: AstProvider, private val generateCompanionExtens
                         continue
                     }
 
-                    if (method.annotationOf<IntoMap>() != null) {
+                    if (method.hasAnnotation<IntoMap>()) {
                         // Pair<A, B> -> Map<A, B>
                         val typeArgs = method.returnType.arguments
                         val mapType = declaredTypeOf(Map::class, typeArgs[0], typeArgs[1])
@@ -204,7 +204,7 @@ class InjectGenerator(provider: AstProvider, private val generateCompanionExtens
                         providesContainer.computeIfAbsent(TypeKey(mapType)) {
                             "mapOf" to mutableListOf()
                         }.second.add(method)
-                    } else if (method.annotationOf<IntoSet>() != null) {
+                    } else if (method.hasAnnotation<IntoSet>()) {
                         // A -> Set<A>
                         val setType = declaredTypeOf(Set::class, method.returnType)
 
@@ -232,7 +232,7 @@ class InjectGenerator(provider: AstProvider, private val generateCompanionExtens
 
         val parents = mutableListOf<Context>()
 
-        val constructor = astClass.constructors.firstOrNull()
+        val constructor = astClass.primaryConstructor
         if (constructor != null) {
             for (parameter in constructor.parameters) {
                 if (parameter.isComponent()) {
@@ -390,9 +390,9 @@ class InjectGenerator(provider: AstProvider, private val generateCompanionExtens
         return CodeBlock.of(result.argName)
     }
 
-    private fun AstParam.isComponent() = annotationOf<Component>() != null
+    private fun AstParam.isComponent() = hasAnnotation<Component>()
 
-    private fun AstMethod.isProvides(): Boolean = annotationOf<Provides>() != null
+    private fun AstMethod.isProvides(): Boolean = hasAnnotation<Provides>()
 
     private fun AstMethod.isProvider(): Boolean =
         modifiers.contains(AstModifier.ABSTRACT) && when (this) {
@@ -435,14 +435,14 @@ class InjectGenerator(provider: AstProvider, private val generateCompanionExtens
             }
         }
         val astClass = key.type.toAstClass()
-        if (astClass.annotationOf<Inject>() != null) {
+        if (astClass.hasAnnotation<Inject>()) {
             val scope = astClass.scopeType()
             val sourceScopeType = source?.scopeType()
             if (scope != null && scope != sourceScopeType) {
                 error("Cannot find module with scope: @$scope to inject $astClass", astClass)
                 return null
             }
-            return Result.Constructor(astClass.constructors[0])
+            return Result.Constructor(astClass.primaryConstructor!!)
         }
         return null
     }

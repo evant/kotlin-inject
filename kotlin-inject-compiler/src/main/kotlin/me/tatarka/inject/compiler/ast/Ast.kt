@@ -9,8 +9,6 @@ import kotlin.reflect.KClass
 interface AstProvider {
     fun KClass<*>.toAstClass(): AstClass
 
-    fun declaredTypeOf(astClass: AstClass, vararg astTypes: AstType): AstType
-
     fun declaredTypeOf(klass: KClass<*>, vararg astTypes: AstType): AstType
 
     fun warn(message: String, element: AstElement? = null)
@@ -21,13 +19,13 @@ interface AstProvider {
 }
 
 sealed class AstElement : AstAnnotated {
-    inline fun <reified T : Annotation> annotationOf(): T? = annotationOf(T::class)
+    inline fun <reified T : Annotation> hasAnnotation() = hasAnnotation(T::class)
 
     inline fun <reified T : Annotation> typeAnnotatedWith(): AstClass? = typeAnnotatedWith(T::class)
 }
 
 interface AstAnnotated {
-    fun <T : Annotation> annotationOf(klass: KClass<T>): T?
+    fun <T : Annotation> hasAnnotation(kclass: KClass<T>): Boolean
 
     fun <T : Annotation> typeAnnotatedWith(kclass: KClass<T>): AstClass?
 }
@@ -46,11 +44,9 @@ abstract class AstClass : AstElement() {
 
     abstract val companion: AstClass?
 
-    abstract val superclass: AstClass?
+    abstract val superTypes: List<AstClass>
 
-    abstract val interfaces: List<AstClass>
-
-    abstract val constructors: List<AstConstructor>
+    abstract val primaryConstructor: AstConstructor?
 
     abstract val methods: List<AstMethod>
 
@@ -58,8 +54,7 @@ abstract class AstClass : AstElement() {
 
     fun visitInheritanceChain(f: (AstClass) -> Unit) {
         f(this)
-        superclass?.visitInheritanceChain(f)
-        interfaces.forEach { it.visitInheritanceChain(f) }
+        superTypes.forEach { it.visitInheritanceChain(f) }
     }
 
     abstract fun asClassName(): ClassName

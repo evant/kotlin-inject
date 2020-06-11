@@ -13,9 +13,7 @@ private const val OPTION_GENERATE_COMPANION_EXTENSIONS = "me.tatarka.inject.gene
 
 abstract class BaseInjectCompiler : AbstractProcessor(), ModelAstProvider {
 
-    var generateCompanionExtensions: Boolean = false
-        private set
-
+    protected lateinit var options: Options
     protected lateinit var filer: Filer
     override lateinit var types: Types
     override lateinit var elements: Elements
@@ -23,8 +21,7 @@ abstract class BaseInjectCompiler : AbstractProcessor(), ModelAstProvider {
 
     override fun init(processingEnv: ProcessingEnvironment) {
         super.init(processingEnv)
-        this.generateCompanionExtensions =
-            processingEnv.options[OPTION_GENERATE_COMPANION_EXTENSIONS]?.toBoolean() ?: false
+        this.options = Options.from(processingEnv.options)
         this.filer = processingEnv.filer
         this.types = processingEnv.typeUtils
         this.elements = processingEnv.elementUtils

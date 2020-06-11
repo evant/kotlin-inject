@@ -1,19 +1,18 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm'
-    id 'org.jetbrains.kotlin.kapt'
-}
-
-repositories {
-    mavenCentral()
+//    id 'org.jetbrains.kotlin.kapt'
+    id("org.jetbrains.kotlin.ksp") version "1.4-M1-dev-experimental-20200610"
 }
 
 dependencies {
-    kapt project(':kotlin-inject-compiler')
+//    kapt project(':kotlin-inject-compiler')
+    ksp project(':kotlin-inject-compiler')
     implementation project(':kotlin-inject-runtime')
 
     implementation 'org.jetbrains.kotlin:kotlin-stdlib'
 
-    kaptTest project(':kotlin-inject-compiler')
+//    kaptTest project(':kotlin-inject-compiler')
+//    kspTest project(':kotlin-inject-compiler')
 
     testImplementation "org.jetbrains.kotlin:kotlin-test"
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit"

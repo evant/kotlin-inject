@@ -1,3 +1,22 @@
+pluginManagement {
+    repositories {
+        google()
+        maven { url "https://dl.bintray.com/kotlin/kotlin-eap" }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    resolutionStrategy {
+        eachPlugin {
+            switch (requested.id.id) {
+                case "kotlin-ksp":
+                case "org.jetbrains.kotlin.kotlin-ksp":
+                case "org.jetbrains.kotlin.ksp":
+                    useModule("org.jetbrains.kotlin:kotlin-ksp:${requested.version}")
+            }
+        }
+    }
+}
+
 include ':kotlin-inject-compiler'
 include ':kotlin-inject-runtime'
 include ':integration-tests'

@@ -13,7 +13,7 @@ class InjectCompiler : BaseInjectCompiler() {
             // Only deal with non-scoped components
             if (scopeType != null) continue
 
-            val generator = InjectGenerator(this, generateCompanionExtensions)
+            val generator = InjectGenerator(this, options)
 
             try {
                 val astClass = element.toAstClass()
