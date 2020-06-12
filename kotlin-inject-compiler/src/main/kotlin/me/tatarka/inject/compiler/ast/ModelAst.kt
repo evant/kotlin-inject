@@ -137,13 +137,13 @@ private class ModelAstClass(
                 for (property in kmClass.properties) {
                     val javaName = property.getterSignature?.name ?: continue
                     if (method.simpleName.contentEquals(javaName)) {
-                        return@mapNotNull ModelAstProperty(this, method, property) as AstMethod
+                        return@mapNotNull ModelAstProperty(this, method, property)
                     }
                 }
                 for (function in kmClass.functions) {
                     val javaName = function.signature?.name
                     if (method.simpleName.contentEquals(javaName)) {
-                        return@mapNotNull ModelAstFunction(this, method, function) as AstMethod
+                        return@mapNotNull ModelAstFunction(this, method, function)
                     }
                 }
             }
@@ -302,7 +302,7 @@ private class ModelAstType(
         }
     }
 
-    override val abbreviatedTypeName: String?
+    override val typeAliasName: String?
         get() {
             return (kmType?.abbreviatedType?.classifier as? KmClassifier.TypeAlias)?.name?.replace('/', '.')
         }
@@ -324,7 +324,7 @@ private class ModelAstType(
     override fun toAstClass(): AstClass = (element as TypeElement).toAstClass()
 
     override fun asTypeName(): TypeName {
-        return abbreviatedTypeName?.let { ClassName.bestGuess(it) } ?: type.asTypeName()
+        return typeAliasName?.let { ClassName.bestGuess(it) } ?: type.asTypeName()
             .javaToKotlinType()
     }
 

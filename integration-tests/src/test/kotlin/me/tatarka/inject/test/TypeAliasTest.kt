@@ -8,8 +8,6 @@ import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Provides
 import kotlin.test.Test
 
-class NamedFoo(val name: String)
-
 typealias NamedFoo1 = NamedFoo
 typealias NamedFoo2 = NamedFoo
 

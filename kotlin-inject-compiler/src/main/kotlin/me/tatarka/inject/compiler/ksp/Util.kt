@@ -1,9 +1,13 @@
 package me.tatarka.inject.compiler.ksp
 
 import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.TypeName
+import com.squareup.kotlinpoet.TypeVariableName
 import me.tatarka.inject.annotations.Scope
 import org.jetbrains.kotlin.ksp.symbol.*
+import org.jetbrains.kotlin.ksp.visitor.KSDefaultVisitor
 import kotlin.reflect.KClass
 
 
@@ -26,7 +30,59 @@ fun KSAnnotated.getAnnotation(type: KClass<out Annotation>): KSAnnotation? {
 
 fun KSClassDeclaration.scopeType() = typeAnnotatedWith<Scope>()
 
-fun KSDeclaration.asTypeName(): TypeName {
+fun KSDeclaration.asClassName(): ClassName {
     val name = qualifiedName!!
     return ClassName(name.getQualifier(), name.getShortName())
 }
+
+// https://github.com/android/kotlin/issues/25
+fun KSDeclaration.isAbstract() = modifiers.contains(Modifier.ABSTRACT)
+        || ((parentDeclaration as? KSClassDeclaration)?.classKind == ClassKind.INTERFACE && this is KSPropertyDeclaration)
+
+fun KSTypeReference.memberOf(enclosingClass: KSClassDeclaration): KSTypeReference {
+    val declaration = resolve()!!.declaration
+    return if (declaration is KSTypeParameter) {
+        val parent = declaration.parentDeclaration!!
+        val resolvedParent =
+            enclosingClass.superTypes.first { it.resolve()!!.declaration.qualifiedName == parent.qualifiedName }
+                .resolve()!!
+        val typePosition = parent.typeParameters.indexOfFirst { it.name == declaration.name }
+        resolvedParent.arguments[typePosition].type!!
+    } else {
+        this
+    }
+}
+
+fun KSType.asTypeName(): TypeName {
+    return declaration.accept(object : KSDefaultVisitor<Unit, TypeName>() {
+
+        override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: Unit): TypeName {
+            val rawType = classDeclaration.asClassName()
+            if (classDeclaration.typeParameters.isEmpty()) {
+                return rawType
+            }
+            val typeArgumentNames = mutableListOf<TypeName>()
+            for (typeArgument in arguments) {
+                typeArgumentNames += typeArgument.type!!.resolve()!!.asTypeName()
+            }
+            return rawType.parameterizedBy(typeArgumentNames)
+        }
+
+        override fun visitTypeParameter(typeParameter: KSTypeParameter, data: Unit): TypeName {
+            return TypeVariableName(
+                name = typeParameter.name.asString(),
+                bounds = typeParameter.bounds.map { it.resolve()!!.asTypeName() },
+                variance = when (typeParameter.variance) {
+                    Variance.COVARIANT -> KModifier.IN
+                    Variance.CONTRAVARIANT -> KModifier.OUT
+                    else -> null
+                }
+            )
+        }
+
+        override fun defaultHandler(node: KSNode, data: Unit): TypeName {
+            throw IllegalArgumentException("Unexpected node: $node")
+        }
+    }, Unit)
+}
+

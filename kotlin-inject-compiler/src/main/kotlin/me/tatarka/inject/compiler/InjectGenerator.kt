@@ -198,7 +198,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
 
                     if (method.hasAnnotation<IntoMap>()) {
                         // Pair<A, B> -> Map<A, B>
-                        val typeArgs = method.returnType.arguments
+                        val typeArgs = method.returnTypeFor(astClass).arguments
                         val mapType = declaredTypeOf(Map::class, typeArgs[0], typeArgs[1])
 
                         providesContainer.computeIfAbsent(TypeKey(mapType)) {
@@ -206,17 +206,18 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                         }.second.add(method)
                     } else if (method.hasAnnotation<IntoSet>()) {
                         // A -> Set<A>
-                        val setType = declaredTypeOf(Set::class, method.returnType)
+                        val setType = declaredTypeOf(Set::class, method.returnTypeFor(astClass))
 
                         providesContainer.computeIfAbsent(TypeKey(setType)) {
                             "setOf" to mutableListOf()
                         }.second.add(method)
                     } else {
-                        val key = TypeKey(method.returnType)
+                        val returnType = method.returnTypeFor(astClass)
+                        val key = TypeKey(returnType)
                         val oldValue = providesMap[key]
                         if (oldValue == null) {
                             providesMap[key] = method
-                            addScope(method.returnType, method.scopeType())
+                            addScope(returnType, method.scopeType())
                         } else {
                             error("Cannot provide: $key", method)
                             error("as it is already provided", oldValue)
@@ -472,7 +473,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
     }
 
     inner class TypeKey(val type: AstType) {
-        val qualifier = type.abbreviatedTypeName
+        val qualifier = type.typeAliasName
 
         override fun equals(other: Any?): Boolean {
             if (other !is TypeKey) return false

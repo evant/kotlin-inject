@@ -4,11 +4,10 @@ import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
-import me.tatarka.inject.compiler.ksp.asTypeName
-import me.tatarka.inject.compiler.ksp.getAnnotation
-import me.tatarka.inject.compiler.ksp.typeAnnotatedWith
+import me.tatarka.inject.compiler.ksp.*
 import org.jetbrains.kotlin.ksp.getDeclaredFunctions
 import org.jetbrains.kotlin.ksp.getDeclaredProperties
+import org.jetbrains.kotlin.ksp.isPrivate
 import org.jetbrains.kotlin.ksp.processing.Resolver
 import org.jetbrains.kotlin.ksp.symbol.*
 import kotlin.reflect.KClass
@@ -73,7 +72,7 @@ private class KSAstClass(provider: KSAstProvider, override val declaration: KSCl
         get() = declaration.simpleName.asString()
 
     override val modifiers: Set<AstModifier> by lazy {
-        collectModifiers(declaration.modifiers)
+        collectModifiers(declaration)
     }
 
     override val companion: AstClass?
@@ -143,7 +142,7 @@ private class KSAstFunction(provider: KSAstProvider, override val declaration: K
         get() = declaration.simpleName.asString()
 
     override val modifiers: Set<AstModifier> by lazy {
-        collectModifiers(declaration.modifiers)
+        collectModifiers(declaration)
     }
     override val receiverParameterType: AstType?
         get() = declaration.extensionReceiver?.let { KSAstType(this, it) }
@@ -162,7 +161,7 @@ private class KSAstProperty(provider: KSAstProvider, override val declaration: K
         get() = declaration.simpleName.asString()
 
     override val modifiers: Set<AstModifier> by lazy {
-        collectModifiers(declaration.modifiers)
+        collectModifiers(declaration)
     }
 
     override val receiverParameterType: AstType?
@@ -172,13 +171,14 @@ private class KSAstProperty(provider: KSAstProvider, override val declaration: K
         get() = KSAstType(this, declaration.type!!)
 
     override fun returnTypeFor(enclosingClass: AstClass): AstType {
-        return KSAstType(this, declaration.type!!)
+        require(enclosingClass is KSAstClass)
+        return KSAstType(this, declaration.type!!.memberOf(enclosingClass.declaration))
     }
 }
 
 private class KSAstType(provider: KSAstProvider) : AstType(), KSAstAnnotated, KSAstProvider by provider {
 
-    private lateinit var type: KSType
+    lateinit var type: KSType
     var typeRef: KSTypeReference? = null
         private set
 
@@ -195,12 +195,12 @@ private class KSAstType(provider: KSAstProvider) : AstType(), KSAstAnnotated, KS
     override val declaration: KSDeclaration get() = type.declaration
 
     override val name: String
-        get() = declaration.asTypeName().toString()
+        get() = type.declaration.qualifiedName!!.asString()
 
     override val annotations: List<AstAnnotation>
         get() = TODO("Not yet implemented")
 
-    override val abbreviatedTypeName: String?
+    override val typeAliasName: String?
         get() = (declaration as? KSTypeAlias)?.name?.asString()
 
     override val arguments: List<AstType>
@@ -221,8 +221,8 @@ private class KSAstType(provider: KSAstProvider) : AstType(), KSAstAnnotated, KS
     }
 
     override fun asTypeName(): TypeName {
-        return abbreviatedTypeName?.let { ClassName.bestGuess(it) }
-            ?: type.declaration.asTypeName()
+        return typeAliasName?.let { ClassName.bestGuess(it) }
+            ?: type.asTypeName()
     }
 }
 
@@ -241,12 +241,13 @@ private class KSAstParam(provider: KSAstProvider, override val declaration: KSVa
     }
 }
 
-private fun collectModifiers(modifiers: Set<Modifier>): Set<AstModifier> {
-    return modifiers.mapNotNull {
-        when (it) {
-            Modifier.PRIVATE -> AstModifier.PRIVATE
-            Modifier.ABSTRACT -> AstModifier.ABSTRACT
-            else -> null
+private fun collectModifiers(declaration: KSDeclaration): Set<AstModifier> {
+    return mutableSetOf<AstModifier>().apply {
+        if (declaration.isPrivate()) {
+            add(AstModifier.PRIVATE)
         }
-    }.toSet()
+        if (declaration.isAbstract()) {
+            add(AstModifier.ABSTRACT)
+        }
+    }
 }

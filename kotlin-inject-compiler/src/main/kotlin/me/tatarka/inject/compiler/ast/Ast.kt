@@ -94,7 +94,7 @@ abstract class AstType : AstElement() {
 
     abstract val annotations: List<AstAnnotation>
 
-    abstract val abbreviatedTypeName: String?
+    abstract val typeAliasName: String?
 
     abstract val arguments: List<AstType>
 
