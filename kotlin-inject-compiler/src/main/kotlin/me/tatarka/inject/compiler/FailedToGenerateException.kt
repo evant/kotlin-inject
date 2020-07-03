@@ -1,3 +1,5 @@
 package me.tatarka.inject.compiler
 
-class FailedToGenerateException : Exception()
+import me.tatarka.inject.compiler.ast.AstElement
+
+class FailedToGenerateException(message: String, val element: AstElement?) : Exception(message)

@@ -4,7 +4,7 @@ import kotlin.annotation.AnnotationRetention.RUNTIME
 import kotlin.annotation.AnnotationTarget.*
 
 @Retention(RUNTIME)
-@Target(CLASS)
+@Target(CLASS, FUNCTION)
 annotation class Inject
 
 @Retention(RUNTIME)
@@ -26,3 +26,4 @@ annotation class IntoSet
 @Retention(RUNTIME)
 @Target(FUNCTION, PROPERTY)
 annotation class IntoMap
+

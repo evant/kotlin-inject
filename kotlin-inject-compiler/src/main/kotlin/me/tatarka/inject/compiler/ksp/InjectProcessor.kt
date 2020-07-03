@@ -33,16 +33,17 @@ class InjectProcessor : SymbolProcessor, KSAstProvider {
             val scopeType = element.scopeType()
             val scopedInjects = scopeType?.let { scopedInjects(it, resolver) } ?: emptyList()
 
-//            try {
+            try {
                 val astClass = element.toAstClass()
                 val file = generator.generate(astClass, scopedInjects)
                 FileWriter(codeGenerator.createNewFile(file.packageName, file.name)).buffered().use {
                    file.writeTo(it)
                 }
-//            } catch (e: FailedToGenerateException) {
-//                // Continue so we can see all errors
-//                continue
-//            }
+            } catch (e: FailedToGenerateException) {
+                error(e.message.orEmpty(), e.element)
+                // Continue so we can see all errors
+                continue
+            }
         }
     }
 
@@ -58,5 +59,6 @@ class InjectProcessor : SymbolProcessor, KSAstProvider {
     }
 
     override fun finish() {
+        messenger.finalize()
     }
 }

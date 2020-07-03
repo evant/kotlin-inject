@@ -22,6 +22,7 @@ class ScopedInjectCompiler : BaseInjectCompiler() {
                 val file = generator.generate(astClass, scopedInjects)
                 file.writeTo(filer)
             } catch (e: FailedToGenerateException) {
+                error(e.message.orEmpty(), e.element)
                 // Continue so we can see all errors
                 continue
             }

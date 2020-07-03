@@ -32,6 +32,9 @@ interface ModelAstProvider :
     val elements: Elements
     val messager: Messager
 
+    override val messenger: Messenger
+        get() = ModelAstMessenger(messager)
+
     fun TypeElement.toAstClass(): AstClass {
         return ModelAstClass(this@ModelAstProvider, this, metadata)
     }
@@ -55,7 +58,9 @@ interface ModelAstProvider :
         require(astClass is ModelAstClass)
         addOriginatingElement(astClass.element)
     }
+}
 
+class ModelAstMessenger(private val messager: Messager) : Messenger {
     override fun warn(message: String, element: AstElement?) {
         print(Diagnostic.Kind.WARNING, message, element)
     }

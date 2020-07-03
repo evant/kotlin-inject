@@ -7,15 +7,23 @@ import com.squareup.kotlinpoet.TypeSpec
 import kotlin.reflect.KClass
 
 interface AstProvider {
+    val messenger: Messenger
+
     fun KClass<*>.toAstClass(): AstClass
 
     fun declaredTypeOf(klass: KClass<*>, vararg astTypes: AstType): AstType
 
+    fun warn(message: String, element: AstElement? = null) = messenger.warn(message, element)
+
+    fun error(message: String, element: AstElement?) = messenger.error(message, element)
+
+    fun TypeSpec.Builder.addOriginatingElement(astClass: AstClass): TypeSpec.Builder
+}
+
+interface Messenger {
     fun warn(message: String, element: AstElement? = null)
 
     fun error(message: String, element: AstElement?)
-
-    fun TypeSpec.Builder.addOriginatingElement(astClass: AstClass): TypeSpec.Builder
 }
 
 sealed class AstElement : AstAnnotated {
@@ -58,6 +66,10 @@ abstract class AstClass : AstElement() {
     }
 
     abstract fun asClassName(): ClassName
+
+    abstract override fun equals(other: Any?): Boolean
+
+    abstract override fun hashCode(): Int
 
     override fun toString(): String {
         return if (packageName.isEmpty() || packageName == "kotlin") name else "$packageName.$name"

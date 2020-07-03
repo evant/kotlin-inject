@@ -16,12 +16,31 @@ class ProjectCompiler(private val root: File) {
     }
 
     fun compile() {
-        val kotlinVersion = "1.3.72"
+        val kotlinVersion = "1.4-M1"
 
         val settingsFile = root.resolve("settings.gradle")
 
         settingsFile.writeText(
-            """
+           """
+           pluginManagement {
+               repositories {
+                   google()
+                   maven { url "https://dl.bintray.com/kotlin/kotlin-eap" }
+                   mavenCentral()
+                   gradlePluginPortal()
+               }
+               resolutionStrategy {
+                   eachPlugin {
+                       switch (requested.id.id) {
+                           case "kotlin-ksp":
+                           case "org.jetbrains.kotlin.kotlin-ksp":
+                           case "org.jetbrains.kotlin.ksp":
+                               useModule("org.jetbrains.kotlin:kotlin-ksp:" + requested.version)
+                       }
+                   }
+               }
+           }
+           
            include ':kotlin-inject-compiler'
            include ':kotlin-inject-runtime'
            project(':kotlin-inject-compiler').projectDir = new File('${File("../kotlin-inject-compiler").absolutePath}')
@@ -35,16 +54,30 @@ class ProjectCompiler(private val root: File) {
             """
             plugins {
                 id 'org.jetbrains.kotlin.jvm' version '${kotlinVersion}'
-                id 'org.jetbrains.kotlin.kapt' version '${kotlinVersion}'
+            //    id 'org.jetbrains.kotlin.kapt' version '${kotlinVersion}'
+                id("org.jetbrains.kotlin.ksp") version "1.4-M1-dev-experimental-20200610"
             }
             
-            repositories {
-                mavenCentral()
+            allprojects {
+                logging.captureStandardError LogLevel.QUIET
+            
+                repositories {
+                    google()
+                    maven { url "https://dl.bintray.com/kotlin/kotlin-eap" }
+                    mavenCentral()
+                }
+                
+                tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+                    kotlinOptions {
+                        jvmTarget = "1.8"
+                    }
+                }
             }
             
             dependencies {
                 implementation 'org.jetbrains.kotlin:kotlin-stdlib'
-                kapt project(':kotlin-inject-compiler')
+             //   kapt project(':kotlin-inject-compiler')
+                ksp project(':kotlin-inject-compiler')
                 implementation project(':kotlin-inject-runtime')
             }
         """.trimIndent()

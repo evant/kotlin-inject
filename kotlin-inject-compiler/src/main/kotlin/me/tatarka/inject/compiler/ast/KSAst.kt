@@ -16,6 +16,9 @@ interface KSAstProvider : AstProvider {
 
     val resolver: Resolver
 
+    override val messenger: KSAstMessenger
+        get() = KSAstMessenger
+
     fun KSClassDeclaration.toAstClass(): AstClass {
         return KSAstClass(this@KSAstProvider, this)
     }
@@ -32,15 +35,29 @@ interface KSAstProvider : AstProvider {
     }
 
     override fun TypeSpec.Builder.addOriginatingElement(astClass: AstClass): TypeSpec.Builder = this
+}
+
+object KSAstMessenger : Messenger {
+    private val errorMessages = mutableListOf<Message>()
 
     override fun warn(message: String, element: AstElement?) {
         //TODO https://github.com/android/kotlin/issues/1
-        println("$message: $element")
     }
 
     override fun error(message: String, element: AstElement?) {
-        //TODO https://github.com/android/kotlin/issues/1
-        System.err.println("$message: $element")
+        errorMessages.add(Message(message, element))
+    }
+
+    fun finalize() {
+        if (errorMessages.isNotEmpty()) {
+            throw IllegalStateException(errorMessages.joinToString(separator = "\n"))
+        }
+    }
+
+    private data class Message(val message: String, val element: AstElement?) {
+        override fun toString(): String {
+            return "$message: $element"
+        }
     }
 }
 
@@ -104,6 +121,14 @@ private class KSAstClass(provider: KSAstProvider, override val declaration: KSCl
 
     override fun asClassName(): ClassName {
         return ClassName(packageName, name)
+    }
+
+    override fun equals(other: Any?): Boolean {
+        return other is KSAstClass && declaration == other.declaration
+    }
+
+    override fun hashCode(): Int {
+        return declaration.hashCode()
     }
 }
 
@@ -223,6 +248,14 @@ private class KSAstType(provider: KSAstProvider) : AstType(), KSAstAnnotated, KS
     override fun asTypeName(): TypeName {
         return typeAliasName?.let { ClassName.bestGuess(it) }
             ?: type.asTypeName()
+    }
+
+    override fun equals(other: Any?): Boolean {
+        return other is KSAstType && type == other.type
+    }
+
+    override fun hashCode(): Int {
+        return type.hashCode()
     }
 }
 

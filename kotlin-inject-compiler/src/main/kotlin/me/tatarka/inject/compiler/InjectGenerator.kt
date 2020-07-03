@@ -12,11 +12,9 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
 
     fun generate(astClass: AstClass, scopedInjects: Collection<AstClass> = emptyList()): FileSpec {
         if (AstModifier.ABSTRACT !in astClass.modifiers) {
-            error("@Component class: $astClass must be abstract", astClass)
-            throw FailedToGenerateException()
+            throw FailedToGenerateException("@Component class: $astClass must be abstract", astClass)
         } else if (AstModifier.PRIVATE in astClass.modifiers) {
-            error("@Component class: $astClass must not be private", astClass)
-            throw FailedToGenerateException()
+            throw FailedToGenerateException("@Component class: $astClass must not be private", astClass)
         }
 
         val constructor = astClass.primaryConstructor
@@ -93,6 +91,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                         }
                     }
                 } catch (e: FailedToGenerateException) {
+                    error(e.message.orEmpty(), e.element)
                     // Create a stub component to prevent extra compile errors, the original one will still be reported.
                 }
             }
@@ -265,10 +264,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         find: (TypeKey) -> Result? = { context.find(it) }
     ): CodeBlock {
         val result = find(key)
-        if (result == null) {
-            error("Cannot find an @Inject constructor or provider for: $key", context.source)
-            throw FailedToGenerateException()
-        }
+            ?: throw FailedToGenerateException("Cannot find an @Inject constructor or provider for: $key", context.source)
         return when (result) {
             is Result.Provides -> provideProvides(result, context)
             is Result.Scoped -> provideScoped(key, result)
