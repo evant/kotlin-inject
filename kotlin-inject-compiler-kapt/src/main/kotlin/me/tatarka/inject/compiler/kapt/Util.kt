@@ -4,6 +4,7 @@ import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.TypeName
+import com.squareup.kotlinpoet.WildcardTypeName
 import kotlinx.metadata.KmClass
 import kotlinx.metadata.jvm.KotlinClassHeader
 import kotlinx.metadata.jvm.KotlinClassMetadata
@@ -25,6 +26,12 @@ fun TypeName.javaToKotlinType(): TypeName = if (this is ParameterizedTypeName) {
     (rawType.javaToKotlinType() as ClassName).parameterizedBy(
         *typeArguments.map { it.javaToKotlinType() }.toTypedArray()
     )
+} else if (this is WildcardTypeName) {
+    if (inTypes.isNotEmpty()) {
+        WildcardTypeName.consumerOf(inTypes.first().javaToKotlinType())
+    } else {
+        WildcardTypeName.producerOf(outTypes.first().javaToKotlinType())
+    }
 } else {
     val s = toString()
     when (s) {
@@ -43,7 +50,7 @@ fun TypeName.javaToKotlinType(): TypeName = if (this is ParameterizedTypeName) {
     }
 }
 
-val TypeElement.metadata: KmClass?
+val TypeElement.metadata: KotlinClassMetadata?
     get() {
         val meta = getAnnotation(Metadata::class.java) ?: return null
         val header = KotlinClassHeader(
@@ -56,7 +63,16 @@ val TypeElement.metadata: KmClass?
             metadataVersion = meta.metadataVersion,
             packageName = meta.packageName
         )
-        val metadata = KotlinClassMetadata.read(header) ?: return null
-        if (metadata !is KotlinClassMetadata.Class) return null
-        return metadata.toKmClass()
+        return KotlinClassMetadata.read(header)
     }
+
+fun KotlinClassMetadata.toKmClass() = when (this) {
+    is KotlinClassMetadata.Class -> toKmClass()
+    else -> null
+}
+
+fun KotlinClassMetadata.toKmPackage() = when (this) {
+    is KotlinClassMetadata.FileFacade -> toKmPackage()
+    is KotlinClassMetadata.MultiFileClassPart -> toKmPackage()
+    else -> null
+}

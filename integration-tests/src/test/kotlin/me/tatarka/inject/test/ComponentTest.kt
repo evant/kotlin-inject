@@ -1,7 +1,6 @@
 package me.tatarka.inject.test
 
 import assertk.assertThat
-import assertk.assertions.isEqualTo
 import assertk.assertions.isNotNull
 import me.tatarka.inject.annotations.Component
 import kotlin.test.Test

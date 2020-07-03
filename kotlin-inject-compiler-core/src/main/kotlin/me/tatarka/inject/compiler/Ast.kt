@@ -1,15 +1,12 @@
 package me.tatarka.inject.compiler
 
-import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.ParameterSpec
-import com.squareup.kotlinpoet.TypeName
-import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.*
 import kotlin.reflect.KClass
 
 interface AstProvider {
     val messenger: Messenger
 
-    fun KClass<*>.toAstClass(): AstClass
+    fun findFunctions(name: String): List<AstFunction>
 
     fun declaredTypeOf(klass: KClass<*>, vararg astTypes: AstType): AstType
 
@@ -86,6 +83,8 @@ sealed class AstMethod : AstElement() {
     abstract val returnType: AstType
 
     abstract fun returnTypeFor(enclosingClass: AstClass): AstType
+
+    abstract fun asMemberName(): MemberName
 }
 
 abstract class AstConstructor(private val parent: AstClass) : AstElement() {
@@ -121,14 +120,7 @@ abstract class AstType : AstElement() {
 
     abstract fun asTypeName(): TypeName
 
-    override fun equals(other: Any?): Boolean {
-        if (other !is AstType) return false
-        return asTypeName() == other.asTypeName()
-    }
-
-    override fun hashCode(): Int {
-        return asTypeName().hashCode()
-    }
+    abstract fun isAssignableFrom(other: AstType): Boolean
 
     override fun toString(): String {
         val n = name

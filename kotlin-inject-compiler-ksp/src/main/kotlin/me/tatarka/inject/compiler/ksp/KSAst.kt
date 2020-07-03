@@ -1,9 +1,6 @@
 package me.tatarka.inject.compiler.ksp
 
-import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.ParameterSpec
-import com.squareup.kotlinpoet.TypeName
-import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.*
 import me.tatarka.inject.compiler.*
 import org.jetbrains.kotlin.ksp.getDeclaredFunctions
 import org.jetbrains.kotlin.ksp.getDeclaredProperties
@@ -23,8 +20,8 @@ interface KSAstProvider : AstProvider {
         return KSAstClass(this@KSAstProvider, this)
     }
 
-    override fun KClass<*>.toAstClass(): AstClass {
-        TODO("Not yet implemented")
+    override fun findFunctions(name: String): List<AstFunction> {
+        return emptyList()
     }
 
     override fun declaredTypeOf(klass: KClass<*>, vararg astTypes: AstType): AstType {
@@ -178,6 +175,11 @@ private class KSAstFunction(provider: KSAstProvider, override val declaration: K
     override fun returnTypeFor(enclosingClass: AstClass): AstType {
         return KSAstType(this, declaration.returnType!!)
     }
+
+    override fun asMemberName(): MemberName {
+        val packageName = declaration.qualifiedName?.getQualifier().orEmpty()
+        return MemberName(packageName, declaration.simpleName.toString())
+    }
 }
 
 private class KSAstProperty(provider: KSAstProvider, override val declaration: KSPropertyDeclaration) : AstProperty(),
@@ -198,6 +200,11 @@ private class KSAstProperty(provider: KSAstProvider, override val declaration: K
     override fun returnTypeFor(enclosingClass: AstClass): AstType {
         require(enclosingClass is KSAstClass)
         return KSAstType(this, declaration.type!!.memberOf(enclosingClass.declaration))
+    }
+
+    override fun asMemberName(): MemberName {
+        val packageName = declaration.qualifiedName?.getQualifier().orEmpty()
+        return MemberName(packageName, declaration.simpleName.toString())
     }
 }
 
@@ -226,7 +233,7 @@ private class KSAstType(provider: KSAstProvider) : AstType(), KSAstAnnotated, KS
         get() = TODO("Not yet implemented")
 
     override val typeAliasName: String?
-        get() = (declaration as? KSTypeAlias)?.name?.asString()
+        get() = null //TODO
 
     override val arguments: List<AstType>
         get() = type.arguments.map {
@@ -246,8 +253,12 @@ private class KSAstType(provider: KSAstProvider) : AstType(), KSAstAnnotated, KS
     }
 
     override fun asTypeName(): TypeName {
-        return typeAliasName?.let { ClassName.bestGuess(it) }
-            ?: type.asTypeName()
+        return type.asTypeName()
+    }
+
+    override fun isAssignableFrom(other: AstType): Boolean {
+        require(other is KSAstType)
+        return type.isAssignableFrom(other.type)
     }
 
     override fun equals(other: Any?): Boolean {
