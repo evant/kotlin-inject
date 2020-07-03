@@ -17,6 +17,10 @@ pluginManagement {
     }
 }
 
-include ':kotlin-inject-compiler'
+include ':kotlin-inject-compiler-core'
+include ':kotlin-inject-compiler-kapt'
+include ':kotlin-inject-compiler-ksp'
 include ':kotlin-inject-runtime'
-include ':integration-tests'
+include ':compiler-tests'
+include ':integration-tests-kapt'
+include ':integration-tests-ksp'

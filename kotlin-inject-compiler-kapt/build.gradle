@@ -3,7 +3,10 @@ plugins {
 }
 
 dependencies {
+    implementation project(':kotlin-inject-runtime')
+    implementation project(':kotlin-inject-compiler-core')
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
+    implementation 'org.jetbrains.kotlinx:kotlinx-metadata-jvm:0.1.0'
 }
 
 sourceCompatibility = 1.8

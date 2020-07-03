@@ -1,17 +1,7 @@
-plugins {
-    id 'org.jetbrains.kotlin.jvm' version '1.4-M1' apply false
-}
-
-allprojects {
+subprojects {
     repositories {
         google()
         maven { url "https://dl.bintray.com/kotlin/kotlin-eap" }
         mavenCentral()
-    }
-
-    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
-        kotlinOptions {
-            jvmTarget = "1.8"
-        }
     }
 }

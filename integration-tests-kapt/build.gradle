@@ -1,0 +1,32 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '1.3.70'
+    id 'org.jetbrains.kotlin.kapt' version '1.3.70'
+}
+
+dependencies {
+    kapt project(':kotlin-inject-compiler-kapt')
+    implementation project(':kotlin-inject-runtime')
+
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib'
+
+    kaptTest project(':kotlin-inject-compiler-kapt')
+
+    testImplementation "org.jetbrains.kotlin:kotlin-test"
+    testImplementation "org.jetbrains.kotlin:kotlin-test-junit"
+    testImplementation 'org.jetbrains.kotlin:kotlin-reflect'
+
+    testImplementation 'com.willowtreeapps.assertk:assertk-jvm:0.22'
+}
+
+sourceSets {
+    test {
+        kotlin.srcDir '../integration-tests/src/test/kotlin'
+    }
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    kotlinOptions.jvmTarget = "1.8"
+}
