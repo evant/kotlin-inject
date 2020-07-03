@@ -2,11 +2,9 @@ package me.tatarka.inject.test
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
-import me.tatarka.inject.annotations.Inject
-import me.tatarka.inject.annotations.Component
-import me.tatarka.inject.annotations.Scope
-import kotlin.test.Test
+import me.tatarka.inject.annotations.*
 import kotlin.test.BeforeTest
+import kotlin.test.Test
 
 @Scope
 annotation class CustomScope
@@ -30,6 +28,26 @@ var customScopeBarConstructorCount = 0
 @Component abstract class ParentParentScopedComponent(@Component val parent: ParentScopedComponent) {
     abstract val bar: CustomScopeBar
 }
+
+
+//@Component abstract class FunctionInjectionComponent {
+//    abstract val bar: bar
+//}
+//
+////
+//class InjectFunctionInjectComponent : FunctionInjectionComponent() {
+//    override val bar: bar = { bar { foo(Foo(), it) } }
+//}
+//
+//typealias foo = (String) -> String
+//
+//@Inject
+//fun foo(dep: Foo, arg: String): String = arg
+//
+//typealias bar = () -> String
+//
+//@Inject
+//fun bar(foo: foo): String = foo("test")
 
 class ScopeTest {
     @BeforeTest

@@ -1,0 +1,30 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '1.4-M1'
+    id("org.jetbrains.kotlin.ksp") version "1.4-M1-dev-experimental-20200610"
+}
+
+dependencies {
+    ksp project(':kotlin-inject-compiler-ksp')
+    implementation project(':kotlin-inject-runtime')
+
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib'
+
+    testImplementation "org.jetbrains.kotlin:kotlin-test"
+    testImplementation "org.jetbrains.kotlin:kotlin-test-junit"
+    testImplementation 'org.jetbrains.kotlin:kotlin-reflect'
+
+    testImplementation 'com.willowtreeapps.assertk:assertk-jvm:0.22'
+}
+
+sourceSets {
+    test {
+        kotlin.srcDir '../integration-tests/src/test/kotlin'
+    }
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    kotlinOptions.jvmTarget = "1.8"
+}

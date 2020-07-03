@@ -1,3 +1,26 @@
-include ':kotlin-inject-compiler'
+pluginManagement {
+    repositories {
+        google()
+        maven { url "https://dl.bintray.com/kotlin/kotlin-eap" }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    resolutionStrategy {
+        eachPlugin {
+            switch (requested.id.id) {
+                case "kotlin-ksp":
+                case "org.jetbrains.kotlin.kotlin-ksp":
+                case "org.jetbrains.kotlin.ksp":
+                    useModule("org.jetbrains.kotlin:kotlin-ksp:${requested.version}")
+            }
+        }
+    }
+}
+
+include ':kotlin-inject-compiler-core'
+include ':kotlin-inject-compiler-kapt'
+include ':kotlin-inject-compiler-ksp'
 include ':kotlin-inject-runtime'
-include ':integration-tests'
+include ':compiler-tests'
+include ':integration-tests-kapt'
+include ':integration-tests-ksp'

@@ -1,11 +1,11 @@
 package me.tatarka.inject.test
 
 import assertk.assertThat
-import assertk.assertions.containsOnly
+import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.IntoMap
 import me.tatarka.inject.annotations.IntoSet
-import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Provides
+import assertk.assertions.containsOnly
 import kotlin.test.Test
 
 data class FooValue(val name: String)
@@ -51,14 +51,4 @@ class MultibindsTest {
             "2" to FooValue("2")
         )
     }
-
-//    @Test
-//    fun generates_a_component_that_provides_multiple_items_into_a_fun() {
-//        val component = FunKeyModule::class.create()
-//
-//        assertAll {
-//            assertThat(component.items("1")).isEqualTo(FooValue("1"))
-//            assertThat(component.items("2")).isEqualTo(FooValue("2"))
-//        }
-//    }
 }

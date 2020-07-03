@@ -1,0 +1,2 @@
+me.tatarka.inject.compiler.kapt.InjectCompiler
+me.tatarka.inject.compiler.kapt.ScopedInjectCompiler
