@@ -8,14 +8,9 @@ import java.io.File
 
 class ProjectCompiler(private val root: File, private val target: Target) {
 
-    private val sources = mutableListOf<Pair<String, String>>()
+    private lateinit var sourceDir: File
 
-    fun source(fileName: String, source: String): ProjectCompiler {
-        sources.add(fileName to source)
-        return this
-    }
-
-    fun compile() {
+    fun setup(): ProjectCompiler {
         val kotlinVersion = if (target == Target.ksp) "1.4-M1" else "1.3.70"
 
         val settingsFile = root.resolve("settings.gradle")
@@ -91,14 +86,24 @@ class ProjectCompiler(private val root: File, private val target: Target) {
             """.trimIndent()
         )
 
-        val sourceDir = dir.resolve("src/main/kotlin")
+        sourceDir = dir.resolve("src/main/kotlin")
         sourceDir.mkdirs()
 
-        for ((file, source) in sources) {
-            val sourceFile = sourceDir.resolve(file)
-            sourceFile.writeText(source)
-        }
+        return this
+    }
 
+    fun source(fileName: String, source: String): ProjectCompiler {
+        val sourceFile = sourceDir.resolve(fileName)
+        sourceFile.writeText(source)
+        return this
+    }
+
+    fun clear() {
+        sourceDir.recursiveDelete()
+        sourceDir.mkdirs()
+    }
+
+    fun compile() {
         GradleRunner.create()
             .withProjectDir(root)
             .withArguments("assemble")

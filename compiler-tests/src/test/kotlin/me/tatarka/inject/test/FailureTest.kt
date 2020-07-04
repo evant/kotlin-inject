@@ -5,22 +5,49 @@ import assertk.assertThat
 import assertk.assertions.contains
 import assertk.assertions.isFailure
 import com.squareup.burst.BurstJUnit4
+import org.junit.After
+import org.junit.AfterClass
 import org.junit.Before
-import org.junit.Rule
-import org.junit.rules.TemporaryFolder
+import org.junit.BeforeClass
 import org.junit.runner.RunWith
+import java.io.File
 import kotlin.test.Test
+
 
 @RunWith(BurstJUnit4::class)
 class FailureTest(private val target: Target) {
-    @get:Rule
-    val testProjectDir = TemporaryFolder()
+
+    companion object {
+        private val projectCompilerMap = mutableMapOf<Target, ProjectCompiler>()
+        lateinit var tempDir: File
+
+        @BeforeClass
+        @JvmStatic
+        fun init() {
+            tempDir = File.createTempFile("junit", "", null)
+            tempDir.delete()
+            tempDir.mkdir()
+        }
+
+        @AfterClass
+        @JvmStatic
+        fun dispose() {
+            tempDir.recursiveDelete()
+        }
+    }
 
     lateinit var projectCompiler: ProjectCompiler
 
     @Before
     fun setup() {
-        projectCompiler = ProjectCompiler(testProjectDir.root, target)
+        projectCompiler = projectCompilerMap.getOrPut(target) {
+            ProjectCompiler(tempDir.resolve(target.name).apply { mkdirs() }, target).setup()
+        }
+    }
+
+    @After
+    fun teardown() {
+        projectCompiler.clear()
     }
 
     @Test
