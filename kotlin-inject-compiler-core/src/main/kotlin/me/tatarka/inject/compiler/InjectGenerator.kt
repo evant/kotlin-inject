@@ -270,6 +270,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
             is Result.Constructor -> provideConstructor(result.constructor, context)
             is Result.Container -> provideContainer(result, context)
             is Result.Function -> provideFunction(result, context)
+            is Result.NamedFunction -> provideNamedFunction(result, context)
             is Result.Arg -> provideArg(result)
             is Result.Lazy -> provideLazy(result, context)
         }
@@ -378,6 +379,38 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         }.build()
     }
 
+    private fun provideNamedFunction(result: Result.NamedFunction, context: Context): CodeBlock {
+        return CodeBlock.builder().apply {
+            beginControlFlow("{")
+            val argList = mutableListOf<Pair<AstType, String>>()
+            result.args.forEachIndexed { index, arg ->
+                if (index != 0) {
+                    add(",")
+                }
+                val name = "arg$index"
+                argList.add(arg to name)
+                add(" %L", name)
+            }
+            if (result.args.isNotEmpty()) {
+                add(" ->")
+            }
+
+            val context = context.withArgs(argList)
+
+            add("%L(", result.function.asMemberName().toString())
+            val size = result.function.parameters.size
+            result.function.parameters.forEachIndexed { i, param ->
+                if (i != 0) {
+                    add(",")
+                }
+                add(provide(TypeKey(param.type), context) { context.findWithIndex(it, i, size) })
+            }
+            add(")")
+
+            endControlFlow()
+        }.build()
+    }
+
     private fun provideLazy(result: Result.Lazy, context: Context): CodeBlock {
         return CodeBlock.builder().apply {
             beginControlFlow("lazy {")
@@ -403,7 +436,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
     private fun Context.findWithIndex(key: TypeKey, index: Int, size: Int): Result? {
         val indexFromEnd = size - index - 1
         args.asReversed().forEachIndexed { i, (type, name) ->
-            if (i == indexFromEnd && type == key.type) {
+            if (i == indexFromEnd && type.isAssignableFrom(key.type)) {
                 return Result.Arg(name)
             }
         }
@@ -421,6 +454,18 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
             return Result.Scoped(name, result)
         }
         if (key.type.name.matches(Regex("kotlin\\.Function[0-9]+.*"))) {
+            val typeAliasName = key.type.typeAliasName
+            if (typeAliasName != null) {
+                // Check to see if we have a function matching the type alias
+                val functions = findFunctions(typeAliasName)
+                val injectedFunction = functions.find { it.hasAnnotation<Inject>() }
+                if (injectedFunction != null) {
+                    return Result.NamedFunction(
+                        function = injectedFunction,
+                        args = key.type.arguments.dropLast(1)
+                    )
+                }
+            }
             val fKey = TypeKey(key.type.arguments.last())
             return Result.Function(
                 key = fKey,
@@ -470,6 +515,8 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         class Constructor(val constructor: AstConstructor) : Result(null)
         class Container(val creator: String, val methods: List<AstMethod>) : Result(null)
         class Function(val key: TypeKey, val args: List<AstType>) : Result(null)
+        class NamedFunction(val function: AstFunction, val args: List<AstType>): Result(null)
+
         class Arg(val argName: String) : Result(null)
         class Lazy(val key: TypeKey) : Result(null)
     }
@@ -479,11 +526,11 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
 
         override fun equals(other: Any?): Boolean {
             if (other !is TypeKey) return false
-            return qualifier == other.qualifier && type.asTypeName() == other.type.asTypeName()
+            return qualifier == other.qualifier && type == other.type
         }
 
         override fun hashCode(): Int {
-            return Objects.hash(type.asTypeName(), qualifier)
+            return Objects.hash(type, qualifier)
         }
 
         override fun toString(): String {

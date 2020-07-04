@@ -30,25 +30,6 @@ var customScopeBarConstructorCount = 0
 }
 
 
-//@Component abstract class FunctionInjectionComponent {
-//    abstract val bar: bar
-//}
-//
-////
-//class InjectFunctionInjectComponent : FunctionInjectionComponent() {
-//    override val bar: bar = { bar { foo(Foo(), it) } }
-//}
-//
-//typealias foo = (String) -> String
-//
-//@Inject
-//fun foo(dep: Foo, arg: String): String = arg
-//
-//typealias bar = () -> String
-//
-//@Inject
-//fun bar(foo: foo): String = foo("test")
-
 class ScopeTest {
     @BeforeTest
     fun setup() {

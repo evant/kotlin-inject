@@ -9,10 +9,7 @@ import kotlinx.metadata.jvm.signature
 import kotlinx.metadata.jvm.syntheticMethodForAnnotations
 import me.tatarka.inject.compiler.*
 import javax.annotation.processing.Messager
-import javax.lang.model.element.Element
-import javax.lang.model.element.ExecutableElement
-import javax.lang.model.element.TypeElement
-import javax.lang.model.element.VariableElement
+import javax.lang.model.element.*
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.ExecutableType
 import javax.lang.model.type.NoType
@@ -34,10 +31,29 @@ interface ModelAstProvider :
         get() = ModelAstMessenger(messager)
 
     fun TypeElement.toAstClass(): AstClass {
-        return ModelAstClass(this@ModelAstProvider, this, metadata)
+        return ModelAstClass(this@ModelAstProvider, this, metadata?.toKmClass())
     }
 
-    override fun KClass<*>.toAstClass(): AstClass = elements.getTypeElement(java.canonicalName).toAstClass()
+    override fun findFunctions(name: String): List<AstFunction> {
+        val packageName = name.substringBeforeLast('.')
+        val simpleName = name.substringAfterLast('.')
+        val packageElement = elements.getPackageElement(packageName)
+        val results = mutableListOf<AstFunction>()
+        for (element in ElementFilter.typesIn(packageElement.enclosedElements)) {
+            for (function in ElementFilter.methodsIn(element.enclosedElements)) {
+                if (function.simpleName.contentEquals(simpleName)
+                    && function.modifiers.contains(Modifier.STATIC) && function.modifiers.contains(Modifier.STATIC) && function.modifiers.contains(
+                        Modifier.FINAL
+                    )
+                ) {
+                    val metadata = element.metadata?.toKmPackage() ?: continue
+                    val kmFunction = metadata.functions.find { it.name == simpleName } ?: continue
+                    results.add(ModelAstFunction(this, function, kmFunction))
+                }
+            }
+        }
+        return results
+    }
 
     override fun declaredTypeOf(klass: KClass<*>, vararg astTypes: AstType): AstType {
         val type = elements.getTypeElement(klass.java.canonicalName)
@@ -261,6 +277,10 @@ private class ModelAstFunction(
             null
         }
     }
+
+    override fun asMemberName(): MemberName {
+        return MemberName(elements.getPackageOf(element).qualifiedName.toString(), name)
+    }
 }
 
 private class ModelAstProperty(
@@ -319,6 +339,10 @@ private class ModelAstProperty(
 
     override fun <T : Annotation> hasAnnotation(kclass: KClass<T>): Boolean {
         return annotatedElement?.getAnnotation(kclass.java) != null
+    }
+
+    override fun asMemberName(): MemberName {
+        return MemberName(elements.getPackageOf(element).qualifiedName.toString(), name)
     }
 }
 
@@ -382,8 +406,12 @@ private class ModelAstType(
     override fun toAstClass(): AstClass = (element as TypeElement).toAstClass()
 
     override fun asTypeName(): TypeName {
-        return typeAliasName?.let { ClassName.bestGuess(it) } ?: type.asTypeName()
-            .javaToKotlinType()
+        return typeAliasName?.typeAliasTypeName() ?: type.asTypeName().javaToKotlinType()
+    }
+
+    override fun isAssignableFrom(other: AstType): Boolean {
+        require(other is ModelAstType)
+        return types.isAssignable(other.type, type)
     }
 
     override fun equals(other: Any?): Boolean {
@@ -393,11 +421,6 @@ private class ModelAstType(
 
     override fun hashCode(): Int {
         return asTypeName().hashCode()
-    }
-
-    override fun toString(): String {
-        val n = name
-        return if (n.substringBeforeLast('.') == "kotlin") n.removePrefix("kotlin.") else n
     }
 }
 
@@ -466,3 +489,11 @@ private fun collectModifiers(flags: Flags?): Set<AstModifier> {
     return result
 }
 
+private fun String.typeAliasTypeName(): TypeName {
+    val lastDot = lastIndexOf('.')
+    return if (lastDot < 0) {
+        ClassName("", this)
+    } else {
+        ClassName(substring(0, lastDot), substring(lastDot + 1))
+    }
+}
