@@ -35,7 +35,54 @@ repositories {
 }
 
 dependencies {
-    kapt "me.tatarka.inject:kotlin-inject-compiler:0.0.1-SNAPSHOT"
+    kapt "me.tatarka.inject:kotlin-inject-compiler-kapt:0.0.1-SNAPSHOT"
+    implementation "me.tatarka.inject:kotlin-inject-runtime:0.0.1-SNAPSHOT"
+}
+```
+
+### Expiramental KSP Support 
+
+You can use [ksp](https://github.com/android/kotlin/tree/ksp/libraries/tools/kotlin-symbol-processing-api) instead of 
+kapt. Currently everything except type aliases and function injection is implemented.
+
+`settings.gradle`
+```groovy
+pluginManagement {
+    resolutionStrategy {
+        eachPlugin {
+            switch (requested.id.id) {
+                case "kotlin-ksp":
+                case "org.jetbrains.kotlin.kotlin-ksp":
+                case "org.jetbrains.kotlin.ksp":
+                    useModule("org.jetbrains.kotlin:kotlin-ksp:${requested.version}")
+            }
+        }
+    }
+
+    repositories {
+            gradlePluginPortal()
+            maven { url "https://dl.bintray.com/kotlin/kotlin-eap" }
+            google()
+    }
+}
+```
+
+`build.gradle`
+```groovy
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version "1.4-M1"
+    id 'org.jetbrains.kotlin.ksp' version "1.4-M1-dev-experimental-20200610"
+}
+
+repositories {
+    mavenCentral()
+    maven { url "https://dl.bintray.com/kotlin/kotlin-eap" }
+    google()
+    maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+}
+
+dependencies {
+    ksp "me.tatarka.inject:kotlin-inject-compiler-ksp:0.0.1-SNAPSHOT"
     implementation "me.tatarka.inject:kotlin-inject-runtime:0.0.1-SNAPSHOT"
 }
 ```
@@ -47,7 +94,7 @@ Let's go through the above example line-by line and see what it's doing.
 ```kotlin
 @Component abstract class AppComponent {
 ```
-The building block of kotlin-inject is a module which you declare with an `@Component` annotation on an abstract class. An
+The building block of kotlin-inject is a component which you declare with an `@Component` annotation on an abstract class. An
 implementation of this component will be generated for you.
 
 ```kotlin
@@ -60,7 +107,7 @@ implementation. How does it know how to do this? There's a few ways:
 ```kotlin
     @Provides protected fun jsonParser() = JsonParser()
 ```
-For external dependencies, you can declare a function or read-only property in the module to create an instance for a 
+For external dependencies, you can declare a function or read-only property in the component to create an instance for a 
 certain type. kotlin-inject will use the return type to provide this instance where it is requested.
 
 ```kotlin
@@ -94,7 +141,7 @@ If you need to pass any instances into your component you can declare them as co
 the generated create function. You can optionally annotate it with `@Provides` to provide the value to the dependency graph.
 
 ```kotlin
-@Module abstract class MyComponent(@Provides protected val foo: Foo)
+@Component abstract class MyComponent(@Provides protected val foo: Foo)
 ```
 
 ```kotlin
@@ -105,11 +152,11 @@ If the argument is another component, you can annotate it with `@Component` and 
 child component. This allows you to compose them into a graph.
 
 ```kotlin
-@Module abstract class ParentComponent {
+@Component abstract class ParentComponent {
     protected fun provideFoo(): Foo = ...
 }
 
-@Module abstract class ChildComponent(@Module val parent: ParentComponent) {
+@Component abstract class ChildComponent(@Component val parent: ParentComponent) {
     abstract val foo: Foo
 }
 ```
@@ -128,7 +175,7 @@ treated as separate types for the purposes of injection.
 typealias Dep1 = Dep
 typealias Dep2 = Dep
 
-@Modlue abstract class MyComponent {
+@Component abstract class MyComponent {
     @Provides fun dep1(): Dep1 = Dep("one")
     @Provides fun dep2(): Dep2 = Dep("two")
 
@@ -138,6 +185,37 @@ typealias Dep2 = Dep
 @Inject class InjectedClass(dep1: Dep1, dep2: Dep2)
 ```
 
+### Function Injection
+
+You can also use type aliases to inject into top-level functions. Annotate your function with `@Inject` and create a 
+type alias with the same name.
+
+```kotlin
+typealias myFunction = () -> Unit
+
+@Inject fun myFunction(dep: Dep) {
+}
+```
+
+You can then use the type alias anywhere and you will be provided with a function that calls the top-level one with the
+requested dependencies.
+
+```kotlin
+@Inject class MyClass(val myFunction: myFunction)
+
+@Component abstract class MyComponent {
+    abstract val myFunction: myFunction
+}
+```
+
+You can optionally pass explicit args as the last arguments of the function.
+
+```kotlin
+typealias myFunction = (String) -> String
+
+@Inject fun myFunction(dep: Dep, arg: String): String = ...
+```
+
 ### Scopes
 
 By default kotlin-inject will create a new instance of a dependency each place it's injected. If you want to re-use an
@@ -145,8 +223,7 @@ instance you can scope it to a component. The instance will live as long as that
 
 First create your scope annotation.
 ```kotlin
-@Scope
-annotation class MyScope
+@Scope annotation class MyScope
 ```
 
 Then annotate your component with that scope annotation.
@@ -158,12 +235,55 @@ Then annotate your component with that scope annotation.
 Finally, annotate your provides and `@Inject` classes with that scope.
 
 ```kotlin
-@MyScope @Component abstract class MyModule {
+@MyScope @Component abstract class MyComponent {
     @MyScope @Provides
     protected fun provideFoo() = ...
 }
 
 @MyScope @Inject class Bar()
+```
+
+### Component Inheritance
+
+You can define `@Provides` and scope annotations on an interface or abstract class that's not annotated with `@Component`.
+This allows you to have multiple implementations, which is useful for things like testing. For example, you can have an
+abstract class like
+
+```kotlin
+@NetworkScope abstract class NetworkComponent {
+    @NetworkScope @Provides
+    abstract fun api(): Api 
+}
+```
+
+Then you can have multiple implementations
+
+```kotlin
+@Component abstract class RealNetworkComponent : NetworkComponent() {
+    override fun api(): Api = RealApi()
+}
+
+@Component abstract class TestNetworkComponent : NetworkComponent() {
+    override fun api(): Api = FakeApi()
+}
+```
+
+Then you can provide the abstract class to your app component
+
+```
+@Component abtract class AppComponent(@Component val network: NetworkComponent)
+```
+
+Then in your app you can do
+
+```kotlin
+AppComponent::class.create(RealNetworkComponent::class.create())
+```
+
+an in tests you can do
+
+```kotlin
+AppComponent::class.create(TestNetworkComponent::class.create())
 ```
 
 ### Multi-bindings
@@ -176,10 +296,8 @@ For a set, return the type you want to put into a set, then you can inject or pr
 @Component abstract class MyComponent {
     abstract val allFoos: Set<Foo>
 
-    @IntoSet @Provides
-    protected fun provideFoo1(): Foo = Foo("1")
-    @IntoSet @Provdies
-    protected fun provideFoo2(): Foo = Foo("2")
+    @IntoSet @Provides protected fun provideFoo1(): Foo = Foo("1")
+    @IntoSet @Provdies protected fun provideFoo2(): Foo = Foo("2")
 }
 ```
 
@@ -189,10 +307,8 @@ For a map, return a `Pair<Key, Value>`.
 @Component abstract class MyComponent {
     abstract val fooMap: Map<String, Foo>
     
-    @IntoMap @Provides
-    protected fun provideFoo1(): Pair<String, Foo> = "1" to Foo("1")
-    @IntoMap @Provides
-    protected fun provideFoo2(): Pair<String, Foo> = "2" to Foo("2")
+    @IntoMap @Provides protected fun provideFoo1(): Pair<String, Foo> = "1" to Foo("1")
+    @IntoMap @Provides protected fun provideFoo2(): Pair<String, Foo> = "2" to Foo("2")
 }
 ```
 

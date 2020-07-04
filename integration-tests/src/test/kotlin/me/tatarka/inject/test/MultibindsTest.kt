@@ -21,7 +21,7 @@ data class FooValue(val name: String)
         get() = FooValue("2")
 }
 
-@Component abstract class DynamicKeyModule {
+@Component abstract class DynamicKeyComponent {
 
     abstract val items: Map<String, FooValue>
 
@@ -44,7 +44,7 @@ class MultibindsTest {
 
     @Test
     fun generates_a_component_that_provides_multiple_items_into_a_map() {
-        val component = DynamicKeyModule::class.create()
+        val component = DynamicKeyComponent::class.create()
 
         assertThat(component.items).containsOnly(
             "1" to FooValue("1"),
