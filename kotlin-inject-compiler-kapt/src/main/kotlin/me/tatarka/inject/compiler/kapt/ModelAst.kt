@@ -48,7 +48,7 @@ interface ModelAstProvider :
                 ) {
                     val metadata = element.metadata?.toKmPackage() ?: continue
                     val kmFunction = metadata.functions.find { it.name == simpleName } ?: continue
-                    results.add(ModelAstFunction(this, function, kmFunction))
+                    results.add(ModelAstFunction(this, element, function, kmFunction))
                 }
             }
         }
@@ -168,6 +168,7 @@ private class ModelAstClass(
                     if (method.simpleName.contentEquals(javaName)) {
                         return@mapNotNull ModelAstProperty(
                             this,
+                            element,
                             method,
                             property
                         )
@@ -178,6 +179,7 @@ private class ModelAstClass(
                     if (method.simpleName.contentEquals(javaName)) {
                         return@mapNotNull ModelAstFunction(
                             this,
+                            element,
                             method,
                             function
                         )
@@ -227,6 +229,7 @@ private class ModelAstConstructor(
 
 private class ModelAstFunction(
     provider: ModelAstProvider,
+    val parent: TypeElement,
     override val element: ExecutableElement,
     private val kmFunction: KmFunction
 ) : AstFunction(),
@@ -278,6 +281,11 @@ private class ModelAstFunction(
         }
     }
 
+    override fun overrides(other: AstMethod): Boolean {
+        require(other is ModelAstMethod)
+        return elements.overrides(element, other.element, parent)
+    }
+
     override fun asMemberName(): MemberName {
         return MemberName(elements.getPackageOf(element).qualifiedName.toString(), name)
     }
@@ -285,6 +293,7 @@ private class ModelAstFunction(
 
 private class ModelAstProperty(
     provider: ModelAstProvider,
+    val parent: TypeElement,
     override val element: ExecutableElement,
     private val kmProperty: KmProperty
 ) : AstProperty(),
@@ -335,6 +344,11 @@ private class ModelAstProperty(
             }
         }
         null
+    }
+
+    override fun overrides(other: AstMethod): Boolean {
+        require(other is ModelAstMethod)
+        return elements.overrides(element, other.element, parent)
     }
 
     override fun <T : Annotation> hasAnnotation(kclass: KClass<T>): Boolean {
@@ -497,3 +511,9 @@ private fun String.typeAliasTypeName(): TypeName {
         ClassName(substring(0, lastDot), substring(lastDot + 1))
     }
 }
+
+val AstClass.element: TypeElement
+    get() {
+        require(this is ModelAstClass)
+        return element
+    }

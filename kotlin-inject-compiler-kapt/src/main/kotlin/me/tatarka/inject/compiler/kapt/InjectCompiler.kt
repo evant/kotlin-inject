@@ -9,16 +9,19 @@ import javax.lang.model.element.TypeElement
 class InjectCompiler : BaseInjectCompiler() {
 
     override fun process(elements: Set<TypeElement>, env: RoundEnvironment): Boolean {
+        val generator = InjectGenerator(this, options)
+
         for (element in env.getElementsAnnotatedWith(Component::class.java)) {
             if (element !is TypeElement) continue
-            val scopeType = element.scopeType()
-            // Only deal with non-scoped components
-            if (scopeType != null) continue
 
-            val generator = InjectGenerator(this, options)
+            val astClass = element.toAstClass()
+            val scopeClass = with(generator) {
+                astClass.scopeClass()
+            }
+            // Only deal with non-scoped components
+            if (scopeClass != null) continue
 
             try {
-                val astClass = element.toAstClass()
                 val file = generator.generate(astClass)
                 file.writeTo(filer)
             } catch (e: FailedToGenerateException) {

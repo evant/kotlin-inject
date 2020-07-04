@@ -2,26 +2,34 @@ package me.tatarka.inject.compiler.kapt
 
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
+import me.tatarka.inject.annotations.Scope
 import me.tatarka.inject.compiler.AstClass
 import me.tatarka.inject.compiler.FailedToGenerateException
 import me.tatarka.inject.compiler.InjectGenerator
+import me.tatarka.inject.compiler.scopeType
 import javax.annotation.processing.RoundEnvironment
 import javax.lang.model.element.TypeElement
 
 class ScopedInjectCompiler : BaseInjectCompiler() {
 
     override fun process(elements: Set<TypeElement>, env: RoundEnvironment): Boolean {
+        val allScopedClasses = mutableSetOf<AstClass>()
+        val generator = InjectGenerator(this, options)
+
         for (element in env.getElementsAnnotatedWith(Component::class.java)) {
             if (element !is TypeElement) continue
+            val astClass = element.toAstClass()
             // Only deal with scoped components
-            val scopeType = element.scopeType() ?: continue
-            val scopedInjects = scopedInjects(scopeType, env)
+            val scopedClass = with(generator) {
+                astClass.scopeClass()
+            } ?: continue
 
-            val generator = InjectGenerator(this, options)
+            val scopeType = scopedClass.scopeType()!!
+            val scopedClasses = scopedClasses(scopeType, env)
+            allScopedClasses.addAll(scopedClasses)
 
             try {
-                val astClass = element.toAstClass()
-                val file = generator.generate(astClass, scopedInjects)
+                val file = generator.generate(astClass, scopedClasses)
                 file.writeTo(filer)
             } catch (e: FailedToGenerateException) {
                 error(e.message.orEmpty(), e.element)
@@ -29,17 +37,22 @@ class ScopedInjectCompiler : BaseInjectCompiler() {
                 continue
             }
         }
+
+        try {
+            for (file in generator.generateScopedInterfaces(allScopedClasses)) {
+                file.writeTo(filer)
+            }
+        } catch (e: FailedToGenerateException) {
+            error(e.message.orEmpty(), e.element)
+            // Continue so we can see all errors
+        }
+
         return false
     }
 
-    private fun scopedInjects(scopeType: TypeElement, env: RoundEnvironment): List<AstClass> {
-        return env.getElementsAnnotatedWith(scopeType).mapNotNull {
-            // skip component itself, we only want @Inject's annotated with the scope
-            if (it.getAnnotation(Component::class.java) != null) {
-                null
-            } else {
-                (it as? TypeElement)?.toAstClass()
-            }
+    private fun scopedClasses(scopeType: AstClass, env: RoundEnvironment): List<AstClass> {
+        return env.getElementsAnnotatedWith(scopeType.element).mapNotNull {
+            (it as? TypeElement)?.toAstClass()
         }
     }
 

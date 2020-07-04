@@ -28,8 +28,6 @@ fun KSAnnotated.getAnnotation(type: KClass<out Annotation>): KSAnnotation? {
     return annotations.find { it.annotationType.resolve()?.declaration?.qualifiedName?.asString() == type.qualifiedName }
 }
 
-fun KSClassDeclaration.scopeType() = typeAnnotatedWith<Scope>()
-
 fun KSDeclaration.asClassName(): ClassName {
     val name = qualifiedName!!
     return ClassName(name.getQualifier(), name.getShortName())
