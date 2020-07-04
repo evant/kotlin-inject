@@ -24,7 +24,7 @@ class FailureTest(private val target: Target) {
     }
 
     @Test
-    fun fails_if_module_is_not_abstract() {
+    fun fails_if_component_is_not_abstract() {
         assertThat {
             projectCompiler.source(
                 "test.kt", """
@@ -37,7 +37,7 @@ class FailureTest(private val target: Target) {
     }
 
     @Test
-    fun fails_if_module_is_private() {
+    fun fails_if_component_is_private() {
         assertThat {
             projectCompiler.source(
                 "test.kt", """
@@ -78,7 +78,7 @@ class FailureTest(private val target: Target) {
                     }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().contains("@Provides method must not be abstract")
+        }.isFailure().output().contains("@Provides method must have a concrete implementation")
     }
 
     @Test
@@ -133,7 +133,7 @@ class FailureTest(private val target: Target) {
     }
 
     @Test
-    fun fails_if_module_does_not_have_scope_to_provide_dependency() {
+    fun fails_if_component_does_not_have_scope_to_provide_dependency() {
         assertThat {
             projectCompiler.source(
                 "test.kt", """
@@ -149,6 +149,6 @@ class FailureTest(private val target: Target) {
                     }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().contains("Cannot find module with scope: @MyScope to inject Foo")
+        }.isFailure().output().contains("Cannot find component with scope: @MyScope to inject Foo")
     }
 }

@@ -80,6 +80,8 @@ sealed class AstMethod : AstElement() {
 
     abstract val receiverParameterType: AstType?
 
+    abstract fun overrides(other: AstMethod): Boolean
+
     abstract val returnType: AstType
 
     abstract fun returnTypeFor(enclosingClass: AstClass): AstType

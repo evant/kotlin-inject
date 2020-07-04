@@ -6,17 +6,6 @@ import me.tatarka.inject.annotations.*
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 
-@Scope
-annotation class CustomScope
-
-var customScopeBarConstructorCount = 0
-
-@CustomScope @Inject class CustomScopeBar {
-    init {
-        customScopeBarConstructorCount++
-    }
-}
-
 @CustomScope @Component abstract class CustomScopeConstructorComponent {
     abstract val bar: CustomScopeBar
 }

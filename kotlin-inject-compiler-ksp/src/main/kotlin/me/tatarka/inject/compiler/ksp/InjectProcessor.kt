@@ -1,10 +1,8 @@
 package me.tatarka.inject.compiler.ksp
 
+import com.squareup.kotlinpoet.FileSpec
 import me.tatarka.inject.annotations.Component
-import me.tatarka.inject.compiler.FailedToGenerateException
-import me.tatarka.inject.compiler.InjectGenerator
-import me.tatarka.inject.compiler.Options
-import me.tatarka.inject.compiler.AstClass
+import me.tatarka.inject.compiler.*
 import org.jetbrains.kotlin.ksp.processing.CodeGenerator
 import org.jetbrains.kotlin.ksp.processing.Resolver
 import org.jetbrains.kotlin.ksp.processing.SymbolProcessor
@@ -25,39 +23,54 @@ class InjectProcessor : SymbolProcessor, KSAstProvider {
 
     override fun process(resolver: Resolver) {
         this.resolver = resolver
+
+        val generator = InjectGenerator(this, options)
+        val allScopeClasses = mutableSetOf<AstClass>()
+
         for (element in resolver.getSymbolsWithAnnotation(Component::class.qualifiedName!!)) {
             if (element !is KSClassDeclaration) continue
-            val generator = InjectGenerator(this, options)
+            val astClass = element.toAstClass()
+            val scopedClass = with(generator) {
+                astClass.scopeClass()
+            }
 
-            val scopeType = element.scopeType()
-            val scopedInjects = scopeType?.let { scopedInjects(it, resolver) } ?: emptyList()
+            val scopeType = scopedClass?.scopeType()
+            val scopedClasses = scopeType?.let { scopedClasses(it, resolver) } ?: emptyList()
+            allScopeClasses.addAll(scopedClasses)
 
             try {
-                val astClass = element.toAstClass()
-                val file = generator.generate(astClass, scopedInjects)
-                FileWriter(codeGenerator.createNewFile(file.packageName, file.name)).buffered().use {
-                   file.writeTo(it)
-                }
+                val file = generator.generate(astClass, scopedClasses)
+                file.writeTo(codeGenerator)
             } catch (e: FailedToGenerateException) {
                 error(e.message.orEmpty(), e.element)
                 // Continue so we can see all errors
                 continue
             }
         }
+
+        try {
+            for (file in generator.generateScopedInterfaces(allScopeClasses)) {
+                file.writeTo(codeGenerator)
+            }
+        } catch (e: FailedToGenerateException) {
+            error(e.message.orEmpty(), e.element)
+            // Continue so we can see all errors
+        }
     }
 
-    private fun scopedInjects(scopeType: KSType, resolver: Resolver): List<AstClass> {
-        return resolver.getSymbolsWithAnnotation(scopeType.declaration.qualifiedName!!.asString()).mapNotNull {
-            // skip component itself, we only want @Inject's annotated with the scope
-            if (it.getAnnotation(Component::class) != null) {
-                null
-            } else {
-                (it as? KSClassDeclaration)?.toAstClass()
-            }
+    private fun scopedClasses(scopeType: AstClass, resolver: Resolver): List<AstClass> {
+        return resolver.getSymbolsWithAnnotation(scopeType.asClassName().toString()).mapNotNull {
+            (it as? KSClassDeclaration)?.toAstClass()
         }
     }
 
     override fun finish() {
         messenger.finalize()
+    }
+
+    private fun FileSpec.writeTo(codeGenerator: CodeGenerator) {
+        FileWriter(codeGenerator.createNewFile(packageName, name)).buffered().use {
+            writeTo(it)
+        }
     }
 }

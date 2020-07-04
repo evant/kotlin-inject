@@ -20,8 +20,6 @@ fun <T : Annotation> Element.typeAnnotatedWith(type: KClass<T>) =
 
 inline fun <reified T : Annotation> Element.typeAnnotatedWith() = typeAnnotatedWith(T::class)
 
-fun Element.scopeType(): TypeElement? = typeAnnotatedWith<Scope>()
-
 fun TypeName.javaToKotlinType(): TypeName = if (this is ParameterizedTypeName) {
     (rawType.javaToKotlinType() as ClassName).parameterizedBy(
         *typeArguments.map { it.javaToKotlinType() }.toTypedArray()

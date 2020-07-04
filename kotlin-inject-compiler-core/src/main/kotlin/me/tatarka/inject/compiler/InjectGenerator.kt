@@ -9,7 +9,7 @@ import kotlin.reflect.KClass
 class InjectGenerator(provider: AstProvider, private val options: Options) :
     AstProvider by provider {
 
-    fun generate(astClass: AstClass, scopedInjects: Collection<AstClass> = emptyList()): FileSpec {
+    fun generate(astClass: AstClass, scopedClasses: Collection<AstClass> = emptyList()): FileSpec {
         if (AstModifier.ABSTRACT !in astClass.modifiers) {
             throw FailedToGenerateException("@Component class: $astClass must be abstract", astClass)
         } else if (AstModifier.PRIVATE in astClass.modifiers) {
@@ -18,13 +18,25 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
 
         val constructor = astClass.primaryConstructor
 
+        val scopedInjects = scopedClasses.filter { it.hasAnnotation<Inject>() }
+
         val injectComponent = generateInjectComponent(astClass, constructor, scopedInjects)
         val createFunction = generateCreate(astClass, constructor, injectComponent)
 
         return FileSpec.builder(astClass.packageName, "Inject${astClass.name}")
-            .addType(injectComponent)
-            .addFunction(createFunction)
-            .build()
+                .addType(injectComponent)
+                .addFunction(createFunction)
+                .build()
+    }
+
+    fun generateScopedInterfaces(scopedClasses: Collection<AstClass>): List<FileSpec> {
+        val scopedInjects = scopedClasses.filter { it.hasAnnotation<Inject>() }
+        val scopedInterfaces = scopedClasses.filter { !it.hasAnnotation<Inject>() && !it.hasAnnotation<Component>() }
+        return scopedInterfaces.map {
+            FileSpec.builder(it.packageName, "Inject${it.name}")
+                .addType(generateScopedInterface(it, scopedInjects))
+                .build()
+        }
     }
 
     private fun generateInjectComponent(
@@ -32,12 +44,16 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         constructor: AstConstructor?,
         scopedInjects: Collection<AstClass>
     ): TypeSpec {
-        val context = collectTypes(astClass, scopedInjects)
+        val context = collectTypes(astClass, scopedInjects, isComponent = true)
 
         return TypeSpec.classBuilder("Inject${astClass.name}")
             .addOriginatingElement(astClass)
             .superclass(astClass.asClassName())
             .apply {
+                if (context.scopeInterface != null) {
+                    addSuperinterface(ClassName(context.scopeInterface.packageName, "Inject${context.scopeInterface.name}"))
+                }
+
                 if (constructor != null) {
                     val funSpec = FunSpec.constructorBuilder()
                     for (parameter in constructor.parameters) {
@@ -59,7 +75,11 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                             PropertySpec.builder(
                                 type.asElement().simpleName.asScopedProp(),
                                 type.asTypeName()
-                            ).delegate(codeBlock.build())
+                            ).apply {
+                                if (context.scopeInterface != null) {
+                                    addModifiers(KModifier.OVERRIDE)
+                                }
+                            }.delegate(codeBlock.build())
                                 .build()
                         )
                     }
@@ -95,6 +115,26 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                 }
             }
             .build()
+    }
+
+    private fun generateScopedInterface(
+        astClass: AstClass,
+        scopedInjects: Collection<AstClass>
+    ): TypeSpec {
+        val context = collectTypes(astClass, scopedInjects, isComponent = false)
+
+        return TypeSpec.interfaceBuilder("Inject${astClass.name}")
+            .addOriginatingElement(astClass)
+            .apply {
+                for ((type, _) in context.scoped) {
+                    addProperty(
+                        PropertySpec.builder(
+                            type.asElement().simpleName.asScopedProp(),
+                            type.asTypeName()
+                        ).build()
+                    )
+                }
+            }.build()
     }
 
     private fun generateCreate(
@@ -144,6 +184,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
     private fun collectTypes(
         astClass: AstClass,
         scopedInjects: Collection<AstClass>,
+        isComponent: Boolean,
         name: String? = null,
         typesWithScope: MutableMap<AstType, AstClass> = mutableMapOf()
     ): Context {
@@ -153,7 +194,9 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
 
         val scoped = mutableMapOf<AstType, AstClass>()
 
-        val elementScope = astClass.scopeType()
+        val elementScopeClass = astClass.scopeClass()
+        val elementScope = elementScopeClass?.scopeType()
+        val scopeFromParent = elementScopeClass != astClass
 
         val itr = typesWithScope.iterator()
         while (itr.hasNext()) {
@@ -178,53 +221,68 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
             }
         }
 
+        val concreteMethods = mutableSetOf<AstMethod>()
+        val providesMethods = mutableListOf<AstMethod>()
+
         astClass.visitInheritanceChain { parentClass ->
             for (method in parentClass.methods) {
+                if (isComponent && AstModifier.ABSTRACT !in method.modifiers) {
+                    concreteMethods.add(method)
+                }
                 if (method.isProvides()) {
-                    if (method.modifiers.contains(AstModifier.PRIVATE)) {
+                    if (AstModifier.PRIVATE in method.modifiers) {
                         error("@Provides method must not be private", method)
-                        continue
-                    }
-                    if (method.modifiers.contains(AstModifier.ABSTRACT)) {
-                        error("@Provides method must not be abstract", method)
                         continue
                     }
                     if (method.returnType.isUnit()) {
                         error("@Provides method must return a value", method)
                         continue
                     }
-
-                    if (method.hasAnnotation<IntoMap>()) {
-                        // Pair<A, B> -> Map<A, B>
-                        val typeArgs = method.returnTypeFor(astClass).arguments
-                        val mapType = declaredTypeOf(Map::class, typeArgs[0], typeArgs[1])
-
-                        providesContainer.computeIfAbsent(TypeKey(mapType)) {
-                            "mapOf" to mutableListOf()
-                        }.second.add(method)
-                    } else if (method.hasAnnotation<IntoSet>()) {
-                        // A -> Set<A>
-                        val setType = declaredTypeOf(Set::class, method.returnTypeFor(astClass))
-
-                        providesContainer.computeIfAbsent(TypeKey(setType)) {
-                            "setOf" to mutableListOf()
-                        }.second.add(method)
-                    } else {
-                        val returnType = method.returnTypeFor(astClass)
-                        val key = TypeKey(returnType)
-                        val oldValue = providesMap[key]
-                        if (oldValue == null) {
-                            providesMap[key] = method
-                            addScope(returnType, method.scopeType())
-                        } else {
-                            error("Cannot provide: $key", method)
-                            error("as it is already provided", oldValue)
+                    if (isComponent && AstModifier.ABSTRACT in method.modifiers) {
+                        val providesImpl = concreteMethods.find { it.overrides(method) }
+                        if (providesImpl == null) {
+                            error("@Provides method must have a concrete implementation", method)
+                            continue
                         }
+                        concreteMethods.remove(providesImpl)
+                        providesMethods.add(providesImpl)
+                    } else {
+                        providesMethods.add(method)
                     }
                 }
                 if (method.isProvider()) {
                     val returnType = method.returnType.asElement()
                     addScope(method.returnType, returnType.scopeType())
+                }
+            }
+        }
+
+        for (method in providesMethods) {
+            if (method.hasAnnotation<IntoMap>()) {
+                // Pair<A, B> -> Map<A, B>
+                val typeArgs = method.returnTypeFor(astClass).arguments
+                val mapType = declaredTypeOf(Map::class, typeArgs[0], typeArgs[1])
+
+                providesContainer.computeIfAbsent(TypeKey(mapType)) {
+                    "mapOf" to mutableListOf()
+                }.second.add(method)
+            } else if (method.hasAnnotation<IntoSet>()) {
+                // A -> Set<A>
+                val setType = declaredTypeOf(Set::class, method.returnTypeFor(astClass))
+
+                providesContainer.computeIfAbsent(TypeKey(setType)) {
+                    "setOf" to mutableListOf()
+                }.second.add(method)
+            } else {
+                val returnType = method.returnTypeFor(astClass)
+                val key = TypeKey(returnType)
+                val oldValue = providesMap[key]
+                if (oldValue == null) {
+                    providesMap[key] = method
+                    addScope(returnType, method.scopeType())
+                } else {
+                    error("Cannot provide: $key", method)
+                    error("as it is already provided", oldValue)
                 }
             }
         }
@@ -240,6 +298,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                         collectTypes(
                             elemAstClass,
                             scopedInjects,
+                            isComponent = elemAstClass.isComponent(),
                             name = if (name != null) "$name.${parameter.name}" else parameter.name,
                             typesWithScope = typesWithScope
                         )
@@ -251,6 +310,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
             source = astClass,
             name = name,
             parents = parents,
+            scopeInterface = if (scopeFromParent) elementScopeClass else null,
             provides = providesMap,
             providesContainer = providesContainer,
             scoped = scoped
@@ -263,7 +323,10 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         find: (TypeKey) -> Result? = { context.find(it) }
     ): CodeBlock {
         val result = find(key)
-            ?: throw FailedToGenerateException("Cannot find an @Inject constructor or provider for: $key", context.source)
+            ?: throw FailedToGenerateException(
+                "Cannot find an @Inject constructor or provider for: $key",
+                context.source
+            )
         return when (result) {
             is Result.Provides -> provideProvides(result, context)
             is Result.Scoped -> provideScoped(key, result)
@@ -348,11 +411,14 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                 if (index != 0) {
                     add(", ")
                 }
-                add(provideProvides(
-                    Result.Provides(
-                        null,
-                        method
-                    ), context))
+                add(
+                    provideProvides(
+                        Result.Provides(
+                            null,
+                            method
+                        ), context
+                    )
+                )
             }
             add(")")
         }.build()
@@ -423,12 +489,12 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         return CodeBlock.of(result.argName)
     }
 
-    private fun AstParam.isComponent() = hasAnnotation<Component>()
+    private fun AstElement.isComponent() = hasAnnotation<Component>()
 
     private fun AstMethod.isProvides(): Boolean = hasAnnotation<Provides>()
 
     private fun AstMethod.isProvider(): Boolean =
-        modifiers.contains(AstModifier.ABSTRACT) && when (this) {
+        !hasAnnotation<Provides>() && AstModifier.ABSTRACT in modifiers && when (this) {
             is AstFunction -> parameters.isEmpty()
             is AstProperty -> true
         } && receiverParameterType == null && returnType.isNotUnit()
@@ -485,9 +551,9 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         val astClass = key.type.toAstClass()
         if (astClass.hasAnnotation<Inject>()) {
             val scope = astClass.scopeType()
-            val sourceScopeType = source?.scopeType()
+            val sourceScopeType = (scopeInterface ?: source)?.scopeType()
             if (scope != null && scope != sourceScopeType) {
-                error("Cannot find module with scope: @$scope to inject $astClass", astClass)
+                error("Cannot find component with scope: @$scope to inject $astClass", astClass)
                 return null
             }
             return Result.Constructor(astClass.primaryConstructor!!)
@@ -499,6 +565,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         val source: AstClass? = null,
         val name: String? = null,
         val parents: List<Context>,
+        val scopeInterface: AstClass? = null,
         val provides: Map<TypeKey, AstMethod>,
         val providesContainer: Map<TypeKey, Pair<String, List<AstMethod>>>,
         val scoped: Map<AstType, AstClass> = emptyMap(),
@@ -515,7 +582,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         class Constructor(val constructor: AstConstructor) : Result(null)
         class Container(val creator: String, val methods: List<AstMethod>) : Result(null)
         class Function(val key: TypeKey, val args: List<AstType>) : Result(null)
-        class NamedFunction(val function: AstFunction, val args: List<AstType>): Result(null)
+        class NamedFunction(val function: AstFunction, val args: List<AstType>) : Result(null)
 
         class Arg(val argName: String) : Result(null)
         class Lazy(val key: TypeKey) : Result(null)
@@ -537,8 +604,25 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
             return qualifier ?: type.toString()
         }
     }
+
+    fun AstClass.scopeClass(): AstClass? {
+        var elementScopeClass: AstClass? = null
+        visitInheritanceChain { parentClass ->
+            val parentScope = parentClass.scopeType()
+            if (parentScope != null) {
+                if (elementScopeClass == null) {
+                    elementScopeClass = parentClass
+                } else {
+                    error("Cannot apply scope: $parentScope", parentClass)
+                    error("as scope: ${elementScopeClass!!.scopeType()} is already applied", elementScopeClass)
+                }
+            }
+        }
+        return elementScopeClass
+    }
 }
 
-private fun AstElement.scopeType(): AstClass? = typeAnnotatedWith<Scope>()
+
+fun AstElement.scopeType(): AstClass? = typeAnnotatedWith<Scope>()
 
 private fun String.asScopedProp(): String = "_" + decapitalize()

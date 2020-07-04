@@ -19,23 +19,6 @@ import kotlin.test.Test
     abstract val foo: NamedFoo
 }
 
-//abstract class AbstractParentComponent {
-//    @Provides
-//    abstract fun foo(): NamedFoo
-//}
-//
-//@Component abstract class ParentComponentImpl1 : AbstractParentComponent() {
-//    override fun foo(): NamedFoo = NamedFoo("parent1")
-//}
-//
-//@Component abstract class ParentComponentImpl2 : AbstractParentComponent() {
-//    override fun foo(): NamedFoo = NamedFoo("parent2")
-//}
-//
-//@Component abstract class AbstractParentChildComponent(@Component val parent: AbstractParentComponent) {
-//    abstract val foo: NamedFoo
-//}
-
 class NestedComponentTest {
     @Test
     fun generates_a_component_that_provides_a_dep_from_a_parent_component() {
