@@ -344,12 +344,19 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         context: Context
     ): CodeBlock {
         val codeBlock = CodeBlock.builder()
-        if (providesResult.name != null) {
-            codeBlock.add("%L.", providesResult.name)
-        }
-        val method = providesResult.method
 
+        val method = providesResult.method
         val receiverParamType = method.receiverParameterType
+        val changeScope = providesResult.name != null && receiverParamType != null
+
+        if (providesResult.name != null) {
+            if (changeScope) {
+                codeBlock.add("with(%L)", providesResult.name)
+                codeBlock.beginControlFlow(" {")
+            } else {
+                codeBlock.add("%L.", providesResult.name)
+            }
+        }
 
         when (method) {
             is AstProperty -> {
@@ -375,6 +382,11 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                 codeBlock.add(")")
             }
         }
+
+        if (changeScope) {
+            codeBlock.endControlFlow()
+        }
+
         return codeBlock.build()
     }
 
