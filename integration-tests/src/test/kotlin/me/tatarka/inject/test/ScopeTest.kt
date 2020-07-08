@@ -2,7 +2,7 @@ package me.tatarka.inject.test
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
-import me.tatarka.inject.annotations.*
+import me.tatarka.inject.annotations.Component
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 
