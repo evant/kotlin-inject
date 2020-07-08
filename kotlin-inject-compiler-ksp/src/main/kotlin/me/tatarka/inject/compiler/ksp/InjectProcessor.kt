@@ -69,7 +69,7 @@ class InjectProcessor : SymbolProcessor, KSAstProvider {
     }
 
     private fun FileSpec.writeTo(codeGenerator: CodeGenerator) {
-        FileWriter(codeGenerator.createNewFile(packageName, name)).buffered().use {
+        codeGenerator.createNewFile(packageName, name).bufferedWriter().use {
             writeTo(it)
         }
     }

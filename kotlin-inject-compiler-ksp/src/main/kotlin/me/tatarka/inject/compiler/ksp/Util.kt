@@ -5,7 +5,6 @@ import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeVariableName
-import me.tatarka.inject.annotations.Scope
 import org.jetbrains.kotlin.ksp.symbol.*
 import org.jetbrains.kotlin.ksp.visitor.KSDefaultVisitor
 import kotlin.reflect.KClass
@@ -34,7 +33,7 @@ fun KSDeclaration.asClassName(): ClassName {
 }
 
 // https://github.com/android/kotlin/issues/25
-fun KSDeclaration.isAbstract() = modifiers.contains(Modifier.ABSTRACT)
+fun KSDeclaration.isAbstract() = Modifier.ABSTRACT in modifiers
         || ((parentDeclaration as? KSClassDeclaration)?.classKind == ClassKind.INTERFACE && this is KSPropertyDeclaration)
 
 fun KSTypeReference.memberOf(enclosingClass: KSClassDeclaration): KSTypeReference {
