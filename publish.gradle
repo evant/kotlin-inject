@@ -59,5 +59,6 @@ publishing {
 }
 
 signing {
+    required { project.findProperty('signing.keyId') != null }
     sign publishing.publications.lib
 }

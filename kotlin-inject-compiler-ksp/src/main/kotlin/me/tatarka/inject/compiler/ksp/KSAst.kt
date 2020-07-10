@@ -52,9 +52,28 @@ object KSAstMessenger : Messenger {
     }
 
     private data class Message(val message: String, val element: AstElement?) {
-        override fun toString(): String {
-            return "$message: $element"
-        }
+        override fun toString(): String = StringBuilder().apply {
+            val containing = when (element) {
+                is KSAstFunction -> element.declaration.parentDeclaration
+                is KSAstConstructor -> element.declaration.parentDeclaration
+                is KSAstProperty -> element.declaration.parentDeclaration
+                is KSAstParam -> element.parent
+                else -> null
+            }
+            if (containing != null) {
+                if (containing.qualifiedName != null) {
+                    append(containing.qualifiedName?.asString())
+                } else {
+                    append(containing.parentDeclaration?.qualifiedName?.asString())
+                }
+                append(": ")
+            }
+            append(message)
+            if (element != null) {
+                append("\n\t")
+                append(element)
+            }
+        }.toString()
     }
 }
 
@@ -131,13 +150,20 @@ private class KSAstClass(provider: KSAstProvider, override val declaration: KSCl
 
 private class KSAstConstructor(
     provider: KSAstProvider,
-    parent: AstClass,
+    private val parent: AstClass,
     override val declaration: KSFunctionDeclaration
 ) : AstConstructor(parent), KSAstAnnotated, KSAstProvider by provider {
 
     override val parameters: List<AstParam> by lazy {
-        declaration.parameters.map { param -> KSAstParam(this, param) }
+        declaration.parameters.map { param -> KSAstParam(this, declaration, param) }
     }
+
+    override fun toString(): String = StringBuilder().apply {
+        append(parent.name)
+        append("(")
+        append(parameters.joinToString(", "))
+        append(")")
+    }.toString()
 }
 
 private class KSAstEmptyConstructor(
@@ -157,7 +183,7 @@ private class KSAstFunction(provider: KSAstProvider, override val declaration: K
 
     override val parameters: List<AstParam>
         get() = declaration.parameters.map { param ->
-            KSAstParam(this, param)
+            KSAstParam(this, declaration, param)
         }
 
     override val name: String
@@ -185,6 +211,14 @@ private class KSAstFunction(provider: KSAstProvider, override val declaration: K
         val packageName = declaration.qualifiedName?.getQualifier().orEmpty()
         return MemberName(packageName, declaration.simpleName.toString())
     }
+
+    override fun toString(): String = StringBuilder().apply {
+        append("fun ")
+        append(name)
+        append("(")
+        append(parameters.joinToString(", "))
+        append(")")
+    }.toString()
 }
 
 private class KSAstProperty(provider: KSAstProvider, override val declaration: KSPropertyDeclaration) : AstProperty(),
@@ -280,7 +314,7 @@ private class KSAstType(provider: KSAstProvider) : AstType(), KSAstAnnotated, KS
     }
 }
 
-private class KSAstParam(provider: KSAstProvider, override val declaration: KSVariableParameter) : AstParam(),
+private class KSAstParam(provider: KSAstProvider, val parent: KSDeclaration, override val declaration: KSVariableParameter) : AstParam(),
     KSAstAnnotated, KSAstProvider by provider {
 
     override val name: String
@@ -293,6 +327,8 @@ private class KSAstParam(provider: KSAstProvider, override val declaration: KSVa
         return ParameterSpec.builder(name, type.asTypeName())
             .build()
     }
+
+    override fun toString(): String = "$name: $type"
 }
 
 private fun collectModifiers(declaration: KSDeclaration): Set<AstModifier> {
