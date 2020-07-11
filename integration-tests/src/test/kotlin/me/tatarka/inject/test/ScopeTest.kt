@@ -18,6 +18,11 @@ import kotlin.test.Test
     abstract val bar: CustomScopeBar
 }
 
+@Component abstract class NonCustomScopeParentComponent
+
+@CustomScope @Component abstract class CustomScopeChildComponent(@Component val parent: NonCustomScopeParentComponent) {
+    abstract val bar: CustomScopeBar
+}
 
 class ScopeTest {
     @BeforeTest
