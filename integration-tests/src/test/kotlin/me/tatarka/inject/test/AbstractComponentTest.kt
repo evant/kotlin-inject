@@ -10,18 +10,25 @@ import kotlin.test.Test
 abstract class AbstractParentComponent {
     @Provides
     abstract fun foo(): NamedFoo
+
+    abstract val bar: INamedBar
 }
 
 @Component abstract class ParentComponentImpl1 : AbstractParentComponent() {
     override fun foo(): NamedFoo = NamedFoo("parent1")
+
+    @Provides fun bar(): INamedBar = NamedBar("parent1")
 }
 
 @Component abstract class ParentComponentImpl2 : AbstractParentComponent() {
     override fun foo(): NamedFoo = NamedFoo("parent2")
+
+    @Provides fun bar(): INamedBar = NamedBar("parent2")
 }
 
 @Component abstract class AbstractParentChildComponent(@Component val parent: AbstractParentComponent) {
     abstract val foo: NamedFoo
+    abstract val bar: INamedBar
 }
 
 @CustomScope
@@ -44,7 +51,9 @@ class AbstractComponentTest {
         val component2 = AbstractParentChildComponent::class.create(parent2)
 
         assertThat(component1.foo.name).isEqualTo("parent1")
+        assertThat(component1.bar.name).isEqualTo("parent1")
         assertThat(component2.foo.name).isEqualTo("parent2")
+        assertThat(component2.bar.name).isEqualTo("parent2")
     }
 
     @Test

@@ -38,6 +38,7 @@ class TypeCollector private constructor(private val provider: AstProvider) : Ast
     ) {
         val concreteMethods = mutableSetOf<AstMethod>()
         val providesMethods = mutableListOf<AstMethod>()
+        val providerMethods = mutableListOf<AstMethod>()
 
         val elementScopeClass = astClass.scopeClass(messenger)
         val elementScope = elementScopeClass?.scopeType()
@@ -78,6 +79,11 @@ class TypeCollector private constructor(private val provider: AstProvider) : Ast
                         providesMethods.add(method)
                     }
                 }
+                // If we aren't a component ourselves, allow obtaining types from providers as these may be contributed from the
+                // eventual implementation
+                if (!isComponent && method.isProvider()) {
+                   providerMethods.add(method)
+                }
             }
         }
 
@@ -103,6 +109,12 @@ class TypeCollector private constructor(private val provider: AstProvider) : Ast
                     _scoped.add(returnType)
                 }
             }
+        }
+        
+        for (method in providerMethods) {
+            val returnType = method.returnTypeFor(astClass)
+            val key = TypeKey(returnType)
+            addMethod(key, method, accessor, scopedComponent = null)
         }
 
         val constructor = astClass.primaryConstructor
