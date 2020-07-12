@@ -3,10 +3,7 @@ package me.tatarka.inject.compiler.kapt
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Scope
-import me.tatarka.inject.compiler.AstClass
-import me.tatarka.inject.compiler.FailedToGenerateException
-import me.tatarka.inject.compiler.InjectGenerator
-import me.tatarka.inject.compiler.scopeType
+import me.tatarka.inject.compiler.*
 import javax.annotation.processing.RoundEnvironment
 import javax.lang.model.element.TypeElement
 
@@ -20,9 +17,7 @@ class ScopedInjectCompiler : BaseInjectCompiler() {
             if (element !is TypeElement) continue
             val astClass = element.toAstClass()
             // Only deal with scoped components
-            val scopedClass = with(generator) {
-                astClass.scopeClass()
-            } ?: continue
+            val scopedClass = astClass.scopeClass(messenger) ?: continue
 
             val scopeType = scopedClass.scopeType()!!
             val scopedClasses = scopedClasses(scopeType, env)
