@@ -17,6 +17,12 @@ var fooConstructorCount = 0
 
 class NamedFoo(val name: String)
 
+interface INamedBar {
+    val name: String
+}
+
+class NamedBar(override val name: String): INamedBar
+
 @Scope
 annotation class CustomScope
 
