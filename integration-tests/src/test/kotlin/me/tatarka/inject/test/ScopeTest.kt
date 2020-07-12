@@ -4,12 +4,24 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotNull
 import me.tatarka.inject.annotations.Component
+import me.tatarka.inject.annotations.Provides
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 
 @CustomScope @Component abstract class CustomScopeConstructorComponent {
     abstract val bar: CustomScopeBar
 }
+
+@CustomScope @Component abstract class CustomScopeProvidesComponent {
+
+    abstract val foo: IFoo
+
+    @Provides
+    @CustomScope
+    val Foo.binds: IFoo
+        get() = this
+}
+
 
 @Component abstract class ParentScopedComponent(@Component val parent: CustomScopeConstructorComponent) {
     abstract val bar: CustomScopeBar
@@ -28,6 +40,7 @@ import kotlin.test.Test
 class ScopeTest {
     @BeforeTest
     fun setup() {
+        fooConstructorCount = 0
         customScopeBarConstructorCount = 0
     }
 
@@ -38,6 +51,15 @@ class ScopeTest {
         component.bar
 
         assertThat(customScopeBarConstructorCount).isEqualTo(1)
+    }
+
+    @Test
+    fun generates_a_component_where_a_custom_scope_provides_is_only_called_once() {
+        val component = CustomScopeProvidesComponent::class.create()
+        component.foo
+        component.foo
+
+        assertThat(fooConstructorCount).isEqualTo(1)
     }
 
     @Test

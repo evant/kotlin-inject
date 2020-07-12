@@ -355,6 +355,10 @@ private class ModelAstProperty(
         return annotatedElement?.getAnnotation(kclass.java) != null
     }
 
+    override fun <T : Annotation> typeAnnotatedWith(kclass: KClass<T>): AstClass? {
+        return annotatedElement?.typeAnnotatedWith(kclass)?.toAstClass()
+    }
+
     override fun asMemberName(): MemberName {
         return MemberName(elements.getPackageOf(element).qualifiedName.toString(), name)
     }
