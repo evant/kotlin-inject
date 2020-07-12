@@ -5,7 +5,13 @@ import me.tatarka.inject.annotations.Scope
 
 interface IFoo
 
-@Inject class Foo : IFoo
+var fooConstructorCount = 0
+
+@Inject class Foo : IFoo {
+    init {
+        fooConstructorCount++
+    }
+}
 
 @Inject class Bar(val foo: Foo)
 

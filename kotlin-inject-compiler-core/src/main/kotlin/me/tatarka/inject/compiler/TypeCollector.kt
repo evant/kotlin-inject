@@ -95,11 +95,11 @@ class TypeCollector private constructor(private val provider: AstProvider) : Ast
                 val returnType = method.returnTypeFor(astClass)
                 val key = TypeKey(returnType)
                 val scopeType = method.scopeType()
-                if (scopeType != elementScope) {
+                if (scopeType != null && scopeType != elementScope) {
                     error("@Provides scope:${scopeType} must match component scope: $elementScope", method)
                 }
                 addMethod(key, method, accessor, scopedComponent = if (scopeType != null) astClass else null)
-                if (method.scopeType() != null) {
+                if (scopeType != null) {
                     _scoped.add(returnType)
                 }
             }
