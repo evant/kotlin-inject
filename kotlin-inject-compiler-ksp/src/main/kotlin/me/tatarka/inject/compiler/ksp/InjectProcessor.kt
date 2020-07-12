@@ -30,9 +30,7 @@ class InjectProcessor : SymbolProcessor, KSAstProvider {
         for (element in resolver.getSymbolsWithAnnotation(Component::class.qualifiedName!!)) {
             if (element !is KSClassDeclaration) continue
             val astClass = element.toAstClass()
-            val scopedClass = with(generator) {
-                astClass.scopeClass()
-            }
+            val scopedClass = astClass.scopeClass(messenger)
 
             val scopeType = scopedClass?.scopeType()
             val scopedClasses = scopeType?.let { scopedClasses(it, resolver) } ?: emptyList()
