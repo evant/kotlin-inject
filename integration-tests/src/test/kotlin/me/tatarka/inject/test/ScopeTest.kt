@@ -2,6 +2,7 @@ package me.tatarka.inject.test
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isNotNull
 import me.tatarka.inject.annotations.Component
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -64,5 +65,13 @@ class ScopeTest {
         component2.bar
 
         assertThat(customScopeBarConstructorCount).isEqualTo(1)
+    }
+
+    @Test
+    fun generates_a_scoped_component_with_an_unscoped_parent_component() {
+        val parent = NonCustomScopeParentComponent::class.create()
+        val child = CustomScopeChildComponent::class.create(parent)
+
+        assertThat(child.bar).isNotNull()
     }
 }
