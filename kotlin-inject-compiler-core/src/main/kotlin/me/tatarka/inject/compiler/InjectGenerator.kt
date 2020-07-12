@@ -91,7 +91,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                                 codeBlock.add("return ")
                                 val returnType = method.returnTypeFor(astClass)
 
-                                codeBlock.add(provide(TypeKey(returnType), context))
+                                codeBlock.add(provide(key = TypeKey(returnType), context = context, source = method))
 
                                 addProperty(
                                     PropertySpec.builder(
@@ -320,12 +320,13 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
     private fun provide(
         key: TypeKey,
         context: Context,
+        source: AstElement? = null,
         find: (TypeKey) -> Result? = { context.find(it) }
     ): CodeBlock {
         val result = find(key)
             ?: throw FailedToGenerateException(
                 "Cannot find an @Inject constructor or provider for: $key",
-                context.source
+                source ?: context.source
             )
         return when (result) {
             is Result.Provides -> provideProvides(result, context)
@@ -361,14 +362,14 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         when (method) {
             is AstProperty -> {
                 if (receiverParamType != null) {
-                    codeBlock.add(provide(TypeKey(receiverParamType), context))
+                    codeBlock.add(provide(key = TypeKey(receiverParamType), context = context, source = method))
                     codeBlock.add(".")
                 }
                 codeBlock.add("%N", method.name)
             }
             is AstFunction -> {
                 if (receiverParamType != null) {
-                    codeBlock.add(provide(TypeKey(receiverParamType), context))
+                    codeBlock.add(provide(key = TypeKey(receiverParamType), context = context, source = method))
                     codeBlock.add(".")
                 }
                 codeBlock.add("%N(", method.name)
@@ -377,7 +378,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                     if (i != 0) {
                         codeBlock.add(",")
                     }
-                    codeBlock.add(provide(TypeKey(param.type), context) { context.findWithIndex(it, i, size) })
+                    codeBlock.add(provide(key = TypeKey(param.type), context = context, source = param) { context.findWithIndex(it, i, size) })
                 }
                 codeBlock.add(")")
             }
@@ -401,7 +402,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
             if (i != 0) {
                 codeBlock.add(",")
             }
-            codeBlock.add(provide(TypeKey(param.type), context) { context.findWithIndex(it, i, size) })
+            codeBlock.add(provide(key = TypeKey(param.type), context = context, source = param) { context.findWithIndex(it, i, size) })
         }
         codeBlock.add(")")
         return codeBlock.build()

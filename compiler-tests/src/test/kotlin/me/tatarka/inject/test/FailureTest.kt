@@ -152,11 +152,59 @@ class FailureTest(private val target: Target) {
                     import me.tatarka.inject.annotations.Component
                     
                     @Component abstract class MyComponent {
-                        abstract val s: String                 
+                        abstract fun provideString(): String                 
                     }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().contains("Cannot find an @Inject constructor or provider for: String")
+        }.isFailure().output().all {
+            contains("Cannot find an @Inject constructor or provider for: String")
+            contains("provideString()")
+        }
+    }
+
+    @Test
+    fun fails_if_type_cannot_be_provided_to_constructor() {
+        assertThat {
+            projectCompiler.source(
+                    "test.kt", """
+                    import me.tatarka.inject.annotations.Component
+                    import me.tatarka.inject.annotations.Inject
+                    
+                    @Inject class Foo(bar: String)
+                    
+                    @Component abstract class MyComponent {
+                        abstract val foo: Foo
+                    }
+                """.trimIndent()
+            ).compile()
+        }.isFailure().output().all {
+            contains("Cannot find an @Inject constructor or provider for: String")
+            contains("Foo")
+            contains("bar")
+        }
+    }
+
+    @Test
+    fun fails_if_type_cannot_be_provided_to_provides() {
+        assertThat {
+            projectCompiler.source(
+                    "test.kt", """
+                    import me.tatarka.inject.annotations.Component
+                    import me.tatarka.inject.annotations.Provides
+                    
+                    class Foo
+                    
+                    @Component abstract class MyComponent {
+                        abstract val foo: Foo
+                        
+                        @Provides fun foo(bar: String): Foo = Foo()
+                    }
+                """.trimIndent()
+            ).compile()
+        }.isFailure().output().all {
+            contains("Cannot find an @Inject constructor or provider for: String")
+            contains("bar")
+        }
     }
 
     @Test
