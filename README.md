@@ -71,7 +71,7 @@ pluginManagement {
 ```groovy
 plugins {
     id 'org.jetbrains.kotlin.jvm' version "1.4-M1"
-    id 'org.jetbrains.kotlin.ksp' version "1.4-M1-dev-experimental-20200626"
+    id 'org.jetbrains.kotlin.ksp' version "1.4-M1-dev-experimental-20200716"
 }
 
 repositories {
