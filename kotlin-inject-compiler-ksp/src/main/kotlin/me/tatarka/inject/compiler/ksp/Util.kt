@@ -32,9 +32,13 @@ fun KSDeclaration.asClassName(): ClassName {
     return ClassName(name.getQualifier(), name.getShortName())
 }
 
-// https://github.com/android/kotlin/issues/25
-fun KSDeclaration.isAbstract() = Modifier.ABSTRACT in modifiers
-        || ((parentDeclaration as? KSClassDeclaration)?.classKind == ClassKind.INTERFACE && this is KSPropertyDeclaration)
+fun KSDeclaration.isAbstract() = when (this) {
+    is KSFunctionDeclaration -> isAbstract
+    is KSPropertyDeclaration -> Modifier.ABSTRACT in modifiers ||
+            (parentDeclaration as? KSClassDeclaration)?.classKind == ClassKind.INTERFACE
+    is KSClassDeclaration -> Modifier.ABSTRACT in modifiers
+    else -> false
+}
 
 fun KSTypeReference.memberOf(enclosingClass: KSClassDeclaration): KSTypeReference {
     val declaration = resolve()!!.declaration
