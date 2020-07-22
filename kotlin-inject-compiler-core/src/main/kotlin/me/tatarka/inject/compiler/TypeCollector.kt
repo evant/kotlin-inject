@@ -5,6 +5,7 @@ import me.tatarka.inject.annotations.IntoMap
 import me.tatarka.inject.annotations.IntoSet
 import me.tatarka.inject.compiler.ContainerCreator.mapOf
 import me.tatarka.inject.compiler.ContainerCreator.setOf
+import java.util.*
 
 
 class TypeCollector private constructor(private val provider: AstProvider) : AstProvider by provider {
@@ -143,7 +144,7 @@ class TypeCollector private constructor(private val provider: AstProvider) : Ast
         } else if (current is TypeCreator.Container && current.creator == creator) {
             current.methods.add(method)
         } else {
-            duplicate(key, method, current.source)
+            duplicate(key, newValue = method, oldValue = current.source)
         }
     }
 
@@ -157,7 +158,7 @@ class TypeCollector private constructor(private val provider: AstProvider) : Ast
                 scopedComponent = scopedComponent
             )
         } else {
-            duplicate(key, oldValue.source, method)
+            duplicate(key, newValue = method, oldValue = oldValue.source)
         }
     }
 
