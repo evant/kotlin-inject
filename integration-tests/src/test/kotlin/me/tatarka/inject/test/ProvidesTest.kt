@@ -10,9 +10,11 @@ import me.tatarka.inject.annotations.Provides
 import kotlin.test.Test
 
 class ProvidesFoo(val bar: ProvidesBar? = null)
-@Inject class ProvidesBar
+@Inject
+class ProvidesBar
 
-@Component abstract class ProvidesFunctionComponent {
+@Component
+abstract class ProvidesFunctionComponent {
     var providesCalled = false
 
     abstract val foo: ProvidesFoo
@@ -21,7 +23,8 @@ class ProvidesFoo(val bar: ProvidesBar? = null)
     fun foo() = ProvidesFoo().also { providesCalled = true }
 }
 
-@Component abstract class ProvidesFunctionArgComponent {
+@Component
+abstract class ProvidesFunctionArgComponent {
     var providesCalled = false
 
     abstract val foo: ProvidesFoo
@@ -30,7 +33,8 @@ class ProvidesFoo(val bar: ProvidesBar? = null)
     fun foo(bar: ProvidesBar) = ProvidesFoo(bar).also { providesCalled = true }
 }
 
-@Component abstract class ProvidesValComponent {
+@Component
+abstract class ProvidesValComponent {
     var providesCalled = false
 
     abstract val foo: ProvidesFoo
@@ -40,7 +44,8 @@ class ProvidesFoo(val bar: ProvidesBar? = null)
         get() = ProvidesFoo().also { providesCalled = true }
 }
 
-@Component abstract class ProvidesExtensionFunctionComponent {
+@Component
+abstract class ProvidesExtensionFunctionComponent {
     var providesCalled = false
 
     abstract val foo: ProvidesFoo
@@ -49,7 +54,8 @@ class ProvidesFoo(val bar: ProvidesBar? = null)
     fun ProvidesBar.provideFoo() = ProvidesFoo(this).also { providesCalled = true }
 }
 
-@Component abstract class ProvidesExtensionValComponent {
+@Component
+abstract class ProvidesExtensionValComponent {
     var providesCalled = false
 
     abstract val foo: ProvidesFoo
@@ -59,8 +65,37 @@ class ProvidesFoo(val bar: ProvidesBar? = null)
         get() = ProvidesFoo(this).also { providesCalled = true }
 }
 
-@Component abstract class ProvidesValConstructorComponent(@Provides val provideFoo: ProvidesFoo) {
+@Component
+abstract class ProvidesValConstructorComponent(@Provides val provideFoo: ProvidesFoo) {
     abstract val foo: ProvidesFoo
+}
+
+class Foo1
+class Foo2
+
+@Inject
+class Foo3 : IFoo
+
+@Component
+abstract class ProvidesOverloadsComponent {
+    abstract val foo1: Foo1
+    abstract val foo2: Foo2
+    abstract val foo3: Foo3
+    abstract val foo4: IFoo
+
+    @Provides
+    fun foo() = Foo1()
+
+    @Provides
+    fun foo(bar: ProvidesBar) = Foo2()
+
+    @Provides
+    val foo
+        get() = Foo3()
+
+    @Provides
+    val Foo3.foo: IFoo
+        get() = this
 }
 
 class ProvidesTest {
@@ -106,6 +141,15 @@ class ProvidesTest {
         val component = ProvidesValConstructorComponent::class.create(foo)
 
         assertThat(component.foo).isSameAs(foo)
+    }
+
+    @Test fun generates_a_component_that_provides_from_functions_with_the_same_name() {
+        val component = ProvidesOverloadsComponent::class.create()
+
+        assertThat(component.foo1).isNotNull()
+        assertThat(component.foo2).isNotNull()
+        assertThat(component.foo3).isNotNull()
+        assertThat(component.foo4).isNotNull()
     }
 }
 

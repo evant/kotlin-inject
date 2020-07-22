@@ -9,6 +9,7 @@ import kotlinx.metadata.jvm.signature
 import kotlinx.metadata.jvm.syntheticMethodForAnnotations
 import me.tatarka.inject.compiler.*
 import javax.annotation.processing.Messager
+import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.*
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.ExecutableType
@@ -23,9 +24,11 @@ import kotlin.reflect.KClass
 interface ModelAstProvider :
     AstProvider {
 
-    val types: Types
-    val elements: Elements
-    val messager: Messager
+    val env: ProcessingEnvironment
+
+    val types: Types get() = env.typeUtils
+    val elements: Elements get() = env.elementUtils
+    val messager: Messager get() = env.messager
 
     override val messenger: Messenger
         get() = ModelAstMessenger(messager)
@@ -164,8 +167,7 @@ private class ModelAstClass(
         ElementFilter.methodsIn(element.enclosedElements).mapNotNull<ExecutableElement, AstMethod> { method ->
             if (kmClass != null) {
                 for (property in kmClass.properties) {
-                    val javaName = property.getterSignature?.name ?: continue
-                    if (method.simpleName.contentEquals(javaName)) {
+                    if (method.matches(property)) {
                         return@mapNotNull ModelAstProperty(
                             this,
                             element,
@@ -175,8 +177,7 @@ private class ModelAstClass(
                     }
                 }
                 for (function in kmClass.functions) {
-                    val javaName = function.signature?.name
-                    if (method.simpleName.contentEquals(javaName)) {
+                    if (method.matches(function)) {
                         return@mapNotNull ModelAstFunction(
                             this,
                             element,

@@ -16,17 +16,13 @@ abstract class BaseInjectCompiler : AbstractProcessor(),
 
     protected lateinit var options: Options
     protected lateinit var filer: Filer
-    override lateinit var types: Types
-    override lateinit var elements: Elements
-    override lateinit var messager: Messager
+    override lateinit var env: ProcessingEnvironment
 
     override fun init(processingEnv: ProcessingEnvironment) {
         super.init(processingEnv)
         this.options = Options.from(processingEnv.options)
+        this.env = processingEnv
         this.filer = processingEnv.filer
-        this.types = processingEnv.typeUtils
-        this.elements = processingEnv.elementUtils
-        this.messager = processingEnv.messager
     }
 
     override fun getSupportedSourceVersion(): SourceVersion = SourceVersion.latestSupported()
