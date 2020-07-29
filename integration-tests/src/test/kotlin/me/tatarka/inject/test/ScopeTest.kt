@@ -3,7 +3,9 @@ package me.tatarka.inject.test
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotNull
+import assertk.assertions.isSameAs
 import me.tatarka.inject.annotations.Component
+import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Provides
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -36,6 +38,21 @@ import kotlin.test.Test
 @CustomScope @Component abstract class CustomScopeChildComponent(@Component val parent: NonCustomScopeParentComponent) {
     abstract val bar: CustomScopeBar
 }
+
+@CustomScope
+@Inject
+class ScopedFoo(val bar: ScopedBar)
+
+@CustomScope
+@Inject
+class ScopedBar()
+
+@CustomScope @Component abstract class DependentCustomScopeComponent() {
+    abstract val foo: ScopedFoo
+
+    abstract val bar: ScopedBar
+}
+
 
 class ScopeTest {
     @BeforeTest
@@ -95,5 +112,12 @@ class ScopeTest {
         val child = CustomScopeChildComponent::class.create(parent)
 
         assertThat(child.bar).isNotNull()
+    }
+
+    @Test
+    fun generates_a_scoped_component_with_scoped_deps() {
+        val component = DependentCustomScopeComponent::class.create()
+
+        assertThat(component.bar).isSameAs(component.foo.bar)
     }
 }

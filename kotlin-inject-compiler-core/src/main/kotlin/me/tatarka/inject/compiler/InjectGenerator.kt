@@ -75,7 +75,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                     for (type in context.collector.scoped) {
                         val codeBlock = CodeBlock.builder()
                         codeBlock.add("lazy { ")
-                        codeBlock.add(provide(TypeKey(type), context.withoutScoped()))
+                        codeBlock.add(provide(TypeKey(type), context.withoutScoped(type)))
                         codeBlock.add(" }")
 
                         addProperty(
@@ -406,14 +406,14 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
     private fun Context.find(key: TypeKey): Result? {
         when (val result = collector.resolve(key)) {
             is TypeCreator.Constructor -> {
-                return if (withScoped && result.scopedComponent != null) {
+                return if (result.scopedComponent != null && skipScoped != result.constructor.type) {
                     Result.Scoped(name = result.accessor, astClass = result.scopedComponent)
                 } else {
                     Result.Constructor(result.constructor)
                 }
             }
             is TypeCreator.Method -> {
-                return if (withScoped && result.scopedComponent != null) {
+                return if (result.scopedComponent != null && skipScoped != result.method.returnType) {
                     Result.Scoped(name = result.accessor, astClass = result.scopedComponent)
                 } else {
                     Result.Provides(name = result.accessor, method = result.method)
@@ -454,9 +454,9 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         val collector: TypeCollector,
         val scopeInterface: AstClass? = null,
         val args: List<Pair<AstType, String>> = emptyList(),
-        val withScoped: Boolean = true
+        val skipScoped: AstType? = null
     ) {
-        fun withoutScoped() = copy(withScoped = false)
+        fun withoutScoped(scoped: AstType) = copy(skipScoped = scoped)
 
         fun withArgs(args: List<Pair<AstType, String>>) = copy(args = args)
     }
