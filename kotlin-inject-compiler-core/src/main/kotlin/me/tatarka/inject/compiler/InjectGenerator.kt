@@ -200,11 +200,14 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
             isComponent = isComponent,
             scopedInjects = scopedInjects
         )
+        val cycleDetector = CycleDetector()
         val elementScopeClass = astClass.scopeClass(messenger, options)
         val scopeFromParent = elementScopeClass != astClass
         return Context(
+            provider = this,
             source = astClass,
             collector = typeCollector,
+            cycleDetector = cycleDetector,
             scopeInterface = if (scopeFromParent) elementScopeClass else null
         )
     }
@@ -235,7 +238,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
     private fun provideProvides(
         providesResult: Result.Provides,
         context: Context
-    ): CodeBlock {
+    ): CodeBlock = context.use(providesResult.method) { context ->
         val codeBlock = CodeBlock.builder()
 
         val method = providesResult.method
@@ -285,13 +288,13 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
             codeBlock.endControlFlow()
         }
 
-        return codeBlock.build()
+        codeBlock.build()
     }
 
     private fun provideConstructor(
         constructor: AstConstructor,
         context: Context
-    ): CodeBlock {
+    ): CodeBlock = context.use(constructor) { context ->
         val codeBlock = CodeBlock.builder()
         codeBlock.add("%T(", constructor.type.asTypeName())
         val size = constructor.parameters.size
@@ -308,7 +311,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
             })
         }
         codeBlock.add(")")
-        return codeBlock.build()
+        codeBlock.build()
     }
 
     private fun provideScoped(key: TypeKey, result: Result.Scoped): CodeBlock {
@@ -335,58 +338,60 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         }.build()
     }
 
-    private fun provideFunction(result: Result.Function, context: Context): CodeBlock {
-        return CodeBlock.builder().apply {
-            beginControlFlow("{")
-            val argList = mutableListOf<Pair<AstType, String>>()
-            result.args.forEachIndexed { index, arg ->
-                if (index != 0) {
-                    add(",")
+    private fun provideFunction(result: Result.Function, context: Context): CodeBlock =
+        context.use(result.element) { context ->
+            CodeBlock.builder().apply {
+                beginControlFlow("{")
+                val argList = mutableListOf<Pair<AstType, String>>()
+                result.args.forEachIndexed { index, arg ->
+                    if (index != 0) {
+                        add(",")
+                    }
+                    val name = "arg$index"
+                    argList.add(arg to name)
+                    add(" %L", name)
                 }
-                val name = "arg$index"
-                argList.add(arg to name)
-                add(" %L", name)
-            }
-            if (result.args.isNotEmpty()) {
-                add(" ->")
-            }
-
-            add(provide(result.key, context.withArgs(argList)))
-            endControlFlow()
-        }.build()
-    }
-
-    private fun provideNamedFunction(result: Result.NamedFunction, context: Context): CodeBlock {
-        return CodeBlock.builder().apply {
-            beginControlFlow("{")
-            val argList = mutableListOf<Pair<AstType, String>>()
-            result.args.forEachIndexed { index, arg ->
-                if (index != 0) {
-                    add(",")
+                if (result.args.isNotEmpty()) {
+                    add(" ->")
                 }
-                val name = "arg$index"
-                argList.add(arg to name)
-                add(" %L", name)
-            }
-            if (result.args.isNotEmpty()) {
-                add(" ->")
-            }
 
-            val context = context.withArgs(argList)
+                add(provide(result.key, context.withArgs(argList)))
+                endControlFlow()
+            }.build()
+        }
 
-            add("%L(", result.function.asMemberName().toString())
-            val size = result.function.parameters.size
-            result.function.parameters.forEachIndexed { i, param ->
-                if (i != 0) {
-                    add(",")
+    private fun provideNamedFunction(result: Result.NamedFunction, context: Context): CodeBlock =
+        context.use(result.function) { context ->
+            CodeBlock.builder().apply {
+                beginControlFlow("{")
+                val argList = mutableListOf<Pair<AstType, String>>()
+                result.args.forEachIndexed { index, arg ->
+                    if (index != 0) {
+                        add(",")
+                    }
+                    val name = "arg$index"
+                    argList.add(arg to name)
+                    add(" %L", name)
                 }
-                add(provide(TypeKey(param.type), context) { context.findWithIndex(it, i, size) })
-            }
-            add(")")
+                if (result.args.isNotEmpty()) {
+                    add(" ->")
+                }
 
-            endControlFlow()
-        }.build()
-    }
+                val context = context.withArgs(argList)
+
+                add("%L(", result.function.asMemberName().toString())
+                val size = result.function.parameters.size
+                result.function.parameters.forEachIndexed { i, param ->
+                    if (i != 0) {
+                        add(",")
+                    }
+                    add(provide(TypeKey(param.type), context) { context.findWithIndex(it, i, size) })
+                }
+                add(")")
+
+                endControlFlow()
+            }.build()
+        }
 
     private fun provideLazy(result: Result.Lazy, context: Context): CodeBlock {
         return CodeBlock.builder().apply {
@@ -432,6 +437,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
             }
             val fKey = TypeKey(key.type.arguments.last())
             return Result.Function(
+                element = key.type.toAstClass(),
                 key = fKey,
                 args = key.type.arguments.dropLast(1)
             )
@@ -468,8 +474,10 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
     }
 
     data class Context(
-        val source: AstClass,
+        val provider: AstProvider,
+        val source: AstElement,
         val collector: TypeCollector,
+        val cycleDetector: CycleDetector,
         val scopeInterface: AstClass? = null,
         val args: List<Pair<AstType, String>> = emptyList(),
         val skipScoped: AstType? = null
@@ -477,6 +485,20 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         fun withoutScoped(scoped: AstType) = copy(skipScoped = scoped)
 
         fun withArgs(args: List<Pair<AstType, String>>) = copy(args = args)
+
+        fun <T> use(source: AstElement, f: (context: Context) -> T): T {
+            return when (cycleDetector.check(source)) {
+                CycleResult.None -> {
+                    f(copy(source = source)).also {
+                        cycleDetector.pop()
+                    }
+                }
+                CycleResult.Cycle -> {
+                    throw FailedToGenerateException(cycleDetector.trace(provider, "Cycle detected"), source)
+                }
+                CycleResult.Resolvable -> TODO()
+            }
+        }
     }
 
     sealed class Result(val name: String?) {
@@ -484,7 +506,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         class Scoped(name: String?, val astClass: AstClass) : Result(name)
         class Constructor(val constructor: AstConstructor) : Result(null)
         class Container(val creator: String, val args: List<Provides>) : Result(null)
-        class Function(val key: TypeKey, val args: List<AstType>) : Result(null)
+        class Function(val element: AstElement, val key: TypeKey, val args: List<AstType>) : Result(null)
         class NamedFunction(val function: AstFunction, val args: List<AstType>) : Result(null)
 
         class Arg(val argName: String) : Result(null)

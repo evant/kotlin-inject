@@ -12,7 +12,10 @@ interface AstProvider {
 
     fun warn(message: String, element: AstElement) = messenger.warn(message, element)
 
-    fun error(message: String, element: AstElement) = messenger.error(message, element)
+    fun error(message: String, element: AstElement) =
+        messenger.error(message, element)
+
+    fun AstElement.toTrace(): String
 
     fun TypeSpec.Builder.addOriginatingElement(astClass: AstClass): TypeSpec.Builder
 }
@@ -93,13 +96,38 @@ abstract class AstConstructor(private val parent: AstClass) : AstElement() {
     val type: AstType get() = parent.type
 
     abstract val parameters: List<AstParam>
+
+    abstract override fun equals(other: Any?): Boolean
+
+    abstract override fun hashCode(): Int
+
+    override fun toString(): String {
+        return "$parent(${parameters.joinToString(", ")})"
+    }
 }
 
 abstract class AstFunction : AstMethod() {
     abstract val parameters: List<AstParam>
+
+    abstract override fun equals(other: Any?): Boolean
+
+    abstract override fun hashCode(): Int
+
+    override fun toString(): String {
+        return "$name(${parameters.joinToString(", ")}): $returnType"
+    }
 }
 
-abstract class AstProperty : AstMethod()
+abstract class AstProperty : AstMethod() {
+
+    abstract override fun equals(other: Any?): Boolean
+
+    abstract override fun hashCode(): Int
+
+    override fun toString(): String {
+        return "$name: $returnType"
+    }
+}
 
 abstract class AstType : AstElement() {
 
@@ -139,6 +167,10 @@ abstract class AstParam : AstElement() {
     abstract val type: AstType
 
     abstract fun asParameterSpec(): ParameterSpec
+
+    override fun toString(): String {
+        return "$name: $type"
+    }
 }
 
 enum class AstModifier {
@@ -146,4 +178,4 @@ enum class AstModifier {
 }
 
 fun ParameterSpec.Companion.parametersOf(constructor: AstConstructor) =
-        constructor.parameters.map { it.asParameterSpec() }
+    constructor.parameters.map { it.asParameterSpec() }
