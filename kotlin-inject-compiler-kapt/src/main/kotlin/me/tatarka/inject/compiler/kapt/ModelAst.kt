@@ -2,21 +2,18 @@ package me.tatarka.inject.compiler.kapt
 
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import kotlinx.metadata.*
 import kotlinx.metadata.jvm.annotations
-import kotlinx.metadata.jvm.getterSignature
-import kotlinx.metadata.jvm.signature
 import kotlinx.metadata.jvm.syntheticMethodForAnnotations
 import me.tatarka.inject.compiler.*
 import javax.annotation.processing.Messager
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.*
-import javax.lang.model.type.DeclaredType
-import javax.lang.model.type.ExecutableType
-import javax.lang.model.type.NoType
-import javax.lang.model.type.TypeMirror
+import javax.lang.model.type.*
 import javax.lang.model.util.ElementFilter
 import javax.lang.model.util.Elements
+import javax.lang.model.util.SimpleTypeVisitor7
 import javax.lang.model.util.Types
 import javax.tools.Diagnostic
 import kotlin.reflect.KClass
@@ -372,18 +369,9 @@ private class ModelAstType(
 
     override val element: Element get() = types.asElement(type)
 
-    override val name: String
-        get() {
-            return if (kmType != null) {
-                when (val c = kmType.classifier) {
-                    is KmClassifier.Class -> c.name.replace('/', '.')
-                    is KmClassifier.TypeAlias -> c.name.replace('/', '.')
-                    is KmClassifier.TypeParameter -> type.asTypeName().toString()
-                }
-            } else {
-                type.asTypeName().toString()
-            }
-        }
+    override val name: String by lazy {
+        asTypeName().toString()
+    }
 
     override val annotations: List<AstAnnotation> by lazy {
         if (kmType != null) {
@@ -406,12 +394,12 @@ private class ModelAstType(
         }
 
     override val arguments: List<AstType> by lazy {
-        if (kmType != null) {
-            (type as DeclaredType).typeArguments.zip(kmType.arguments).map { (a1, a2) ->
-                ModelAstType(this, a1, a2.type!!)
-            }
+        val kmArgs: List<KmType?> = kmType?.arguments?.map { it.type } ?: emptyList()
+        val args: List<TypeMirror> = (type as DeclaredType).typeArguments
+        if (args.size == kmArgs.size) {
+            args.zip(kmArgs) { a1, a2 -> ModelAstType(this, a1, a2) }
         } else {
-            emptyList()
+            args.map { ModelAstType(this, it, null) }
         }
     }
 
@@ -422,8 +410,83 @@ private class ModelAstType(
 
     override fun toAstClass(): AstClass = (element as TypeElement).toAstClass()
 
+    private fun rawTypeName(): ClassName {
+        val kotlinClassName =
+            (kmType?.classifier as? KmClassifier.Class)?.name?.replace('/', '.')?.let { ClassName.bestGuess(it) }
+                ?: ((type as DeclaredType).asElement() as TypeElement).asClassName()
+        return when (kotlinClassName.canonicalName) {
+            "java.util.Map" -> ClassName("kotlin.collections", "Map")
+            "java.util.Set" -> ClassName("kotlin.collections", "Set")
+            "java.lang.String" -> ClassName("kotlin", "String")
+            else -> kotlinClassName
+        }
+    }
+
     override fun asTypeName(): TypeName {
-        return typeAliasName?.typeAliasTypeName() ?: type.asTypeName().javaToKotlinType()
+        return type.accept(object : SimpleTypeVisitor7<TypeName, Void?>() {
+            override fun visitPrimitive(t: PrimitiveType, p: Void?): TypeName {
+                return when (t.kind) {
+                    TypeKind.BOOLEAN -> BOOLEAN
+                    TypeKind.BYTE -> BYTE
+                    TypeKind.SHORT -> SHORT
+                    TypeKind.INT -> INT
+                    TypeKind.LONG -> LONG
+                    TypeKind.CHAR -> CHAR
+                    TypeKind.FLOAT -> FLOAT
+                    TypeKind.DOUBLE -> DOUBLE
+                    else -> throw AssertionError()
+                }
+            }
+
+            override fun visitDeclared(t: DeclaredType, p: Void?): TypeName {
+                val rawType: ClassName = rawTypeName().copy(nullable = isNullable) as ClassName
+                val enclosingType = t.enclosingType
+                val enclosing = if (enclosingType.kind != TypeKind.NONE &&
+                    Modifier.STATIC !in t.asElement().modifiers
+                )
+                    enclosingType.accept(this, null) else
+                    null
+                if (t.typeArguments.isEmpty() && enclosing !is ParameterizedTypeName) {
+                    return rawType
+                }
+
+                val typeArgumentNames = mutableListOf<TypeName>()
+                for (typeArgument in arguments) {
+                    typeArgumentNames += typeArgument.asTypeName()
+                }
+                return if (enclosing is ParameterizedTypeName)
+                    enclosing.nestedClass(rawType.simpleName, typeArgumentNames) else
+                    rawType.parameterizedBy(typeArgumentNames)
+            }
+
+            override fun visitError(t: ErrorType, p: Void?): TypeName {
+                return visitDeclared(t, p)
+            }
+
+            override fun visitArray(t: ArrayType, p: Void?): ParameterizedTypeName {
+                return ARRAY.parameterizedBy(t.componentType.asTypeName())
+            }
+
+            override fun visitTypeVariable(
+                t: TypeVariable,
+                p: Void?
+            ): TypeName {
+                return t.asTypeVariableName()
+            }
+
+            override fun visitWildcard(t: WildcardType, p: Void?): TypeName {
+                return t.asWildcardTypeName()
+            }
+
+            override fun visitNoType(t: NoType, p: Void?): TypeName {
+                if (t.kind == TypeKind.VOID) return UNIT
+                return super.visitUnknown(t, p)
+            }
+
+            override fun defaultAction(e: TypeMirror?, p: Void?): TypeName {
+                throw IllegalArgumentException("Unexpected type mirror: " + e!!)
+            }
+        }, null)
     }
 
     override fun isAssignableFrom(other: AstType): Boolean {
@@ -439,6 +502,12 @@ private class ModelAstType(
     override fun hashCode(): Int {
         return asTypeName().hashCode()
     }
+
+    val isNullable: Boolean
+        get() {
+            if (kmType == null) return false
+            return Flag.Type.IS_NULLABLE(kmType.flags)
+        }
 }
 
 private class ModelAstAnnotation(
@@ -459,8 +528,10 @@ private class ModelAstAnnotation(
     }
 
     override fun toString(): String {
-        return "@$annotationType(${kmAnnotation.arguments.toList()
-            .joinToString(separator = ", ") { (name, value) -> "$name=${value.value}" }})"
+        return "@$annotationType(${
+            kmAnnotation.arguments.toList()
+                .joinToString(separator = ", ") { (name, value) -> "$name=${value.value}" }
+        })"
     }
 }
 
@@ -481,7 +552,7 @@ private class ModelAstParam(
 }
 
 private val KmClass.type: KmType
-    get() = KmType(flags = flags).apply {
+    get() = KmType(0).apply {
         classifier = KmClassifier.Class(name)
     }
 
@@ -506,7 +577,7 @@ private fun collectModifiers(flags: Flags?): Set<AstModifier> {
     return result
 }
 
-private fun String.typeAliasTypeName(): TypeName {
+private fun String.typeAliasTypeName(): ClassName {
     val lastDot = lastIndexOf('.')
     return if (lastDot < 0) {
         ClassName("", this)

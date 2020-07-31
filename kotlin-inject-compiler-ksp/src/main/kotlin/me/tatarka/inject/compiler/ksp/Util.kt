@@ -78,7 +78,7 @@ fun KSType.asTypeName(): TypeName {
         }
 
         private fun fromDeclaration(declaration: KSDeclaration): TypeName {
-            val rawType = declaration.asClassName()
+            val rawType = declaration.asClassName().copy(nullable = nullability == Nullability.NULLABLE) as ClassName
             if (declaration.typeParameters.isEmpty()) {
                 return rawType
             }

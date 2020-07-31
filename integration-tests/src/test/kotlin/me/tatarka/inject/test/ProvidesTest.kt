@@ -4,12 +4,13 @@ import assertk.assertThat
 import assertk.assertions.isNotNull
 import assertk.assertions.isSameAs
 import assertk.assertions.isTrue
-import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Component
+import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Provides
 import kotlin.test.Test
 
 class ProvidesFoo(val bar: ProvidesBar? = null)
+
 @Inject
 class ProvidesBar
 
