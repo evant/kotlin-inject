@@ -11,7 +11,7 @@ class ProjectCompiler(private val root: File, private val target: Target) {
     private lateinit var sourceDir: File
 
     fun setup(): ProjectCompiler {
-        val kotlinVersion = if (target == Target.ksp) "1.4-M1" else "1.3.70"
+        val kotlinVersion = if (target == Target.ksp) "1.4.0-rc" else "1.3.70"
 
         val settingsFile = root.resolve("settings.gradle")
 
@@ -69,7 +69,7 @@ class ProjectCompiler(private val root: File, private val target: Target) {
 
         val buildFile = dir.resolve("build.gradle")
 
-        val pluginVersion = if (target == Target.ksp) "1.4-M1-dev-experimental-20200716" else kotlinVersion
+        val pluginVersion = if (target == Target.ksp) "1.4.0-rc-dev-experimental-20200731" else kotlinVersion
 
         buildFile.writeText(
             """

@@ -37,20 +37,18 @@ interface ModelAstProvider :
         return ModelAstClass(this@ModelAstProvider, this, metadata?.toKmClass())
     }
 
-    override fun findFunctions(name: String): List<AstFunction> {
-        val packageName = name.substringBeforeLast('.')
-        val simpleName = name.substringAfterLast('.')
+    override fun findFunctions(packageName: String, functionName: String): List<AstFunction> {
         val packageElement = elements.getPackageElement(packageName)
         val results = mutableListOf<AstFunction>()
         for (element in ElementFilter.typesIn(packageElement.enclosedElements)) {
             for (function in ElementFilter.methodsIn(element.enclosedElements)) {
-                if (function.simpleName.contentEquals(simpleName)
+                if (function.simpleName.contentEquals(functionName)
                     && function.modifiers.contains(Modifier.STATIC) && function.modifiers.contains(Modifier.STATIC) && function.modifiers.contains(
                         Modifier.FINAL
                     )
                 ) {
                     val metadata = element.metadata?.toKmPackage() ?: continue
-                    val kmFunction = metadata.functions.find { it.name == simpleName } ?: continue
+                    val kmFunction = metadata.functions.find { it.name == functionName } ?: continue
                     results.add(ModelAstFunction(this, element, function, kmFunction))
                 }
             }
@@ -78,16 +76,16 @@ interface ModelAstProvider :
 }
 
 class ModelAstMessenger(private val messager: Messager) : Messenger {
-    override fun warn(message: String, element: AstElement?) {
+    override fun warn(message: String, element: AstElement) {
         print(Diagnostic.Kind.WARNING, message, element)
     }
 
-    override fun error(message: String, element: AstElement?) {
+    override fun error(message: String, element: AstElement) {
         print(Diagnostic.Kind.ERROR, message, element)
     }
 
-    private fun print(kind: Diagnostic.Kind, message: String, element: AstElement?) {
-        messager.printMessage(kind, message, (element as? ModelAstElement)?.element)
+    private fun print(kind: Diagnostic.Kind, message: String, element: AstElement) {
+        messager.printMessage(kind, message, (element as ModelAstElement).element)
     }
 }
 

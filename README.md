@@ -43,7 +43,7 @@ dependencies {
 ### Expiramental KSP Support 
 
 You can use [ksp](https://github.com/android/kotlin/tree/ksp/libraries/tools/kotlin-symbol-processing-api) instead of 
-kapt. Currently everything except type aliases and function injection is implemented.
+kapt. Currently everything except function injection is implemented.
 
 `settings.gradle`
 ```groovy
@@ -70,8 +70,8 @@ pluginManagement {
 `build.gradle`
 ```groovy
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version "1.4-M1"
-    id 'org.jetbrains.kotlin.ksp' version "1.4-M1-dev-experimental-20200716"
+    id 'org.jetbrains.kotlin.jvm' version "1.4.0-rc"
+    id 'org.jetbrains.kotlin.ksp' version "1.4.0-rc-dev-experimental-20200731"
 }
 
 repositories {

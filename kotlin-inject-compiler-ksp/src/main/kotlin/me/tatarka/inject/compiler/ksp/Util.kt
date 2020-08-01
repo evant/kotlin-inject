@@ -5,6 +5,7 @@ import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeVariableName
+import org.jetbrains.kotlin.ksp.isAbstract
 import org.jetbrains.kotlin.ksp.symbol.*
 import org.jetbrains.kotlin.ksp.visitor.KSDefaultVisitor
 import kotlin.reflect.KClass
@@ -34,9 +35,8 @@ fun KSDeclaration.asClassName(): ClassName {
 
 fun KSDeclaration.isAbstract() = when (this) {
     is KSFunctionDeclaration -> isAbstract
-    is KSPropertyDeclaration -> Modifier.ABSTRACT in modifiers ||
-            (parentDeclaration as? KSClassDeclaration)?.classKind == ClassKind.INTERFACE
-    is KSClassDeclaration -> Modifier.ABSTRACT in modifiers
+    is KSPropertyDeclaration -> isAbstract()
+    is KSClassDeclaration -> isAbstract()
     else -> false
 }
 
@@ -55,20 +55,16 @@ fun KSTypeReference.memberOf(enclosingClass: KSClassDeclaration): KSTypeReferenc
 }
 
 fun KSType.asTypeName(): TypeName {
+
     return declaration.accept(object : KSDefaultVisitor<Unit, TypeName>() {
 
         override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: Unit): TypeName {
-            val rawType = classDeclaration.asClassName()
-            if (classDeclaration.typeParameters.isEmpty()) {
-                return rawType
-            }
-            val typeArgumentNames = mutableListOf<TypeName>()
-            for (typeArgument in arguments) {
-                typeArgumentNames += typeArgument.type!!.resolve()!!.asTypeName()
-            }
-            return rawType.parameterizedBy(typeArgumentNames)
+            return fromDeclaration(classDeclaration)
         }
 
+        override fun visitTypeAlias(typeAlias: KSTypeAlias, data: Unit): TypeName {
+            return fromDeclaration(typeAlias)
+        }
         override fun visitTypeParameter(typeParameter: KSTypeParameter, data: Unit): TypeName {
             return TypeVariableName(
                 name = typeParameter.name.asString(),
@@ -79,6 +75,18 @@ fun KSType.asTypeName(): TypeName {
                     else -> null
                 }
             )
+        }
+
+        private fun fromDeclaration(declaration: KSDeclaration): TypeName {
+            val rawType = declaration.asClassName()
+            if (declaration.typeParameters.isEmpty()) {
+                return rawType
+            }
+            val typeArgumentNames = mutableListOf<TypeName>()
+            for (typeArgument in arguments) {
+                typeArgumentNames += typeArgument.type!!.resolve()!!.asTypeName()
+            }
+            return rawType.parameterizedBy(typeArgumentNames)
         }
 
         override fun defaultHandler(node: KSNode, data: Unit): TypeName {

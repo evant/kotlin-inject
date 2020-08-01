@@ -6,21 +6,21 @@ import kotlin.reflect.KClass
 interface AstProvider {
     val messenger: Messenger
 
-    fun findFunctions(name: String): List<AstFunction>
+    fun findFunctions(packageName: String, functionName: String): List<AstFunction>
 
     fun declaredTypeOf(klass: KClass<*>, vararg astTypes: AstType): AstType
 
-    fun warn(message: String, element: AstElement? = null) = messenger.warn(message, element)
+    fun warn(message: String, element: AstElement) = messenger.warn(message, element)
 
-    fun error(message: String, element: AstElement?) = messenger.error(message, element)
+    fun error(message: String, element: AstElement) = messenger.error(message, element)
 
     fun TypeSpec.Builder.addOriginatingElement(astClass: AstClass): TypeSpec.Builder
 }
 
 interface Messenger {
-    fun warn(message: String, element: AstElement? = null)
+    fun warn(message: String, element: AstElement)
 
-    fun error(message: String, element: AstElement?)
+    fun error(message: String, element: AstElement)
 }
 
 sealed class AstElement : AstAnnotated {

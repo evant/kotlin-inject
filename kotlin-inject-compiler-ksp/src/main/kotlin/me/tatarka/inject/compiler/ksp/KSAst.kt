@@ -2,9 +2,11 @@ package me.tatarka.inject.compiler.ksp
 
 import com.squareup.kotlinpoet.*
 import me.tatarka.inject.compiler.*
+import org.jetbrains.kotlin.ksp.findActualType
 import org.jetbrains.kotlin.ksp.getDeclaredFunctions
 import org.jetbrains.kotlin.ksp.getDeclaredProperties
 import org.jetbrains.kotlin.ksp.isPrivate
+import org.jetbrains.kotlin.ksp.processing.KSPLogger
 import org.jetbrains.kotlin.ksp.processing.Resolver
 import org.jetbrains.kotlin.ksp.symbol.*
 import kotlin.reflect.KClass
@@ -13,15 +15,27 @@ interface KSAstProvider : AstProvider {
 
     val resolver: Resolver
 
+    val logger: KSPLogger
+
     override val messenger: KSAstMessenger
-        get() = KSAstMessenger
+        get() = KSAstMessenger.also {
+            it.logger = logger
+        }
 
     fun KSClassDeclaration.toAstClass(): AstClass {
         return KSAstClass(this@KSAstProvider, this)
     }
 
-    override fun findFunctions(name: String): List<AstFunction> {
-        return emptyList()
+    override fun findFunctions(packageName: String, functionName: String): List<AstFunction> {
+        return resolver.getAllFiles().filter { it.packageName.asString() == packageName }
+            .flatMap { it.declarations }
+            .mapNotNull { declaration ->
+                if (declaration is KSFunctionDeclaration && declaration.simpleName.asString() == functionName) {
+                    KSAstFunction(this, declaration)
+                } else {
+                    null
+                }
+            }
     }
 
     override fun declaredTypeOf(klass: KClass<*>, vararg astTypes: AstType): AstType {
@@ -36,12 +50,14 @@ interface KSAstProvider : AstProvider {
 
 object KSAstMessenger : Messenger {
     private val errorMessages = mutableListOf<Message>()
+    internal lateinit var logger: KSPLogger
 
-    override fun warn(message: String, element: AstElement?) {
-        //TODO https://github.com/android/kotlin/issues/1
+    override fun warn(message: String, element: AstElement) {
+        logger.warn(message, (element as KSAstAnnotated).declaration)
     }
 
-    override fun error(message: String, element: AstElement?) {
+    override fun error(message: String, element: AstElement) {
+        logger.error(message, (element as KSAstAnnotated).declaration)
         errorMessages.add(Message(message, element))
     }
 
@@ -270,14 +286,19 @@ private class KSAstType(provider: KSAstProvider) : AstType(), KSAstAnnotated, KS
 
     override val declaration: KSDeclaration get() = type.declaration
 
-    override val name: String
-        get() = type.declaration.qualifiedName!!.asString()
+    override val name: String by lazy {
+        when (val declaration = type.declaration) {
+            is KSClassDeclaration -> declaration.qualifiedName!!.asString()
+            is KSTypeAlias -> declaration.findActualType().qualifiedName!!.asString()
+            else -> throw IllegalArgumentException("unknown declaration: $declaration")
+        }
+    }
 
     override val annotations: List<AstAnnotation>
         get() = TODO("Not yet implemented")
 
     override val typeAliasName: String?
-        get() = null //TODO
+        get() = (declaration as? KSTypeAlias)?.qualifiedName?.asString()
 
     override val arguments: List<AstType>
         get() = type.arguments.map {
@@ -293,7 +314,11 @@ private class KSAstType(provider: KSAstProvider) : AstType(), KSAstAnnotated, KS
     }
 
     override fun toAstClass(): AstClass {
-        return (declaration as KSClassDeclaration).toAstClass()
+        return when (val declaration = declaration) {
+            is KSClassDeclaration -> declaration.toAstClass()
+            is KSTypeAlias -> declaration.findActualType().toAstClass()
+            else -> throw IllegalArgumentException("unknown declaration: $declaration")
+        }
     }
 
     override fun asTypeName(): TypeName {
@@ -314,7 +339,11 @@ private class KSAstType(provider: KSAstProvider) : AstType(), KSAstAnnotated, KS
     }
 }
 
-private class KSAstParam(provider: KSAstProvider, val parent: KSDeclaration, override val declaration: KSVariableParameter) : AstParam(),
+private class KSAstParam(
+    provider: KSAstProvider,
+    val parent: KSDeclaration,
+    override val declaration: KSVariableParameter
+) : AstParam(),
     KSAstAnnotated, KSAstProvider by provider {
 
     override val name: String
