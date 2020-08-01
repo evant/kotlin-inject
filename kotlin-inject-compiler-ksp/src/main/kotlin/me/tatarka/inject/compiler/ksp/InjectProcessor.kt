@@ -4,21 +4,27 @@ import com.squareup.kotlinpoet.FileSpec
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.compiler.*
 import org.jetbrains.kotlin.ksp.processing.CodeGenerator
+import org.jetbrains.kotlin.ksp.processing.KSPLogger
 import org.jetbrains.kotlin.ksp.processing.Resolver
 import org.jetbrains.kotlin.ksp.processing.SymbolProcessor
 import org.jetbrains.kotlin.ksp.symbol.KSClassDeclaration
-import org.jetbrains.kotlin.ksp.symbol.KSType
-import java.io.FileWriter
 
 class InjectProcessor : SymbolProcessor, KSAstProvider {
 
     private lateinit var options: Options
     private lateinit var codeGenerator: CodeGenerator
     override lateinit var resolver: Resolver
+    override lateinit var logger: KSPLogger
 
-    override fun init(options: Map<String, String>, kotlinVersion: KotlinVersion, codeGenerator: CodeGenerator) {
+    override fun init(
+        options: Map<String, String>,
+        kotlinVersion: KotlinVersion,
+        codeGenerator: CodeGenerator,
+        logger: KSPLogger
+    ) {
         this.options = Options.from(options)
         this.codeGenerator = codeGenerator
+        this.logger = logger
     }
 
     override fun process(resolver: Resolver) {

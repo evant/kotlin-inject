@@ -427,7 +427,9 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
             val typeAliasName = key.type.typeAliasName
             if (typeAliasName != null) {
                 // Check to see if we have a function matching the type alias
-                val functions = findFunctions(typeAliasName)
+                val packageName = typeAliasName.substringBeforeLast('.')
+                val simpleName = typeAliasName.substringAfterLast('.')
+                val functions = findFunctions(packageName, simpleName)
                 val injectedFunction = functions.find { it.hasAnnotation<Inject>() }
                 if (injectedFunction != null) {
                     return Result.NamedFunction(
@@ -450,7 +452,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
     }
 
     data class Context(
-        val source: AstClass? = null,
+        val source: AstClass,
         val collector: TypeCollector,
         val scopeInterface: AstClass? = null,
         val args: List<Pair<AstType, String>> = emptyList(),
@@ -499,7 +501,7 @@ fun AstClass.scopeClass(messenger: Messenger): AstClass? {
                 elementScopeClass = parentClass
             } else {
                 messenger.error("Cannot apply scope: $parentScope", parentClass)
-                messenger.error("as scope: ${elementScopeClass!!.scopeType()} is already applied", elementScopeClass)
+                messenger.error("as scope: ${elementScopeClass!!.scopeType()} is already applied", elementScopeClass!!)
             }
         }
     }
