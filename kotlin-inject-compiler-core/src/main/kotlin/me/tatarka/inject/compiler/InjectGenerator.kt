@@ -444,7 +444,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                 args = key.type.arguments.dropLast(1)
             )
         }
-        if (key.type.name == "kotlin.Lazy") {
+        if (key.type.name.startsWith("kotlin.Lazy")) {
             val lKey = TypeKey(key.type.arguments[0])
             return Result.Lazy(key = lKey)
         }

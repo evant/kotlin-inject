@@ -3,6 +3,7 @@ package me.tatarka.inject.test
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotNull
+import assertk.assertions.isSameAs
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Component
 import kotlin.test.Test
@@ -31,6 +32,12 @@ import kotlin.test.Test
     abstract val arity4: (arg1: String, arg2: String, arg3: String, arg4: String) -> ArityFunctionBar4
 }
 
+@Inject class NullableFunctionBar(val foo: FunctionFoo?)
+
+@Component abstract class NullableFunctionComponent {
+    abstract val barProvider: (FunctionFoo?) -> NullableFunctionBar
+}
+
 class FunctionTest {
 
     @Test fun generates_a_component_that_provides_a_function_that_returns_a_dep() {
@@ -51,5 +58,12 @@ class FunctionTest {
         assertThat(component.arity2("1", "2")).isEqualTo(ArityFunctionBar2("1", "2"))
         assertThat(component.arity3("1", "2", "3")).isEqualTo(ArityFunctionBar3("1", "2", "3"))
         assertThat(component.arity4("1", "2", "3", "4")).isEqualTo(ArityFunctionBar4("1", "2", "3", "4"))
+    }
+
+    @Test fun generates_a_component_that_provides_a_nullable_function_that_returns_a_dep() {
+        val component = NullableFunctionComponent::class.create()
+
+        val foo = FunctionFoo()
+        assertThat(component.barProvider(foo).foo).isSameAs(foo)
     }
 }
