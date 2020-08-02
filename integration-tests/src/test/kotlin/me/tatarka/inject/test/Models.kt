@@ -19,6 +19,8 @@ var fooConstructorCount = 0
 
 @Inject data class Bar(val foo: Foo) : IFoo
 
+@Inject class Baz: IFoo
+
 class NamedFoo(val name: String)
 
 interface INamedBar {

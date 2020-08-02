@@ -1,11 +1,8 @@
 package me.tatarka.inject.test
 
 import assertk.assertThat
-import me.tatarka.inject.annotations.Component
-import me.tatarka.inject.annotations.IntoMap
-import me.tatarka.inject.annotations.IntoSet
-import me.tatarka.inject.annotations.Provides
 import assertk.assertions.containsOnly
+import me.tatarka.inject.annotations.*
 import kotlin.test.Test
 
 data class FooValue(val name: String)
@@ -30,8 +27,7 @@ data class FooValue(val name: String)
 
     @Provides @IntoMap
     val fooValue2
-        get() = "2" to FooValue("2")
-}
+        get() = "2" to FooValue("2") }
 
 @Component abstract class ParentSetComponent {
     @Provides @IntoSet
@@ -40,6 +36,11 @@ data class FooValue(val name: String)
 
     @Provides @IntoSet
     val Bar.bind: IFoo
+        get() = this
+
+    // Should not be in the set
+    @Provides
+    val Baz.bind: IFoo
         get() = this
 }
 

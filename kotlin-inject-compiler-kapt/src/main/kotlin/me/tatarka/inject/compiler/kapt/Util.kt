@@ -108,14 +108,80 @@ fun ExecutableElement.matches(function: KmFunction): Boolean {
     return true
 }
 
+fun ExecutableElement.matches(signature: JvmMethodSignature): Boolean {
+    if (!nameMatches(signature)) {
+        return false
+    }
+    //ex: (Lme/tatarka/inject/test/Bar;)V
+    var index = 1 // skip initial (
+    val parameterTypes = mutableListOf<String>()
+    val desc = signature.desc
+    loop@while (true) {
+        when (desc[index]) {
+            'L' -> {
+                index++
+                val className = desc.substring(index, desc.indexOf(';', index))
+                parameterTypes.add(className)
+                index += className.length
+            }
+            'Z' -> {
+                index++
+                parameterTypes.add("Boolean")
+            }
+            'B' -> {
+                index++
+                parameterTypes.add("Byte")
+            }
+            'C' -> {
+                index++
+                parameterTypes.add("Char")
+            }
+            'S' -> {
+                index++
+                parameterTypes.add("Short")
+            }
+            'I' -> {
+                index++
+                parameterTypes.add("Int")
+            }
+            'J' -> {
+                index++
+                parameterTypes.add("Long")
+            }
+            'F' -> {
+                index++
+                parameterTypes.add("Float")
+            }
+            'D' -> {
+                index++
+                parameterTypes.add("Double")
+            }
+            else -> break@loop
+        }
+    }
+    if (parameters.size != parameterTypes.size) {
+        return false
+    }
+    for (i in 0 until parameterTypes.size) {
+        if (!parameters[i].asType().matches(parameterTypes[i])) {
+            return false
+        }
+    }
+    return true
+}
+
 private fun TypeMirror.matches(type: KmType): Boolean {
     return when (val classifier = type.classifier) {
         is KmClassifier.Class -> {
-            asTypeName().javaToKotlinType().toString() == classifier.name.replace("/", ".")
+            matches(classifier.name)
         }
         is KmClassifier.TypeParameter -> false
         is KmClassifier.TypeAlias -> false
     }
+}
+
+private fun TypeMirror.matches(typeName: String): Boolean {
+    return asTypeName().javaToKotlinType().toString() == typeName.replace("/", ".")
 }
 
 private fun ExecutableElement.nameMatches(signature: JvmMemberSignature?): Boolean {

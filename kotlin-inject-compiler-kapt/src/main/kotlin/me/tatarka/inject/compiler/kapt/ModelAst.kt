@@ -333,9 +333,9 @@ private class ModelAstProperty(
         }
 
     private val annotatedElement: Element? by lazy {
-        val javaName = kmProperty.syntheticMethodForAnnotations?.name ?: return@lazy null
+        val signature = kmProperty.syntheticMethodForAnnotations ?: return@lazy null
         for (method in ElementFilter.methodsIn(element.enclosingElement.enclosedElements)) {
-            if (method.simpleName.contentEquals(javaName)) {
+            if (method.matches(signature)) {
                 return@lazy method
             }
         }
