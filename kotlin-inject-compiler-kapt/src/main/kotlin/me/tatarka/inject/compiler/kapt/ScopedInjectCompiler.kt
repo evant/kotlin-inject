@@ -9,6 +9,13 @@ import javax.lang.model.element.TypeElement
 
 class ScopedInjectCompiler : BaseInjectCompiler() {
 
+    private val scopedAnnotationNames = mutableSetOf<String>()
+
+    init {
+        scopedAnnotationNames.add(Component::class.java.canonicalName)
+        scopedAnnotationNames.add(Inject::class.java.canonicalName)
+    }
+
     override fun process(elements: Set<TypeElement>, env: RoundEnvironment): Boolean {
         val allScopedClasses = mutableSetOf<AstClass>()
         val generator = InjectGenerator(this, options)
@@ -20,6 +27,8 @@ class ScopedInjectCompiler : BaseInjectCompiler() {
             val scopedClass = astClass.scopeClass(messenger, options) ?: continue
 
             val scopeType = scopedClass.scopeType(options)!!
+            scopedAnnotationNames.add(scopeType.toString())
+
             val scopedClasses = scopedClasses(scopeType, env)
             allScopedClasses.addAll(scopedClasses)
 
@@ -51,8 +60,7 @@ class ScopedInjectCompiler : BaseInjectCompiler() {
         }
     }
 
-    override fun getSupportedAnnotationTypes(): Set<String> = setOf(
-        Component::class.java.canonicalName,
-        Inject::class.java.canonicalName
-    )
+    override fun getSupportedAnnotationTypes(): Set<String> {
+        return scopedAnnotationNames
+    }
 }
