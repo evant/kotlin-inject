@@ -11,9 +11,13 @@ var fooConstructorCount = 0
     init {
         fooConstructorCount++
     }
+
+    override fun equals(other: Any?) = other is Foo
+
+    override fun hashCode() = 0
 }
 
-@Inject class Bar(val foo: Foo)
+@Inject data class Bar(val foo: Foo) : IFoo
 
 class NamedFoo(val name: String)
 
@@ -21,7 +25,7 @@ interface INamedBar {
     val name: String
 }
 
-class NamedBar(override val name: String): INamedBar
+class NamedBar(override val name: String) : INamedBar
 
 @Scope
 annotation class CustomScope

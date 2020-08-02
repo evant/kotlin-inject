@@ -33,6 +33,20 @@ data class FooValue(val name: String)
         get() = "2" to FooValue("2")
 }
 
+@Component abstract class ParentSetComponent {
+    @Provides @IntoSet
+    val Foo.bind: IFoo
+        get() = this
+
+    @Provides @IntoSet
+    val Bar.bind: IFoo
+        get() = this
+}
+
+@Component abstract class ChildSetComponent(@Component val parent: ParentSetComponent) {
+    abstract val items: Set<IFoo>
+}
+
 class MultibindsTest {
 
     @Test
@@ -49,6 +63,16 @@ class MultibindsTest {
         assertThat(component.items).containsOnly(
             "1" to FooValue("1"),
             "2" to FooValue("2")
+        )
+    }
+
+    @Test
+    fun generates_a_child_component_that_provides_multiple_items_into_a_set() {
+        val component = ChildSetComponent::class.create(ParentSetComponent::class.create())
+
+        assertThat(component.items).containsOnly(
+            Foo(),
+            Bar(Foo())
         )
     }
 }

@@ -5,16 +5,17 @@ import me.tatarka.inject.annotations.IntoSet
 import me.tatarka.inject.compiler.ContainerCreator.mapOf
 import me.tatarka.inject.compiler.ContainerCreator.setOf
 
-class TypeCollector private constructor(private val provider: AstProvider, private val options: Options) : AstProvider by provider {
+class TypeCollector private constructor(private val provider: AstProvider, private val options: Options) :
+    AstProvider by provider {
 
     companion object {
         operator fun invoke(
-                provider: AstProvider,
-                options: Options,
-                astClass: AstClass,
-                accessor: String? = null,
-                isComponent: Boolean = true,
-                scopedInjects: Collection<AstClass> = emptyList()
+            provider: AstProvider,
+            options: Options,
+            astClass: AstClass,
+            accessor: String? = null,
+            isComponent: Boolean = true,
+            scopedInjects: Collection<AstClass> = emptyList()
         ): TypeCollector = TypeCollector(provider, options).apply {
             collectTypes(astClass, accessor, isComponent, scopedInjects)
         }
@@ -30,10 +31,10 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
     private val scopedAccessors = mutableMapOf<AstClass, ScopedComponent>()
 
     private fun collectTypes(
-            astClass: AstClass,
-            accessor: String? = null,
-            isComponent: Boolean = true,
-            scopedInjects: Collection<AstClass> = emptyList()
+        astClass: AstClass,
+        accessor: String? = null,
+        isComponent: Boolean = true,
+        scopedInjects: Collection<AstClass> = emptyList()
     ) {
         val concreteMethods = mutableSetOf<AstMethod>()
         val providesMethods = mutableListOf<AstMethod>()
@@ -87,23 +88,24 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
         }
 
         for (method in providesMethods) {
+            val scopeType = method.scopeType(options)
+            if (scopeType != null && scopeType != elementScope) {
+                error("@Provides scope:${scopeType} must match component scope: $elementScope", method)
+            }
+            val scopedComponent = if (scopeType != null) astClass else null
             if (method.hasAnnotation<IntoMap>()) {
                 // Pair<A, B> -> Map<A, B>
                 val typeArgs = method.returnTypeFor(astClass).arguments
                 val mapType = TypeKey(declaredTypeOf(Map::class, typeArgs[0], typeArgs[1]))
-                addContainerType(mapType, mapOf, method)
+                addContainerType(mapType, mapOf, method, accessor, scopedComponent)
             } else if (method.hasAnnotation<IntoSet>()) {
                 // A -> Set<A>
                 val setType = TypeKey(declaredTypeOf(Set::class, method.returnTypeFor(astClass)))
-                addContainerType(setType, setOf, method)
+                addContainerType(setType, setOf, method, accessor, scopedComponent)
             } else {
                 val returnType = method.returnTypeFor(astClass)
                 val key = TypeKey(returnType)
-                val scopeType = method.scopeType(options)
-                if (scopeType != null && scopeType != elementScope) {
-                    error("@Provides scope:${scopeType} must match component scope: $elementScope", method)
-                }
-                addMethod(key, method, accessor, scopedComponent = if (scopeType != null) astClass else null)
+                addMethod(key, method, accessor, scopedComponent)
                 if (scopeType != null) {
                     _scoped.add(returnType)
                 }
@@ -122,25 +124,31 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
                 if (parameter.isComponent()) {
                     val elemAstClass = parameter.type.toAstClass()
                     collectTypes(
-                            elemAstClass,
-                            accessor = if (accessor != null) "$accessor.${parameter.name}" else parameter.name,
-                            isComponent = elemAstClass.isComponent()
+                        elemAstClass,
+                        accessor = if (accessor != null) "$accessor.${parameter.name}" else parameter.name,
+                        isComponent = elemAstClass.isComponent()
                     )
                 }
             }
         }
     }
 
-    private fun addContainerType(key: TypeKey, creator: ContainerCreator, method: AstMethod) {
+    private fun addContainerType(
+        key: TypeKey,
+        creator: ContainerCreator,
+        method: AstMethod,
+        accessor: String?,
+        scopedComponent: AstClass?
+    ) {
         val current = types[key]
         if (current == null) {
             types[key] = TypeCreator.Container(
-                    creator = creator,
-                    source = method,
-                    methods = mutableListOf(method)
+                creator = creator,
+                source = method,
+                args = mutableListOf(method(method, accessor, scopedComponent))
             )
         } else if (current is TypeCreator.Container && current.creator == creator) {
-            current.methods.add(method)
+            current.args.add(method(method, accessor, scopedComponent))
         } else {
             duplicate(key, newValue = method, oldValue = current.source)
         }
@@ -149,16 +157,18 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
     private fun addMethod(key: TypeKey, method: AstMethod, accessor: String?, scopedComponent: AstClass?) {
         val oldValue = types[key]
         if (oldValue == null) {
-            types[key] = TypeCreator.Method(
-                    method = method,
-                    accessor = accessor,
-                    scope = method.scopeType(options),
-                    scopedComponent = scopedComponent
-            )
+            types[key] = method(method, accessor, scopedComponent)
         } else {
             duplicate(key, newValue = method, oldValue = oldValue.source)
         }
     }
+
+    private fun method(method: AstMethod, accessor: String?, scopedComponent: AstClass?) = TypeCreator.Method(
+        method = method,
+        accessor = accessor,
+        scope = method.scopeType(options),
+        scopedComponent = scopedComponent
+    )
 
     private fun duplicate(key: TypeKey, newValue: AstElement, oldValue: AstElement) {
         error("Cannot provide: $key", newValue)
@@ -181,10 +191,10 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
                 return null
             }
             return TypeCreator.Constructor(
-                    astClass.primaryConstructor!!,
-                    accessor = scopedComponent?.accessor,
-                    scope = scope,
-                    scopedComponent = scopedComponent?.type
+                astClass.primaryConstructor!!,
+                accessor = scopedComponent?.accessor,
+                scope = scope,
+                scopedComponent = scopedComponent?.type
             )
         }
         return null
@@ -194,22 +204,22 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
 sealed class TypeCreator(val source: AstElement) {
 
     class Constructor(
-            val constructor: AstConstructor,
-            val accessor: String? = null,
-            val scope: AstClass? = null,
-            val scopedComponent: AstClass? = null
+        val constructor: AstConstructor,
+        val accessor: String? = null,
+        val scope: AstClass? = null,
+        val scopedComponent: AstClass? = null
     ) :
-            TypeCreator(constructor)
+        TypeCreator(constructor)
 
     class Method(
-            val method: AstMethod,
-            val accessor: String? = null,
-            val scope: AstClass? = null,
-            val scopedComponent: AstClass? = null
+        val method: AstMethod,
+        val accessor: String? = null,
+        val scope: AstClass? = null,
+        val scopedComponent: AstClass? = null
     ) : TypeCreator(method)
 
-    class Container(val creator: ContainerCreator, source: AstElement, val methods: MutableList<AstMethod>) :
-            TypeCreator(source)
+    class Container(val creator: ContainerCreator, source: AstElement, val args: MutableList<Method>) :
+        TypeCreator(source)
 }
 
 enum class ContainerCreator {
@@ -217,6 +227,6 @@ enum class ContainerCreator {
 }
 
 data class ScopedComponent(
-        val type: AstClass,
-        val accessor: String?
+    val type: AstClass,
+    val accessor: String?
 )
