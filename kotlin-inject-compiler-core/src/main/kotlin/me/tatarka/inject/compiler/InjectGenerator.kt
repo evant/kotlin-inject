@@ -9,7 +9,7 @@ import me.tatarka.inject.annotations.Scope
 import kotlin.reflect.KClass
 
 class InjectGenerator(provider: AstProvider, private val options: Options) :
-        AstProvider by provider {
+    AstProvider by provider {
 
     fun generate(astClass: AstClass, scopedClasses: Collection<AstClass> = emptyList()): FileSpec {
         if (AstModifier.ABSTRACT !in astClass.modifiers) {
@@ -26,9 +26,9 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         val createFunction = generateCreate(astClass, constructor, injectComponent)
 
         return FileSpec.builder(astClass.packageName, "Inject${astClass.name}")
-                .addType(injectComponent)
-                .addFunction(createFunction)
-                .build()
+            .addType(injectComponent)
+            .addFunction(createFunction)
+            .build()
     }
 
     fun generateScopedInterfaces(scopedClasses: Collection<AstClass>): List<FileSpec> {
@@ -36,190 +36,190 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         val scopedInterfaces = scopedClasses.filter { !it.isInject(options) && !it.hasAnnotation<Component>() }
         return scopedInterfaces.map {
             FileSpec.builder(it.packageName, "Inject${it.name}")
-                    .addType(generateScopedInterface(it, scopedInjects))
-                    .build()
+                .addType(generateScopedInterface(it, scopedInjects))
+                .build()
         }
     }
 
     private fun generateInjectComponent(
-            astClass: AstClass,
-            constructor: AstConstructor?,
-            scopedInjects: Collection<AstClass>
+        astClass: AstClass,
+        constructor: AstConstructor?,
+        scopedInjects: Collection<AstClass>
     ): TypeSpec {
         val context = collectTypes(astClass, scopedInjects, isComponent = true)
 
         return TypeSpec.classBuilder("Inject${astClass.name}")
-                .addOriginatingElement(astClass)
-                .superclass(astClass.asClassName())
-                .apply {
-                    if (context.scopeInterface != null) {
-                        addSuperinterface(
-                                ClassName(
-                                        context.scopeInterface.packageName,
-                                        "Inject${context.scopeInterface.name}"
-                                )
+            .addOriginatingElement(astClass)
+            .superclass(astClass.asClassName())
+            .apply {
+                if (context.scopeInterface != null) {
+                    addSuperinterface(
+                        ClassName(
+                            context.scopeInterface.packageName,
+                            "Inject${context.scopeInterface.name}"
+                        )
+                    )
+                }
+
+                if (constructor != null) {
+                    val funSpec = FunSpec.constructorBuilder()
+                    for (parameter in constructor.parameters) {
+                        val p = parameter.asParameterSpec()
+                        funSpec.addParameter(p)
+                        addSuperclassConstructorParameter("%N", p)
+                    }
+                    primaryConstructor(funSpec.build())
+                }
+
+                try {
+                    for (type in context.collector.scoped) {
+                        val codeBlock = CodeBlock.builder()
+                        codeBlock.add("lazy { ")
+                        codeBlock.add(provide(TypeKey(type), context.withoutScoped(type)))
+                        codeBlock.add(" }")
+
+                        addProperty(
+                            PropertySpec.builder(
+                                type.asElement().simpleName.asScopedProp(),
+                                type.asTypeName()
+                            ).apply {
+                                if (context.scopeInterface != null) {
+                                    addModifiers(KModifier.OVERRIDE)
+                                }
+                            }.delegate(codeBlock.build())
+                                .build()
                         )
                     }
 
-                    if (constructor != null) {
-                        val funSpec = FunSpec.constructorBuilder()
-                        for (parameter in constructor.parameters) {
-                            val p = parameter.asParameterSpec()
-                            funSpec.addParameter(p)
-                            addSuperclassConstructorParameter("%N", p)
-                        }
-                        primaryConstructor(funSpec.build())
-                    }
+                    astClass.visitInheritanceChain { parentClass ->
+                        for (method in parentClass.methods) {
+                            if (method.isProvider()) {
+                                val codeBlock = CodeBlock.builder()
+                                codeBlock.add("return ")
+                                val returnType = method.returnTypeFor(astClass)
 
-                    try {
-                        for (type in context.collector.scoped) {
-                            val codeBlock = CodeBlock.builder()
-                            codeBlock.add("lazy { ")
-                            codeBlock.add(provide(TypeKey(type), context.withoutScoped(type)))
-                            codeBlock.add(" }")
+                                codeBlock.add(provide(key = TypeKey(returnType), context = context, source = method))
 
-                            addProperty(
+                                addProperty(
                                     PropertySpec.builder(
-                                            type.asElement().simpleName.asScopedProp(),
-                                            type.asTypeName()
-                                    ).apply {
-                                        if (context.scopeInterface != null) {
-                                            addModifiers(KModifier.OVERRIDE)
-                                        }
-                                    }.delegate(codeBlock.build())
-                                            .build()
-                            )
-                        }
-
-                        astClass.visitInheritanceChain { parentClass ->
-                            for (method in parentClass.methods) {
-                                if (method.isProvider()) {
-                                    val codeBlock = CodeBlock.builder()
-                                    codeBlock.add("return ")
-                                    val returnType = method.returnTypeFor(astClass)
-
-                                    codeBlock.add(provide(key = TypeKey(returnType), context = context, source = method))
-
-                                    addProperty(
-                                            PropertySpec.builder(
-                                                    method.name,
-                                                    returnType.asTypeName(),
-                                                    KModifier.OVERRIDE
-                                            )
-                                                    .getter(
-                                                            FunSpec.getterBuilder()
-                                                                    .addCode(codeBlock.build())
-                                                                    .build()
-                                                    )
-                                                    .build()
+                                        method.name,
+                                        returnType.asTypeName(),
+                                        KModifier.OVERRIDE
                                     )
-                                }
+                                        .getter(
+                                            FunSpec.getterBuilder()
+                                                .addCode(codeBlock.build())
+                                                .build()
+                                        )
+                                        .build()
+                                )
                             }
                         }
-                    } catch (e: FailedToGenerateException) {
-                        error(e.message.orEmpty(), e.element)
-                        // Create a stub component to prevent extra compile errors, the original one will still be reported.
                     }
+                } catch (e: FailedToGenerateException) {
+                    error(e.message.orEmpty(), e.element)
+                    // Create a stub component to prevent extra compile errors, the original one will still be reported.
                 }
-                .build()
+            }
+            .build()
     }
 
     private fun generateScopedInterface(
-            astClass: AstClass,
-            scopedInjects: Collection<AstClass>
+        astClass: AstClass,
+        scopedInjects: Collection<AstClass>
     ): TypeSpec {
         val context = collectTypes(astClass, scopedInjects, isComponent = false)
 
         return TypeSpec.interfaceBuilder("Inject${astClass.name}")
-                .addOriginatingElement(astClass)
-                .apply {
-                    for (type in context.collector.scoped) {
-                        addProperty(
-                                PropertySpec.builder(
-                                        type.asElement().simpleName.asScopedProp(),
-                                        type.asTypeName()
-                                ).build()
-                        )
-                    }
-                }.build()
+            .addOriginatingElement(astClass)
+            .apply {
+                for (type in context.collector.scoped) {
+                    addProperty(
+                        PropertySpec.builder(
+                            type.asElement().simpleName.asScopedProp(),
+                            type.asTypeName()
+                        ).build()
+                    )
+                }
+            }.build()
     }
 
     private fun generateCreate(
-            element: AstClass,
-            constructor: AstConstructor?,
-            injectComponent: TypeSpec
+        element: AstClass,
+        constructor: AstConstructor?,
+        injectComponent: TypeSpec
     ): FunSpec {
         return FunSpec.builder("create")
-                .apply {
-                    if (constructor != null) {
-                        addParameters(ParameterSpec.parametersOf(constructor))
-                    }
-                    if (options.generateCompanionExtensions) {
-                        val companion = element.companion
-                        if (companion != null) {
-                            receiver(companion.type.asTypeName())
-                        } else {
-                            error(
-                                    """Missing companion for class: ${element.asClassName()}.
+            .apply {
+                if (constructor != null) {
+                    addParameters(ParameterSpec.parametersOf(constructor))
+                }
+                if (options.generateCompanionExtensions) {
+                    val companion = element.companion
+                    if (companion != null) {
+                        receiver(companion.type.asTypeName())
+                    } else {
+                        error(
+                            """Missing companion for class: ${element.asClassName()}.
                             |When you have the option me.tatarka.inject.generateCompanionExtensions=true you must declare a companion option on the component class for the extension function to apply to.
                             |You can do so by adding 'companion object' to the class.
                         """.trimMargin(), element
-                            )
+                        )
+                    }
+                } else {
+                    receiver(KClass::class.asClassName().plusParameter(element.type.asTypeName()))
+                }
+            }
+            .returns(element.type.asTypeName())
+            .apply {
+                val codeBlock = CodeBlock.builder()
+                codeBlock.add("return %N(", injectComponent)
+                if (constructor != null) {
+                    constructor.parameters.forEachIndexed { i, parameter ->
+                        if (i != 0) {
+                            codeBlock.add(", ")
                         }
-                    } else {
-                        receiver(KClass::class.asClassName().plusParameter(element.type.asTypeName()))
+                        codeBlock.add("%L", parameter.name)
                     }
                 }
-                .returns(element.type.asTypeName())
-                .apply {
-                    val codeBlock = CodeBlock.builder()
-                    codeBlock.add("return %N(", injectComponent)
-                    if (constructor != null) {
-                        constructor.parameters.forEachIndexed { i, parameter ->
-                            if (i != 0) {
-                                codeBlock.add(", ")
-                            }
-                            codeBlock.add("%L", parameter.name)
-                        }
-                    }
-                    codeBlock.add(")")
-                    addCode(codeBlock.build())
-                }
-                .build()
+                codeBlock.add(")")
+                addCode(codeBlock.build())
+            }
+            .build()
     }
 
     private fun collectTypes(
-            astClass: AstClass,
-            scopedInjects: Collection<AstClass>,
-            isComponent: Boolean
+        astClass: AstClass,
+        scopedInjects: Collection<AstClass>,
+        isComponent: Boolean
     ): Context {
         val typeCollector = TypeCollector(
-                provider = this,
-                options = options,
-                astClass = astClass,
-                isComponent = isComponent,
-                scopedInjects = scopedInjects
+            provider = this,
+            options = options,
+            astClass = astClass,
+            isComponent = isComponent,
+            scopedInjects = scopedInjects
         )
         val elementScopeClass = astClass.scopeClass(messenger, options)
         val scopeFromParent = elementScopeClass != astClass
         return Context(
-                source = astClass,
-                collector = typeCollector,
-                scopeInterface = if (scopeFromParent) elementScopeClass else null
+            source = astClass,
+            collector = typeCollector,
+            scopeInterface = if (scopeFromParent) elementScopeClass else null
         )
     }
 
     private fun provide(
-            key: TypeKey,
-            context: Context,
-            source: AstElement? = null,
-            find: (TypeKey) -> Result? = { context.find(it) }
+        key: TypeKey,
+        context: Context,
+        source: AstElement? = null,
+        find: (TypeKey) -> Result? = { context.find(it) }
     ): CodeBlock {
         val result = find(key)
-                ?: throw FailedToGenerateException(
-                        "Cannot find an @Inject constructor or provider for: $key",
-                        source ?: context.source
-                )
+            ?: throw FailedToGenerateException(
+                "Cannot find an @Inject constructor or provider for: $key",
+                source ?: context.source
+            )
         return when (result) {
             is Result.Provides -> provideProvides(result, context)
             is Result.Scoped -> provideScoped(key, result)
@@ -233,8 +233,8 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
     }
 
     private fun provideProvides(
-            providesResult: Result.Provides,
-            context: Context
+        providesResult: Result.Provides,
+        context: Context
     ): CodeBlock {
         val codeBlock = CodeBlock.builder()
 
@@ -270,7 +270,12 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                     if (i != 0) {
                         codeBlock.add(",")
                     }
-                    codeBlock.add(provide(key = TypeKey(param.type), context = context, source = param) { context.findWithIndex(it, i, size) })
+                    codeBlock.add(
+                        provide(
+                            key = TypeKey(param.type),
+                            context = context,
+                            source = param
+                        ) { context.findWithIndex(it, i, size) })
                 }
                 codeBlock.add(")")
             }
@@ -284,8 +289,8 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
     }
 
     private fun provideConstructor(
-            constructor: AstConstructor,
-            context: Context
+        constructor: AstConstructor,
+        context: Context
     ): CodeBlock {
         val codeBlock = CodeBlock.builder()
         codeBlock.add("%T(", constructor.type.asTypeName())
@@ -294,7 +299,13 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
             if (i != 0) {
                 codeBlock.add(",")
             }
-            codeBlock.add(provide(key = TypeKey(param.type), context = context, source = param) { context.findWithIndex(it, i, size) })
+            codeBlock.add(provide(key = TypeKey(param.type), context = context, source = param) {
+                context.findWithIndex(
+                    it,
+                    i,
+                    size
+                )
+            })
         }
         codeBlock.add(")")
         return codeBlock.build()
@@ -312,17 +323,12 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
     private fun provideContainer(containerResult: Result.Container, context: Context): CodeBlock {
         return CodeBlock.builder().apply {
             add("${containerResult.creator}(")
-            containerResult.methods.forEachIndexed { index, method ->
+            containerResult.args.forEachIndexed { index, method ->
                 if (index != 0) {
                     add(", ")
                 }
                 add(
-                        provideProvides(
-                                Result.Provides(
-                                        null,
-                                        method
-                                ), context
-                        )
+                    provideProvides(method, context)
                 )
             }
             add(")")
@@ -405,24 +411,9 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
     }
 
     private fun Context.find(key: TypeKey): Result? {
-        when (val result = collector.resolve(key)) {
-            is TypeCreator.Constructor -> {
-                return if (result.scopedComponent != null && skipScoped != result.constructor.type) {
-                    Result.Scoped(name = result.accessor, astClass = result.scopedComponent)
-                } else {
-                    Result.Constructor(result.constructor)
-                }
-            }
-            is TypeCreator.Method -> {
-                return if (result.scopedComponent != null && skipScoped != result.method.returnType) {
-                    Result.Scoped(name = result.accessor, astClass = result.scopedComponent)
-                } else {
-                    Result.Provides(name = result.accessor, method = result.method)
-                }
-            }
-            is TypeCreator.Container -> {
-                return Result.Container(creator = result.creator.toString(), methods = result.methods)
-            }
+        val typeCreator = collector.resolve(key)
+        if (typeCreator != null) {
+            return typeCreator.toResult(skipScoped)
         }
         if (key.type.name.matches(Regex("kotlin\\.Function[0-9]+.*"))) {
             val typeAliasName = key.type.typeAliasName
@@ -434,15 +425,15 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                 val injectedFunction = functions.find { it.hasAnnotation<Inject>() }
                 if (injectedFunction != null) {
                     return Result.NamedFunction(
-                            function = injectedFunction,
-                            args = key.type.arguments.dropLast(1)
+                        function = injectedFunction,
+                        args = key.type.arguments.dropLast(1)
                     )
                 }
             }
             val fKey = TypeKey(key.type.arguments.last())
             return Result.Function(
-                    key = fKey,
-                    args = key.type.arguments.dropLast(1)
+                key = fKey,
+                args = key.type.arguments.dropLast(1)
             )
         }
         if (key.type.name.startsWith("kotlin.Lazy")) {
@@ -452,12 +443,36 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         return null
     }
 
+    private fun TypeCreator.toResult(skipScoped: AstType?): Result {
+        when (this) {
+            is TypeCreator.Constructor -> {
+                return if (scopedComponent != null && skipScoped != constructor.type) {
+                    Result.Scoped(name = accessor, astClass = scopedComponent)
+                } else {
+                    Result.Constructor(constructor)
+                }
+            }
+            is TypeCreator.Method -> {
+                return if (scopedComponent != null && skipScoped != method.returnType) {
+                    Result.Scoped(name = accessor, astClass = scopedComponent)
+                } else {
+                    Result.Provides(name = accessor, method = method)
+                }
+            }
+            is TypeCreator.Container -> {
+                return Result.Container(
+                    creator = creator.toString(),
+                    args = args.map { it.toResult(skipScoped) as Result.Provides })
+            }
+        }
+    }
+
     data class Context(
-            val source: AstClass,
-            val collector: TypeCollector,
-            val scopeInterface: AstClass? = null,
-            val args: List<Pair<AstType, String>> = emptyList(),
-            val skipScoped: AstType? = null
+        val source: AstClass,
+        val collector: TypeCollector,
+        val scopeInterface: AstClass? = null,
+        val args: List<Pair<AstType, String>> = emptyList(),
+        val skipScoped: AstType? = null
     ) {
         fun withoutScoped(scoped: AstType) = copy(skipScoped = scoped)
 
@@ -468,7 +483,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         class Provides(name: String?, val method: AstMethod) : Result(name)
         class Scoped(name: String?, val astClass: AstClass) : Result(name)
         class Constructor(val constructor: AstConstructor) : Result(null)
-        class Container(val creator: String, val methods: List<AstMethod>) : Result(null)
+        class Container(val creator: String, val args: List<Provides>) : Result(null)
         class Function(val key: TypeKey, val args: List<AstType>) : Result(null)
         class NamedFunction(val function: AstFunction, val args: List<AstType>) : Result(null)
 
@@ -505,10 +520,10 @@ fun AstClass.isInject(options: Options): Boolean {
 }
 
 fun AstMethod.isProvider(): Boolean =
-        !hasAnnotation<Provides>() && AstModifier.ABSTRACT in modifiers && when (this) {
-            is AstFunction -> parameters.isEmpty()
-            is AstProperty -> true
-        } && receiverParameterType == null && returnType.isNotUnit()
+    !hasAnnotation<Provides>() && AstModifier.ABSTRACT in modifiers && when (this) {
+        is AstFunction -> parameters.isEmpty()
+        is AstProperty -> true
+    } && receiverParameterType == null && returnType.isNotUnit()
 
 fun AstClass.scopeClass(messenger: Messenger, options: Options): AstClass? {
     var elementScopeClass: AstClass? = null
@@ -519,7 +534,10 @@ fun AstClass.scopeClass(messenger: Messenger, options: Options): AstClass? {
                 elementScopeClass = parentClass
             } else {
                 messenger.error("Cannot apply scope: $parentScope", parentClass)
-                messenger.error("as scope: ${elementScopeClass!!.scopeType(options)} is already applied", elementScopeClass!!)
+                messenger.error(
+                    "as scope: ${elementScopeClass!!.scopeType(options)} is already applied",
+                    elementScopeClass!!
+                )
             }
         }
     }
