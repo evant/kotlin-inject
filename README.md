@@ -179,7 +179,7 @@ typealias Dep2 = Dep
     @Provides fun dep1(): Dep1 = Dep("one")
     @Provides fun dep2(): Dep2 = Dep("two")
 
-    protected fun provides(dep1: Dep1, dep2: Dep1) = Thing(dep1, dep2)
+    @Provides fun provides(dep1: Dep1, dep2: Dep2) = Thing(dep1, dep2)
 }
 
 @Inject class InjectedClass(dep1: Dep1, dep2: Dep2)
@@ -270,7 +270,7 @@ Then you can have multiple implementations
 
 Then you can provide the abstract class to your app component
 
-```
+```kotlin
 @Component abtract class AppComponent(@Component val network: NetworkComponent)
 ```
 
@@ -353,3 +353,24 @@ Similarly, you can inject a `Lazy<MyType>` to construct and re-use and instance 
     val foo by lazyFoo
 }
 ```
+### Options
+
+You can provide some additional options to the processor.
+
+- `me.tatarka.inject.enableJavaxAnnotations=true`
+
+  `@javax.inject.Inject` and `@javax.inject.Scope` can be used in addition to the provided annotations. This can be useful
+  if you are migrating existing code or want to be abstracted from the injection lib you are using on the jvm.
+
+- `me.tatarka.inject.generateCompanionExtensions=true`
+
+  This will generate the `create()` methods on the companion object instead of the component's class. This allows you to do
+  `MyComponent.create()` instead of `MyComponent::class.create()`. However, due to a kotlin limitiation you will have to
+  explitilcy specify a companion object for your component.
+  
+  ```kotlin
+  @Component abstract class MyComponent {
+    companion object
+  }
+  ```
+
