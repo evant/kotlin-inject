@@ -24,15 +24,15 @@ interface Messenger {
 }
 
 sealed class AstElement : AstAnnotated {
-    inline fun <reified T : Annotation> hasAnnotation() = hasAnnotation(T::class)
+    inline fun <reified T : Annotation> hasAnnotation() = hasAnnotation(T::class.qualifiedName!!)
 
-    inline fun <reified T : Annotation> typeAnnotatedWith(): AstClass? = typeAnnotatedWith(T::class)
+    inline fun <reified T : Annotation> typeAnnotatedWith(): AstClass? = typeAnnotatedWith(T::class.qualifiedName!!)
 }
 
 interface AstAnnotated {
-    fun <T : Annotation> hasAnnotation(kclass: KClass<T>): Boolean
+    fun hasAnnotation(className: String): Boolean
 
-    fun <T : Annotation> typeAnnotatedWith(kclass: KClass<T>): AstClass?
+    fun typeAnnotatedWith(className: String): AstClass?
 }
 
 abstract class AstBasicElement : AstElement() {
@@ -146,4 +146,4 @@ enum class AstModifier {
 }
 
 fun ParameterSpec.Companion.parametersOf(constructor: AstConstructor) =
-    constructor.parameters.map { it.asParameterSpec() }
+        constructor.parameters.map { it.asParameterSpec() }

@@ -10,22 +10,18 @@ import org.jetbrains.kotlin.ksp.symbol.*
 import org.jetbrains.kotlin.ksp.visitor.KSDefaultVisitor
 import kotlin.reflect.KClass
 
-
-fun <T : Annotation> KSAnnotated.typeAnnotatedWith(type: KClass<T>): KSType? {
+fun KSAnnotated.typeAnnotatedWith(className: String): KSType? {
     for (annotation in annotations) {
         val t = annotation.annotationType.resolve()
-        val a = t?.declaration?.getAnnotation(type)
-        if (a != null) {
+        if (t?.declaration?.hasAnnotation(className) == true) {
             return t
         }
     }
     return null
 }
 
-inline fun <reified T : Annotation> KSDeclaration.typeAnnotatedWith() = typeAnnotatedWith(T::class)
-
-fun KSAnnotated.getAnnotation(type: KClass<out Annotation>): KSAnnotation? {
-    return annotations.find { it.annotationType.resolve()?.declaration?.qualifiedName?.asString() == type.qualifiedName }
+fun KSAnnotated.hasAnnotation(className: String): Boolean {
+    return annotations.any { it.annotationType.resolve()?.declaration?.qualifiedName?.asString() == className }
 }
 
 fun KSDeclaration.asClassName(): ClassName {

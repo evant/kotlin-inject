@@ -11,18 +11,19 @@ import javax.lang.model.element.Element
 import javax.lang.model.element.ExecutableElement
 import javax.lang.model.element.TypeElement
 import javax.lang.model.type.TypeMirror
-import kotlin.reflect.KClass
 
-fun <T : Annotation> Element.typeAnnotatedWith(type: KClass<T>) =
-    annotationMirrors.find {
-        it.annotationType.asElement().getAnnotation(type.java) != null
-    }?.annotationType?.asElement() as? TypeElement
+fun Element.hasAnnotation(className: String): Boolean {
+    return annotationMirrors.any { it.annotationType.toString() == className }
+}
 
-inline fun <reified T : Annotation> Element.typeAnnotatedWith() = typeAnnotatedWith(T::class)
+fun Element.typeAnnotatedWith(className: String) =
+        annotationMirrors.find {
+            it.annotationType.asElement().hasAnnotation(className)
+        }?.annotationType?.asElement() as? TypeElement
 
 fun TypeName.javaToKotlinType(): TypeName = if (this is ParameterizedTypeName) {
     (rawType.javaToKotlinType() as ClassName).parameterizedBy(
-        *typeArguments.map { it.javaToKotlinType() }.toTypedArray()
+            *typeArguments.map { it.javaToKotlinType() }.toTypedArray()
     )
 } else if (this is WildcardTypeName) {
     if (inTypes.isNotEmpty()) {
@@ -52,14 +53,14 @@ val TypeElement.metadata: KotlinClassMetadata?
     get() {
         val meta = getAnnotation(Metadata::class.java) ?: return null
         val header = KotlinClassHeader(
-            kind = meta.kind,
-            bytecodeVersion = meta.bytecodeVersion,
-            data1 = meta.data1,
-            data2 = meta.data2,
-            extraInt = meta.extraInt,
-            extraString = meta.extraString,
-            metadataVersion = meta.metadataVersion,
-            packageName = meta.packageName
+                kind = meta.kind,
+                bytecodeVersion = meta.bytecodeVersion,
+                data1 = meta.data1,
+                data2 = meta.data2,
+                extraInt = meta.extraInt,
+                extraString = meta.extraString,
+                metadataVersion = meta.metadataVersion,
+                packageName = meta.packageName
         )
         return KotlinClassMetadata.read(header)
     }

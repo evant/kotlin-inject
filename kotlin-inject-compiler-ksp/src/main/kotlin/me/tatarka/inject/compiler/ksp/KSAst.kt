@@ -96,12 +96,12 @@ object KSAstMessenger : Messenger {
 private interface KSAstAnnotated : AstAnnotated, KSAstProvider {
     val declaration: KSAnnotated
 
-    override fun <T : Annotation> hasAnnotation(kclass: KClass<T>): Boolean {
-        return declaration.getAnnotation(kclass) != null
+    override fun hasAnnotation(className: String): Boolean {
+        return declaration.hasAnnotation(className)
     }
 
-    override fun <T : Annotation> typeAnnotatedWith(kclass: KClass<T>): AstClass? {
-        return (declaration.typeAnnotatedWith(kclass)?.declaration as? KSClassDeclaration)?.toAstClass()
+    override fun typeAnnotatedWith(className: String): AstClass? {
+        return (declaration.typeAnnotatedWith(className)?.declaration as? KSClassDeclaration)?.toAstClass()
     }
 }
 
@@ -189,9 +189,9 @@ private class KSAstEmptyConstructor(
 
     override val parameters: List<AstParam> = emptyList()
 
-    override fun <T : Annotation> hasAnnotation(kclass: KClass<T>): Boolean = false
+    override fun hasAnnotation(className: String): Boolean = false
 
-    override fun <T : Annotation> typeAnnotatedWith(kclass: KClass<T>): AstClass? = null
+    override fun typeAnnotatedWith(className: String): AstClass? = null
 }
 
 private class KSAstFunction(provider: KSAstProvider, override val declaration: KSFunctionDeclaration) : AstFunction(),

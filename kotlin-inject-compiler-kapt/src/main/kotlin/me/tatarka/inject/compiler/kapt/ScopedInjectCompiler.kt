@@ -17,9 +17,9 @@ class ScopedInjectCompiler : BaseInjectCompiler() {
             if (element !is TypeElement) continue
             val astClass = element.toAstClass()
             // Only deal with scoped components
-            val scopedClass = astClass.scopeClass(messenger) ?: continue
+            val scopedClass = astClass.scopeClass(messenger, options) ?: continue
 
-            val scopeType = scopedClass.scopeType()!!
+            val scopeType = scopedClass.scopeType(options)!!
             val scopedClasses = scopedClasses(scopeType, env)
             allScopedClasses.addAll(scopedClasses)
 

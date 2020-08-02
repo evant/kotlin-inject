@@ -12,6 +12,7 @@ dependencies {
     testImplementation "org.jetbrains.kotlin:kotlin-test"
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit"
     testImplementation 'org.jetbrains.kotlin:kotlin-reflect'
+    testImplementation 'javax.inject:javax.inject:1'
 
     testImplementation 'com.willowtreeapps.assertk:assertk-jvm:0.22'
 }
