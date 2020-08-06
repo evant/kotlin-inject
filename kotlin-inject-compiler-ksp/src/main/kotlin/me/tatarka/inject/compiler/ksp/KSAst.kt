@@ -45,6 +45,16 @@ interface KSAstProvider : AstProvider {
         }))
     }
 
+    override fun AstElement.toTrace(): String {
+        require(this is KSAstAnnotated)
+        val source = declaration.location as? FileLocation
+        return if (source != null) {
+            "${source.filePath}:${source.lineNumber}: ${toString()}"
+        } else {
+            toString()
+        }
+    }
+
     override fun TypeSpec.Builder.addOriginatingElement(astClass: AstClass): TypeSpec.Builder = this
 }
 
@@ -62,8 +72,9 @@ object KSAstMessenger : Messenger {
     }
 
     fun finalize() {
+        // ksp won't error out if no exception is thrown
         if (errorMessages.isNotEmpty()) {
-            throw IllegalStateException(errorMessages.joinToString(separator = "\n"))
+            throw IllegalStateException()
         }
     }
 
@@ -174,17 +185,18 @@ private class KSAstConstructor(
         declaration.parameters.map { param -> KSAstParam(this, declaration, param) }
     }
 
-    override fun toString(): String = StringBuilder().apply {
-        append(parent.name)
-        append("(")
-        append(parameters.joinToString(", "))
-        append(")")
-    }.toString()
+    override fun equals(other: Any?): Boolean {
+        return other is KSAstConstructor && declaration == other.declaration
+    }
+
+    override fun hashCode(): Int {
+        return declaration.hashCode()
+    }
 }
 
 private class KSAstEmptyConstructor(
     provider: KSAstProvider,
-    parent: AstClass
+    private val parent: AstClass
 ) : AstConstructor(parent), KSAstProvider by provider {
 
     override val parameters: List<AstParam> = emptyList()
@@ -192,6 +204,14 @@ private class KSAstEmptyConstructor(
     override fun hasAnnotation(className: String): Boolean = false
 
     override fun typeAnnotatedWith(className: String): AstClass? = null
+
+    override fun equals(other: Any?): Boolean {
+        return other is KSAstEmptyConstructor && parent == other.parent
+    }
+
+    override fun hashCode(): Int {
+        return parent.hashCode()
+    }
 }
 
 private class KSAstFunction(provider: KSAstProvider, override val declaration: KSFunctionDeclaration) : AstFunction(),
@@ -228,13 +248,13 @@ private class KSAstFunction(provider: KSAstProvider, override val declaration: K
         return MemberName(packageName, declaration.simpleName.toString())
     }
 
-    override fun toString(): String = StringBuilder().apply {
-        append("fun ")
-        append(name)
-        append("(")
-        append(parameters.joinToString(", "))
-        append(")")
-    }.toString()
+    override fun equals(other: Any?): Boolean {
+        return other is KSAstFunction && declaration == other.declaration
+    }
+
+    override fun hashCode(): Int {
+        return declaration.hashCode()
+    }
 }
 
 private class KSAstProperty(provider: KSAstProvider, override val declaration: KSPropertyDeclaration) : AstProperty(),
@@ -265,6 +285,14 @@ private class KSAstProperty(provider: KSAstProvider, override val declaration: K
     override fun asMemberName(): MemberName {
         val packageName = declaration.qualifiedName?.getQualifier().orEmpty()
         return MemberName(packageName, declaration.simpleName.toString())
+    }
+
+    override fun equals(other: Any?): Boolean {
+        return other is KSAstProperty && declaration == other.declaration
+    }
+
+    override fun hashCode(): Int {
+        return declaration.hashCode()
     }
 }
 

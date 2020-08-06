@@ -1,6 +1,5 @@
 package me.tatarka.inject.test
 
-import assertk.all
 import assertk.assertThat
 import assertk.assertions.contains
 import assertk.assertions.isFailure
@@ -54,33 +53,35 @@ class FailureTest(private val target: Target) {
     fun fails_if_component_is_not_abstract() {
         assertThat {
             projectCompiler.source(
-                "test.kt", """
+                "MyComponent.kt", """
                     import me.tatarka.inject.annotations.Component
                     
                     @Component class MyComponent
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().contains("@Component class: MyComponent must be abstract")
+        }.isFailure().output()
+            .contains("@Component class: MyComponent must be abstract", "MyComponent.${target.sourceExt()}")
     }
 
     @Test
     fun fails_if_component_is_private() {
         assertThat {
             projectCompiler.source(
-                "test.kt", """
+                "MyComponent.kt", """
                     import me.tatarka.inject.annotations.Component
                     
                     @Component private abstract class MyComponent
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().contains("@Component class: MyComponent must not be private")
+        }.isFailure().output()
+            .contains("@Component class: MyComponent must not be private", "MyComponent.${target.sourceExt()}")
     }
 
     @Test
     fun fails_if_provides_is_private() {
         assertThat {
             projectCompiler.source(
-                "test.kt", """
+                "MyComponent.kt", """
                     import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Provides
                     
@@ -89,14 +90,14 @@ class FailureTest(private val target: Target) {
                     }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().contains("@Provides method must not be private")
+        }.isFailure().output().contains("@Provides method must not be private", "MyComponent.${target.sourceExt()}")
     }
 
     @Test
     fun fails_if_provides_is_abstract() {
         assertThat {
             projectCompiler.source(
-                "test.kt", """
+                "MyComponent.kt", """
                     import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Provides
                     
@@ -105,14 +106,15 @@ class FailureTest(private val target: Target) {
                     }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().contains("@Provides method must have a concrete implementation")
+        }.isFailure().output()
+            .contains("@Provides method must have a concrete implementation", "MyComponent.${target.sourceExt()}")
     }
 
     @Test
     fun fails_if_provides_returns_unit() {
         assertThat {
             projectCompiler.source(
-                "test.kt", """
+                "MyComponent.kt", """
                     import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Provides
                     
@@ -121,14 +123,14 @@ class FailureTest(private val target: Target) {
                     }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().contains("@Provides method must return a value")
+        }.isFailure().output().contains("@Provides method must return a value", "MyComponent.${target.sourceExt()}")
     }
 
     @Test
     fun fails_if_the_same_type_is_provided_more_than_once() {
         assertThat {
             projectCompiler.source(
-                "test.kt", """
+                "MyComponent.kt", """
                     import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Provides
                     
@@ -138,17 +140,15 @@ class FailureTest(private val target: Target) {
                     }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().all {
-            contains("Cannot provide: String")
-            contains("as it is already provided")
-        }
+        }.isFailure().output()
+            .contains("Cannot provide: String", "as it is already provided", "MyComponent.${target.sourceExt()}")
     }
 
     @Test
     fun fails_if_type_cannot_be_provided() {
         assertThat {
             projectCompiler.source(
-                "test.kt", """
+                "MyComponent.kt", """
                     import me.tatarka.inject.annotations.Component
                     
                     @Component abstract class MyComponent {
@@ -156,17 +156,15 @@ class FailureTest(private val target: Target) {
                     }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().all {
-            contains("Cannot find an @Inject constructor or provider for: String")
-            contains("provideString()")
-        }
+        }.isFailure().output()
+            .contains("Cannot find an @Inject constructor or provider for: String", "MyComponent.${target.sourceExt()}")
     }
 
     @Test
     fun fails_if_type_cannot_be_provided_to_constructor() {
         assertThat {
             projectCompiler.source(
-                    "test.kt", """
+                "MyComponent.kt", """
                     import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Inject
                     
@@ -177,18 +175,14 @@ class FailureTest(private val target: Target) {
                     }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().all {
-            contains("Cannot find an @Inject constructor or provider for: String")
-            contains("Foo")
-            contains("bar")
-        }
+        }.isFailure().output().contains("Cannot find an @Inject constructor or provider for: String")
     }
 
     @Test
     fun fails_if_type_cannot_be_provided_to_provides() {
         assertThat {
             projectCompiler.source(
-                    "test.kt", """
+                "MyComponent.kt", """
                     import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Provides
                     
@@ -201,17 +195,15 @@ class FailureTest(private val target: Target) {
                     }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().all {
-            contains("Cannot find an @Inject constructor or provider for: String")
-            contains("bar")
-        }
+        }.isFailure().output()
+            .contains("Cannot find an @Inject constructor or provider for: String", "MyComponent.${target.sourceExt()}")
     }
 
     @Test
     fun fails_if_component_does_not_have_scope_to_provide_dependency() {
         assertThat {
             projectCompiler.source(
-                "test.kt", """
+                "MyComponent.kt", """
                     import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Scope
                     import me.tatarka.inject.annotations.Inject
@@ -224,6 +216,33 @@ class FailureTest(private val target: Target) {
                     }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().contains("Cannot find component with scope: @MyScope to inject Foo")
+        }.isFailure().output()
+            .contains("Cannot find component with scope: @MyScope to inject Foo", "MyComponent.${target.sourceExt()}")
     }
+
+    @Test
+    fun fails_if_simple_cycle_is_detected() {
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt", """
+                    import me.tatarka.inject.annotations.Component
+                    import me.tatarka.inject.annotations.Inject
+                    
+                    @Inject class A(val b: B)
+                    @Inject class B(val a: A)
+                    
+                    @Component abstract class MyComponent {
+                        abstract val a: A
+                    }
+                """.trimIndent()
+            ).compile()
+        }.isFailure().output().contains(
+            "Cycle detected", "B(a: A)", "A(b: B)"
+        )
+    }
+}
+
+private fun Target.sourceExt() = when (this) {
+    Target.kapt -> "java"
+    Target.ksp -> "kt"
 }
