@@ -2,21 +2,16 @@ package me.tatarka.inject.compiler.kapt
 
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import kotlinx.metadata.*
 import kotlinx.metadata.jvm.annotations
 import kotlinx.metadata.jvm.syntheticMethodForAnnotations
 import me.tatarka.inject.compiler.*
-import java.io.StringWriter
-import java.lang.Error
-import java.lang.StringBuilder
 import javax.annotation.processing.Messager
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.*
 import javax.lang.model.type.*
 import javax.lang.model.util.ElementFilter
 import javax.lang.model.util.Elements
-import javax.lang.model.util.SimpleTypeVisitor7
 import javax.lang.model.util.Types
 import javax.tools.Diagnostic
 import kotlin.reflect.KClass
@@ -113,6 +108,31 @@ private interface ModelAstMethod : ModelAstElement {
 private class ModelBasicElement(provider: ModelAstProvider, override val element: Element) : AstBasicElement(),
     ModelAstElement, ModelAstProvider by provider {
     override val simpleName: String get() = element.simpleName.toString()
+}
+
+private class PrimitiveModelAstClass(
+    override val type: ModelAstType
+) : AstClass(), ModelAstProvider by type {
+    override val packageName: String = "kotlin"
+    override val name: String = type.toString()
+    override val modifiers: Set<AstModifier> = emptySet()
+    override val companion: AstClass? = null
+    override val superTypes: List<AstClass> = emptyList()
+    override val primaryConstructor: AstConstructor? = null
+    override val methods: List<AstMethod> = emptyList()
+
+    override fun asClassName(): ClassName = throw UnsupportedOperationException()
+
+    override fun equals(other: Any?): Boolean {
+        return other is PrimitiveModelAstClass && type == other.type
+    }
+
+    override fun hashCode(): Int {
+        return type.hashCode()
+    }
+
+    override fun hasAnnotation(className: String): Boolean = false
+    override fun typeAnnotatedWith(className: String): AstClass? = null
 }
 
 private class ModelAstClass(
@@ -214,19 +234,14 @@ private class ModelAstConstructor(
     ModelAstElement, ModelAstProvider by provider {
 
     override val parameters: List<AstParam> by lazy {
-        element.parameters.mapNotNull { element ->
-            if (kmConstructor != null) {
-                for (parameter in kmConstructor.valueParameters) {
-                    if (element.simpleName.contentEquals(parameter.name)) {
-                        return@mapNotNull ModelAstParam(
-                            this,
-                            element,
-                            parameter
-                        )
-                    }
-                }
-            }
-            null
+        val params = element.parameters
+        val kmParams = kmConstructor!!.valueParameters
+        params.zip(kmParams).map { (param, kmParam) ->
+            ModelAstParam(
+                this,
+                param,
+                kmParam
+            )
         }
     }
 
@@ -440,7 +455,14 @@ private class ModelAstType(
     override fun asElement(): AstBasicElement =
         ModelBasicElement(this, element)
 
-    override fun toAstClass(): AstClass = (element as TypeElement).toAstClass()
+    override fun toAstClass(): AstClass {
+        return when (type) {
+            is PrimitiveType -> PrimitiveModelAstClass(this)
+            is ArrayType -> PrimitiveModelAstClass(this)
+            is DeclaredType, is TypeVariable -> (types.asElement(type) as TypeElement).toAstClass()
+            else -> throw IllegalStateException("unknown type: $type")
+        }
+    }
 
     override fun asTypeName(): TypeName {
         return type.asTypeName(kmType)
