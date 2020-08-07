@@ -11,20 +11,19 @@ import javax.lang.model.element.Modifier
 import javax.lang.model.element.TypeElement
 import javax.lang.model.type.*
 import javax.lang.model.util.SimpleTypeVisitor7
-import javax.lang.model.util.TypeKindVisitor8
 
 fun Element.hasAnnotation(className: String): Boolean {
     return annotationMirrors.any { it.annotationType.toString() == className }
 }
 
 fun Element.typeAnnotatedWith(className: String) =
-        annotationMirrors.find {
-            it.annotationType.asElement().hasAnnotation(className)
-        }?.annotationType?.asElement() as? TypeElement
+    annotationMirrors.find {
+        it.annotationType.asElement().hasAnnotation(className)
+    }?.annotationType?.asElement() as? TypeElement
 
 fun TypeName.javaToKotlinType(): TypeName = if (this is ParameterizedTypeName) {
     (rawType.javaToKotlinType() as ClassName).parameterizedBy(
-            *typeArguments.map { it.javaToKotlinType() }.toTypedArray()
+        *typeArguments.map { it.javaToKotlinType() }.toTypedArray()
     )
 } else if (this is WildcardTypeName) {
     if (inTypes.isNotEmpty()) {
@@ -54,14 +53,14 @@ val TypeElement.metadata: KotlinClassMetadata?
     get() {
         val meta = getAnnotation(Metadata::class.java) ?: return null
         val header = KotlinClassHeader(
-                kind = meta.kind,
-                bytecodeVersion = meta.bytecodeVersion,
-                data1 = meta.data1,
-                data2 = meta.data2,
-                extraInt = meta.extraInt,
-                extraString = meta.extraString,
-                metadataVersion = meta.metadataVersion,
-                packageName = meta.packageName
+            kind = meta.kind,
+            bytecodeVersion = meta.bytecodeVersion,
+            data1 = meta.data1,
+            data2 = meta.data2,
+            extraInt = meta.extraInt,
+            extraString = meta.extraString,
+            metadataVersion = meta.metadataVersion,
+            packageName = meta.packageName
         )
         return KotlinClassMetadata.read(header)
     }
@@ -78,35 +77,13 @@ fun KotlinClassMetadata.toKmPackage() = when (this) {
 }
 
 fun ExecutableElement.matches(property: KmProperty): Boolean {
-    if (!nameMatches(property.getterSignature)) {
-        return false
-    }
-    val receiverType = property.receiverParameterType
-    return if (receiverType == null) {
-        parameters.isEmpty()
-    } else {
-        parameters.size == 1 && parameters[0].asType().matches(receiverType)
-    }
+    val sig = property.getterSignature
+    return sig != null && matches(sig)
 }
 
 fun ExecutableElement.matches(function: KmFunction): Boolean {
-    if (!nameMatches(function.signature)) {
-        return false
-    }
-    val parameterTypes = mutableListOf<KmType>()
-    function.receiverParameterType?.let { parameterTypes.add(it) }
-    for (param in function.valueParameters) {
-        param.type?.let { parameterTypes.add(it) }
-    }
-    if (parameterTypes.size != parameters.size) {
-        return false
-    }
-    for (i in 0 until parameterTypes.size) {
-        if (!parameters[i].asType().matches(parameterTypes[i])) {
-            return false
-        }
-    }
-    return true
+    val sig = function.signature
+    return sig != null && matches(sig)
 }
 
 fun ExecutableElement.matches(signature: JvmMethodSignature): Boolean {
@@ -115,90 +92,75 @@ fun ExecutableElement.matches(signature: JvmMethodSignature): Boolean {
     }
     //ex: (Lme/tatarka/inject/test/Bar;)V
     var index = 1 // skip initial (
-    val parameterTypes = mutableListOf<ClassName>()
     val desc = signature.desc
-    loop@while (true) {
-        when (desc[index]) {
+
+    fun match(param: TypeMirror): Boolean {
+        if (index == -1) {
+            return false
+        }
+        val c = desc[index]
+        index++
+        return when (c) {
             'L' -> {
-                index++
                 val className = desc.substring(index, desc.indexOf(';', index))
-                parameterTypes.add(ClassName.bestGuess(className.replace('/', '.')))
-                index += className.length
+                    .replace('/', '.')
+                index += className.length + 1 // ;
+                if (param is DeclaredType) {
+                    param.asElement().toString() == className
+                } else {
+                    false
+                }
             }
             'Z' -> {
-                index++
-                parameterTypes.add(BOOLEAN)
+                param.kind == TypeKind.BOOLEAN
             }
             'B' -> {
-                index++
-                parameterTypes.add(BYTE)
+                param.kind == TypeKind.BYTE
             }
             'C' -> {
-                index++
-                parameterTypes.add(CHAR)
+                param.kind == TypeKind.CHAR
             }
             'S' -> {
-                index++
-                parameterTypes.add(SHORT)
+                param.kind == TypeKind.SHORT
             }
             'I' -> {
-                index++
-                parameterTypes.add(INT)
+                param.kind == TypeKind.INT
             }
             'J' -> {
-                index++
-                parameterTypes.add(LONG)
+                param.kind == TypeKind.LONG
             }
             'F' -> {
-                index++
-                parameterTypes.add(FLOAT)
+                param.kind == TypeKind.FLOAT
             }
             'D' -> {
-                index++
-                parameterTypes.add(DOUBLE)
+                param.kind == TypeKind.DOUBLE
             }
-            else -> break@loop
+            '[' -> {
+                if (param is ArrayType) {
+                    match(param.componentType)
+                } else {
+                    false
+                }
+            }
+            ')' -> {
+                index = -1 // mark end
+                false
+            }
+            else -> throw IllegalStateException("Unknown descriptor: $c in {$desc}")
         }
     }
-    if (parameters.size != parameterTypes.size) {
-        return false
-    }
-    for (i in 0 until parameterTypes.size) {
-        if (!parameters[i].asType().matches(parameterTypes[i], emptyList())) {
+
+    for (param in parameters) {
+        if (!match(param.asType())) {
             return false
         }
     }
-    return true
-}
-
-private fun TypeMirror.matches(type: KmType): Boolean {
-    return when (val classifier = type.classifier) {
-        is KmClassifier.Class -> {
-            matches(classifier.asClassName(), type.arguments)
-        }
-        is KmClassifier.TypeParameter -> false
-        is KmClassifier.TypeAlias -> false
+    // ensure we consumed all params
+    if (desc[index] != ')') {
+        return false
     }
-}
 
-private fun TypeMirror.matches(typeName: ClassName, args: List<KmTypeProjection>): Boolean {
-    return accept(object : TypeKindVisitor8<Boolean, Void?>() {
-        override fun visitDeclared(declaredType: DeclaredType, _p: Void?): Boolean {
-            if ((declaredType.asElement() as TypeElement).asClassName().kotlinClassName() != typeName) {
-                return false
-            }
-            val typeArgs = declaredType.typeArguments
-            if (typeArgs.size != args.size) {
-                return false
-            }
-            for (i in 0 until typeArgs.size) {
-                if (!declaredType.typeArguments[i].matches(args[i].type!!)) {
-                    return false
-                }
-            }
-            return true
-        }
-    }, null)
+    return true
 }
 
 private fun ExecutableElement.nameMatches(signature: JvmMemberSignature?): Boolean {
@@ -269,8 +231,18 @@ fun TypeMirror.asTypeName(kmType: KmType?): TypeName {
             return visitDeclared(t, p)
         }
 
-        override fun visitArray(t: ArrayType, p: Void?): ParameterizedTypeName {
-            return ARRAY.parameterizedBy(t.componentType.asTypeName())
+        override fun visitArray(t: ArrayType, p: Void?): TypeName {
+            return when (t.componentType.kind) {
+                TypeKind.BOOLEAN -> BOOLEAN_ARRAY
+                TypeKind.BYTE -> BYTE_ARRAY
+                TypeKind.SHORT -> SHORT_ARRAY
+                TypeKind.INT -> INT_ARRAY
+                TypeKind.LONG -> LONG_ARRAY
+                TypeKind.CHAR -> CHAR_ARRAY
+                TypeKind.FLOAT -> FLOAT_ARRAY
+                TypeKind.DOUBLE -> DOUBLE_ARRAY
+                else -> ARRAY.parameterizedBy(t.componentType.asTypeName(kmType?.arguments?.getOrNull(0)?.type))
+            }
         }
 
         override fun visitTypeVariable(
