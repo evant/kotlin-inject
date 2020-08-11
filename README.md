@@ -40,7 +40,7 @@ dependencies {
 }
 ```
 
-### Expiramental KSP Support 
+### Experimental KSP Support 
 
 You can use [ksp](https://github.com/android/kotlin/tree/ksp/libraries/tools/kotlin-symbol-processing-api) instead of 
 kapt. Currently everything except function injection is implemented.
