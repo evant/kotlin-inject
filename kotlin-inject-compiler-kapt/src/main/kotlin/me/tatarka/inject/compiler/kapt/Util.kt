@@ -21,34 +21,6 @@ fun Element.typeAnnotatedWith(className: String) =
         it.annotationType.asElement().hasAnnotation(className)
     }?.annotationType?.asElement() as? TypeElement
 
-fun TypeName.javaToKotlinType(): TypeName = if (this is ParameterizedTypeName) {
-    (rawType.javaToKotlinType() as ClassName).parameterizedBy(
-        *typeArguments.map { it.javaToKotlinType() }.toTypedArray()
-    )
-} else if (this is WildcardTypeName) {
-    if (inTypes.isNotEmpty()) {
-        WildcardTypeName.consumerOf(inTypes.first().javaToKotlinType())
-    } else {
-        WildcardTypeName.producerOf(outTypes.first().javaToKotlinType())
-    }
-} else {
-    val s = toString()
-    when (s) {
-        "java.util.Map" -> ClassName.bestGuess("kotlin.collections.Map")
-        "java.util.Set" -> ClassName.bestGuess("kotlin.collections.Set")
-        "java.lang.String" -> ClassName.bestGuess("kotlin.String")
-        else -> {
-            val regex = Regex("kotlin\\.jvm\\.functions\\.(Function[0-9]+)")
-            val result = regex.matchEntire(s)
-            if (result != null) {
-                ClassName.bestGuess("kotlin.${result.groupValues[1]}")
-            } else {
-                this
-            }
-        }
-    }
-}
-
 val TypeElement.metadata: KotlinClassMetadata?
     get() {
         val meta = getAnnotation(Metadata::class.java) ?: return null
@@ -168,101 +140,41 @@ private fun ExecutableElement.nameMatches(signature: JvmMemberSignature?): Boole
     return simpleName.contentEquals(signature.name)
 }
 
-fun DeclaredType.rawTypeName(kmType: KmType?): ClassName {
-    val className =
-        (kmType?.classifier as? KmClassifier.Class)?.asClassName()
-            ?: (this.asElement() as TypeElement).asClassName()
-    return className.kotlinClassName()
+fun KmClassifier.asClassName() = when (this) {
+    is KmClassifier.Class -> name.asClassName()
+    is KmClassifier.TypeAlias -> name.asClassName()
+    is KmClassifier.TypeParameter -> null
 }
 
-fun KmClassifier.Class.asClassName() = ClassName.bestGuess(name.replace('/', '.'))
-
-fun ClassName.kotlinClassName(): ClassName {
-    return when (canonicalName) {
-        "java.util.Map" -> ClassName("kotlin.collections", "Map")
-        "java.util.Set" -> ClassName("kotlin.collections", "Set")
-        "java.lang.String" -> ClassName("kotlin", "String")
-        else -> this
+fun kotlinx.metadata.ClassName.asClassName(): ClassName {
+    val split = lastIndexOf('/')
+    return if (split == -1) {
+        ClassName("", this)
+    } else {
+        ClassName(substring(0, split).replace('/', '.'), substring(split + 1))
     }
 }
 
 fun TypeMirror.asTypeName(kmType: KmType?): TypeName {
-    return accept(object : SimpleTypeVisitor7<TypeName, Void?>() {
-        override fun visitPrimitive(t: PrimitiveType, p: Void?): TypeName {
-            return when (t.kind) {
-                TypeKind.BOOLEAN -> BOOLEAN
-                TypeKind.BYTE -> BYTE
-                TypeKind.SHORT -> SHORT
-                TypeKind.INT -> INT
-                TypeKind.LONG -> LONG
-                TypeKind.CHAR -> CHAR
-                TypeKind.FLOAT -> FLOAT
-                TypeKind.DOUBLE -> DOUBLE
-                else -> throw AssertionError()
-            }
+    if (kmType != null) {
+        val typeName = kmType.asTypeName()
+        if (typeName != null) {
+            return typeName
         }
+    }
+    return asTypeName()
+}
 
-        override fun visitDeclared(t: DeclaredType, p: Void?): TypeName {
-            val isNullable = kmType?.let { Flag.Type.IS_NULLABLE(it.flags) } == true
-            val rawType: ClassName = t.rawTypeName(kmType).copy(nullable = isNullable) as ClassName
-            val enclosingType = t.enclosingType
-            val enclosing = if (enclosingType.kind != TypeKind.NONE &&
-                Modifier.STATIC !in t.asElement().modifiers
-            )
-                enclosingType.accept(this, null) else
-                null
-            if (t.typeArguments.isEmpty() && enclosing !is ParameterizedTypeName) {
-                return rawType
-            }
-
-            val typeArgumentNames = mutableListOf<TypeName>()
-            for (i in 0 until t.typeArguments.size) {
-                val typeArg = t.typeArguments[i]
-                val kmArg = kmType?.arguments?.getOrNull(i)?.type
-                typeArgumentNames += typeArg.asTypeName(kmArg)
-            }
-
-            return if (enclosing is ParameterizedTypeName)
-                enclosing.nestedClass(rawType.simpleName, typeArgumentNames) else
-                rawType.parameterizedBy(typeArgumentNames)
-        }
-
-        override fun visitError(t: ErrorType, p: Void?): TypeName {
-            return visitDeclared(t, p)
-        }
-
-        override fun visitArray(t: ArrayType, p: Void?): TypeName {
-            return when (t.componentType.kind) {
-                TypeKind.BOOLEAN -> BOOLEAN_ARRAY
-                TypeKind.BYTE -> BYTE_ARRAY
-                TypeKind.SHORT -> SHORT_ARRAY
-                TypeKind.INT -> INT_ARRAY
-                TypeKind.LONG -> LONG_ARRAY
-                TypeKind.CHAR -> CHAR_ARRAY
-                TypeKind.FLOAT -> FLOAT_ARRAY
-                TypeKind.DOUBLE -> DOUBLE_ARRAY
-                else -> ARRAY.parameterizedBy(t.componentType.asTypeName(kmType?.arguments?.getOrNull(0)?.type))
-            }
-        }
-
-        override fun visitTypeVariable(
-            t: TypeVariable,
-            p: Void?
-        ): TypeName {
-            return t.asTypeVariableName()
-        }
-
-        override fun visitWildcard(t: WildcardType, p: Void?): TypeName {
-            return t.asWildcardTypeName()
-        }
-
-        override fun visitNoType(t: NoType, p: Void?): TypeName {
-            if (t.kind == TypeKind.VOID) return UNIT
-            return super.visitUnknown(t, p)
-        }
-
-        override fun defaultAction(e: TypeMirror?, p: Void?): TypeName {
-            throw IllegalArgumentException("Unexpected type mirror: " + e!!)
-        }
-    }, null)
+fun KmType.asTypeName(): TypeName? {
+    val abbreviatedType = abbreviatedType
+    if (abbreviatedType != null) {
+        return abbreviatedType.asTypeName()
+    }
+    val isNullable =  Flag.Type.IS_NULLABLE(flags)
+    val className = classifier.asClassName() ?: return null
+    return if (arguments.isEmpty()) {
+        className
+    } else {
+        className.parameterizedBy(arguments.map { it.type!!.asTypeName()!! })
+    }.copy(nullable = isNullable)
 }

@@ -55,12 +55,17 @@ interface ModelAstProvider :
         val type = elements.getTypeElement(klass.java.canonicalName)
         return ModelAstType(
             this,
-            declaredType(type, astTypes.asList()),
-            klass.toKmType()
+            elementDeclaredType(type, astTypes.asList()),
+            kmDeclaredType(klass.qualifiedName ?: klass.java.canonicalName, astTypes.asList())
         )
     }
+    private fun kmDeclaredType(name: String, astTypes: List<AstType>): KmType = KmType(0).apply {
+        classifier = KmClassifier.Class(name).apply {
+            arguments.addAll(astTypes.map { KmTypeProjection(KmVariance.INVARIANT, kmDeclaredType(it.name, it.arguments)) })
+        }
+    }
 
-    private fun declaredType(type: TypeElement, astTypes: List<AstType>) = types.getDeclaredType(type, *astTypes.map {
+    private fun elementDeclaredType(type: TypeElement, astTypes: List<AstType>) = types.getDeclaredType(type, *astTypes.map {
         (it as ModelAstType).type
     }.toTypedArray())
 
@@ -452,6 +457,10 @@ private class ModelAstType(
 
     override fun isUnit(): Boolean = type is NoType
 
+    override fun isFunction(): Boolean {
+        return element.toString().matches(Regex("kotlin\\.jvm\\.functions\\.Function[0-9]+.*"))
+    }
+
     override fun asElement(): AstBasicElement =
         ModelBasicElement(this, element)
 
@@ -534,8 +543,13 @@ private val KmAnnotation.type: KmType
         classifier = KmClassifier.Class(className)
     }
 
-private fun KClass<*>.toKmType(): KmType = KmType(0).apply {
-    classifier = KmClassifier.Class(java.canonicalName)
+private fun KClass<*>.toKmType(args: List<KmTypeProjection>): KmType =
+    (qualifiedName ?: java.canonicalName).toKmType(args)
+
+private fun String.toKmType(args: List<KmTypeProjection>): KmType = KmType(0).apply {
+    classifier = KmClassifier.Class(this@toKmType).apply {
+        arguments.addAll(args)
+    }
 }
 
 private fun collectModifiers(flags: Flags?): Set<AstModifier> {
