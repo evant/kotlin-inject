@@ -420,7 +420,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         if (typeCreator != null) {
             return typeCreator.toResult(skipScoped)
         }
-        if (key.type.name.matches(Regex("kotlin\\.Function[0-9]+.*"))) {
+        if (key.type.isFunction()) {
             val typeAliasName = key.type.typeAliasName
             if (typeAliasName != null) {
                 // Check to see if we have a function matching the type alias

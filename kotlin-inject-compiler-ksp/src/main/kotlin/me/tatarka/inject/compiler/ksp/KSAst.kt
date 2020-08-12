@@ -337,6 +337,10 @@ private class KSAstType(provider: KSAstProvider) : AstType(), KSAstAnnotated, KS
         return type == resolver.builtIns.unitType
     }
 
+    override fun isFunction(): Boolean {
+        return type.declaration.qualifiedName!!.asString().matches(Regex("kotlin\\.Function[0-9]+.*"))
+    }
+
     override fun asElement(): AstBasicElement {
         return KSAstBasicElement(this, declaration)
     }

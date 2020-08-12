@@ -141,6 +141,8 @@ abstract class AstType : AstElement() {
 
     abstract fun isUnit(): Boolean
 
+    abstract fun isFunction(): Boolean
+
     @Suppress("NOTHING_TO_INLINE")
     inline fun isNotUnit() = !isUnit()
 
