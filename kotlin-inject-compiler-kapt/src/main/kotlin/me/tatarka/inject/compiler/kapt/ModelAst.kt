@@ -56,18 +56,46 @@ interface ModelAstProvider :
         return ModelAstType(
             this,
             elementDeclaredType(type, astTypes.asList()),
-            kmDeclaredType(klass.qualifiedName ?: klass.java.canonicalName, astTypes.asList())
+            kmDeclaredType(klass.kmClassName(), astTypes.asList())
         )
     }
-    private fun kmDeclaredType(name: String, astTypes: List<AstType>): KmType = KmType(0).apply {
+
+    private fun kmDeclaredType(name: kotlinx.metadata.ClassName, astTypes: List<AstType>): KmType = KmType(0).apply {
         classifier = KmClassifier.Class(name).apply {
-            arguments.addAll(astTypes.map { KmTypeProjection(KmVariance.INVARIANT, kmDeclaredType(it.name, it.arguments)) })
+            arguments.addAll(astTypes.map { type ->
+                require(type is ModelAstType)
+                KmTypeProjection(KmVariance.INVARIANT, type.kmType)
+            })
         }
     }
 
-    private fun elementDeclaredType(type: TypeElement, astTypes: List<AstType>) = types.getDeclaredType(type, *astTypes.map {
-        (it as ModelAstType).type
-    }.toTypedArray())
+    private fun KClass<*>.kmClassName(): kotlinx.metadata.ClassName {
+        val qualifiedName: String
+        val simpleName: String
+        if (this.qualifiedName != null) {
+            qualifiedName = this.qualifiedName!!
+            simpleName = this.simpleName!!
+        } else {
+            qualifiedName = java.canonicalName
+            simpleName = java.simpleName
+        }
+        val packageName = qualifiedName.removeSuffix(simpleName).replace('.', '/')
+        return "${packageName}/${simpleName}"
+    }
+
+    private fun ModelAstType.kmClassName(): kotlinx.metadata.ClassName {
+        return when (val classifier = kmType?.classifier) {
+            is KmClassifier.Class -> classifier.name
+            is KmClassifier.TypeAlias -> classifier.name
+            is KmClassifier.TypeParameter -> ""
+            null -> element.toString()
+        }
+    }
+
+    private fun elementDeclaredType(type: TypeElement, astTypes: List<AstType>) =
+        types.getDeclaredType(type, *astTypes.map {
+            (it as ModelAstType).type
+        }.toTypedArray())
 
     override fun AstElement.toTrace(): String {
         require(this is ModelAstElement)
@@ -147,7 +175,12 @@ private class ModelAstClass(
 ) : AstClass(),
     ModelAstElement, ModelAstProvider by provider {
 
-    override val packageName: String get() = elements.getPackageOf(element).qualifiedName.toString()
+    override val packageName: String get() {
+        if (kmClass != null) {
+            return kmClass.packageName
+        }
+        return elements.getPackageOf(element).qualifiedName.toString()
+    }
 
     override val name: String get() = element.simpleName.toString()
 
@@ -415,14 +448,24 @@ private class ModelAstProperty(
 private class ModelAstType(
     provider: ModelAstProvider,
     val type: TypeMirror,
-    private val kmType: KmType?
+    val kmType: KmType?
 ) : AstType(),
     ModelAstElement, ModelAstProvider by provider {
 
     override val element: Element get() = types.asElement(type)
 
-    override val name: String by lazy {
-        asTypeName().toString()
+    override val packageName: String get() {
+        if (kmType != null) {
+            return kmType.packageName
+        }
+        return elements.getPackageOf(element).qualifiedName.toString()
+    }
+
+    override val simpleName: String get() {
+        if (kmType != null) {
+            return kmType.simpleName
+        }
+        return element.simpleName.toString()
     }
 
     override val annotations: List<AstAnnotation> by lazy {
@@ -440,11 +483,6 @@ private class ModelAstType(
         }
     }
 
-    override val typeAliasName: String?
-        get() {
-            return (kmType?.abbreviatedType?.classifier as? KmClassifier.TypeAlias)?.name?.replace('/', '.')
-        }
-
     override val arguments: List<AstType> by lazy {
         val kmArgs: List<KmType?> = kmType?.arguments?.map { it.type } ?: emptyList()
         val args: List<TypeMirror> = (type as DeclaredType).typeArguments
@@ -459,6 +497,10 @@ private class ModelAstType(
 
     override fun isFunction(): Boolean {
         return element.toString().matches(Regex("kotlin\\.jvm\\.functions\\.Function[0-9]+.*"))
+    }
+
+    override fun isTypeAlis(): Boolean {
+        return kmType?.abbreviatedType != null
     }
 
     override fun asElement(): AstBasicElement =

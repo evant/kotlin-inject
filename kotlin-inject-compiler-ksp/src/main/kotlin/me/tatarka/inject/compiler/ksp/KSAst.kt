@@ -314,19 +314,14 @@ private class KSAstType(provider: KSAstProvider) : AstType(), KSAstAnnotated, KS
 
     override val declaration: KSDeclaration get() = type.declaration
 
-    override val name: String by lazy {
-        when (val declaration = type.declaration) {
-            is KSClassDeclaration -> declaration.qualifiedName!!.asString()
-            is KSTypeAlias -> declaration.findActualType().qualifiedName!!.asString()
-            else -> throw IllegalArgumentException("unknown declaration: $declaration")
-        }
-    }
+    override val packageName: String
+        get() = type.declaration.qualifiedName!!.getQualifier()
+
+    override val simpleName: String
+        get() = type.declaration.simpleName.asString()
 
     override val annotations: List<AstAnnotation>
         get() = TODO("Not yet implemented")
-
-    override val typeAliasName: String?
-        get() = (declaration as? KSTypeAlias)?.qualifiedName?.asString()
 
     override val arguments: List<AstType>
         get() = type.arguments.map {
@@ -339,6 +334,10 @@ private class KSAstType(provider: KSAstProvider) : AstType(), KSAstAnnotated, KS
 
     override fun isFunction(): Boolean {
         return type.declaration.qualifiedName!!.asString().matches(Regex("kotlin\\.Function[0-9]+.*"))
+    }
+
+    override fun isTypeAlis(): Boolean {
+        return declaration is KSTypeAlias
     }
 
     override fun asElement(): AstBasicElement {
@@ -363,11 +362,12 @@ private class KSAstType(provider: KSAstProvider) : AstType(), KSAstAnnotated, KS
     }
 
     override fun equals(other: Any?): Boolean {
-        return other is KSAstType && type == other.type
+        // don't use type == other.type as the impl declares differing typealias as equal and we don't want that behavior.
+        return other is KSAstType && type.asTypeName() == other.type.asTypeName()
     }
 
     override fun hashCode(): Int {
-        return type.hashCode()
+        return asTypeName().hashCode()
     }
 }
 
