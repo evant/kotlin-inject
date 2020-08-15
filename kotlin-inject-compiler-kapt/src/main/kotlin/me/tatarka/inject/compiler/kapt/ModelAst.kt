@@ -274,8 +274,9 @@ private class ModelAstConstructor(
 
     override val parameters: List<AstParam> by lazy {
         val params = element.parameters
-        val kmParams = kmConstructor!!.valueParameters
-        params.zip(kmParams).map { (param, kmParam) ->
+        val kmParams: List<KmValueParameter> = kmConstructor?.valueParameters ?: emptyList()
+        params.mapIndexed { index, param ->
+            val kmParam = kmParams.getOrNull(index)
             ModelAstParam(
                 this,
                 param,
@@ -574,14 +575,16 @@ private class ModelAstAnnotation(
 private class ModelAstParam(
     provider: ModelAstProvider,
     override val element: VariableElement,
-    val kmValueParameter: KmValueParameter
+    val kmValueParameter: KmValueParameter?
 ) : AstParam(),
     ModelAstElement, ModelAstProvider by provider {
 
-    override val name: String get() = kmValueParameter.name
+    override val name: String get() {
+        return kmValueParameter?.name ?: element.simpleName.toString()
+    }
 
     override val type: AstType by lazy {
-        ModelAstType(this, element.asType(), kmValueParameter.type!!)
+        ModelAstType(this, element.asType(), kmValueParameter?.type)
     }
 
     override fun asParameterSpec(): ParameterSpec = ParameterSpec.get(element)
