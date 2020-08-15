@@ -4,8 +4,7 @@ class CycleDetector {
 
     private val _elements = mutableListOf<AstElement>()
 
-    fun trace(provider: AstProvider, message: String): String = message + ":\n" +
-            _elements.reversed().joinToString(separator = "\n") { with(provider) { it.toTrace() } }
+    val elements: List<AstElement> get() = _elements
 
     fun check(element: AstElement): CycleResult {
         return if (element in _elements) {

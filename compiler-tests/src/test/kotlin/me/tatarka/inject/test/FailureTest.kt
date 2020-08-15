@@ -240,6 +240,26 @@ class FailureTest(private val target: Target) {
             "Cycle detected", "B(a: A)", "A(b: B)"
         )
     }
+
+    @Test
+    fun includes_trace_when_cant_inject() {
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt", """
+                    import me.tatarka.inject.annotations.Component
+                    import me.tatarka.inject.annotations.Inject
+                    
+                    @Inject class Foo(val s: String)
+                    
+                    @Component abstract class MyComponent {
+                        abstract val foo: Foo
+                    }
+                """.trimIndent()
+            ).compile()
+        }.isFailure().output().contains(
+            "Cannot find an @Inject constructor or provider for: String", "foo", "Foo"
+        )
+    }
 }
 
 private fun Target.sourceExt() = when (this) {

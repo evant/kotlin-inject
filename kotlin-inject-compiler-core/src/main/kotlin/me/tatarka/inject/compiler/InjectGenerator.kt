@@ -94,25 +94,32 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                     astClass.visitInheritanceChain { parentClass ->
                         for (method in parentClass.methods) {
                             if (method.isProvider()) {
-                                val codeBlock = CodeBlock.builder()
-                                codeBlock.add("return ")
-                                val returnType = method.returnTypeFor(astClass)
+                                context.use(method) { context ->
+                                    val codeBlock = CodeBlock.builder()
+                                    codeBlock.add("return ")
+                                    val returnType = method.returnTypeFor(astClass)
 
-                                codeBlock.add(provide(key = TypeKey(returnType), context = context, source = method))
-
-                                addProperty(
-                                    PropertySpec.builder(
-                                        method.name,
-                                        returnType.asTypeName(),
-                                        KModifier.OVERRIDE
-                                    )
-                                        .getter(
-                                            FunSpec.getterBuilder()
-                                                .addCode(codeBlock.build())
-                                                .build()
+                                    codeBlock.add(
+                                        provide(
+                                            key = TypeKey(returnType),
+                                            context = context
                                         )
-                                        .build()
-                                )
+                                    )
+
+                                    addProperty(
+                                        PropertySpec.builder(
+                                            method.name,
+                                            returnType.asTypeName(),
+                                            KModifier.OVERRIDE
+                                        )
+                                            .getter(
+                                                FunSpec.getterBuilder()
+                                                    .addCode(codeBlock.build())
+                                                    .build()
+                                            )
+                                            .build()
+                                    )
+                                }
                             }
                         }
                     }
@@ -215,13 +222,12 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
     private fun provide(
         key: TypeKey,
         context: Context,
-        source: AstElement? = null,
-        find: (TypeKey) -> Result? = { context.find(it) }
+        find: (Context, TypeKey) -> Result? = { context, key -> context.find(key) }
     ): CodeBlock {
-        val result = find(key)
+        val result = find(context, key)
             ?: throw FailedToGenerateException(
-                "Cannot find an @Inject constructor or provider for: $key",
-                source ?: context.source
+                context.trace("Cannot find an @Inject constructor or provider for: $key"),
+                context.source
             )
         return when (result) {
             is Result.Provides -> provideProvides(result, context)
@@ -238,57 +244,58 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
     private fun provideProvides(
         providesResult: Result.Provides,
         context: Context
-    ): CodeBlock = context.use(providesResult.method) { context ->
-        val codeBlock = CodeBlock.builder()
-
+    ): CodeBlock {
         val method = providesResult.method
-        val receiverParamType = method.receiverParameterType
-        val changeScope = providesResult.name != null && receiverParamType != null
+        return context.use(method) { context ->
+            val codeBlock = CodeBlock.builder()
 
-        if (providesResult.name != null) {
-            if (changeScope) {
-                codeBlock.add("with(%L)", providesResult.name)
-                codeBlock.beginControlFlow(" {")
-            } else {
-                codeBlock.add("%L.", providesResult.name)
-            }
-        }
+            val receiverParamType = method.receiverParameterType
+            val changeScope = providesResult.name != null && receiverParamType != null
 
-        when (method) {
-            is AstProperty -> {
-                if (receiverParamType != null) {
-                    codeBlock.add(provide(key = TypeKey(receiverParamType), context = context, source = method))
-                    codeBlock.add(".")
+            if (providesResult.name != null) {
+                if (changeScope) {
+                    codeBlock.add("with(%L)", providesResult.name)
+                    codeBlock.beginControlFlow(" {")
+                } else {
+                    codeBlock.add("%L.", providesResult.name)
                 }
-                codeBlock.add("%N", method.name)
             }
-            is AstFunction -> {
-                if (receiverParamType != null) {
-                    codeBlock.add(provide(key = TypeKey(receiverParamType), context = context, source = method))
-                    codeBlock.add(".")
-                }
-                codeBlock.add("%N(", method.name)
-                val size = method.parameters.size
-                method.parameters.forEachIndexed { i, param ->
-                    if (i != 0) {
-                        codeBlock.add(",")
+
+            when (method) {
+                is AstProperty -> {
+                    if (receiverParamType != null) {
+                        codeBlock.add(provide(key = TypeKey(receiverParamType), context = context))
+                        codeBlock.add(".")
                     }
-                    codeBlock.add(
-                        provide(
-                            key = TypeKey(param.type),
-                            context = context,
-                            source = param
-                        ) { context.findWithIndex(it, i, size) })
+                    codeBlock.add("%N", method.name)
                 }
-                codeBlock.add(")")
+                is AstFunction -> {
+                    if (receiverParamType != null) {
+                        codeBlock.add(provide(key = TypeKey(receiverParamType), context = context))
+                        codeBlock.add(".")
+                    }
+                    codeBlock.add("%N(", method.name)
+                    val size = method.parameters.size
+                    method.parameters.forEachIndexed { i, param ->
+                        if (i != 0) {
+                            codeBlock.add(",")
+                        }
+                        codeBlock.add(
+                            provide(
+                                key = TypeKey(param.type),
+                                context = context
+                            ) { context, key -> context.findWithIndex(key, i, size) })
+                    }
+                    codeBlock.add(")")
+                }
             }
-        }
 
-        if (changeScope) {
-            codeBlock.endControlFlow()
-        }
+            if (changeScope) {
+                codeBlock.endControlFlow()
+            }
 
-        codeBlock.build()
+            codeBlock.build()
+        }
     }
 
     private fun provideConstructor(
@@ -302,12 +309,8 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
             if (i != 0) {
                 codeBlock.add(",")
             }
-            codeBlock.add(provide(key = TypeKey(param.type), context = context, source = param) {
-                context.findWithIndex(
-                    it,
-                    i,
-                    size
-                )
+            codeBlock.add(provide(key = TypeKey(param.type), context = context) { context, key ->
+                context.findWithIndex(key, i, size)
             })
         }
         codeBlock.add(")")
@@ -377,15 +380,15 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                     add(" ->")
                 }
 
-                val context = context.withArgs(argList)
-
                 add("%L(", result.function.asMemberName().toString())
                 val size = result.function.parameters.size
                 result.function.parameters.forEachIndexed { i, param ->
                     if (i != 0) {
                         add(",")
                     }
-                    add(provide(TypeKey(param.type), context) { context.findWithIndex(it, i, size) })
+                    add(provide(TypeKey(param.type), context.withArgs(argList)) { context, key ->
+                        context.findWithIndex(key, i, size)
+                    })
                 }
                 add(")")
 
@@ -482,21 +485,27 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
     ) {
         fun withoutScoped(scoped: AstType) = copy(skipScoped = scoped)
 
+        fun withSource(source: AstElement) = copy(source = source)
+
         fun withArgs(args: List<Pair<AstType, String>>) = copy(args = args)
 
         fun <T> use(source: AstElement, f: (context: Context) -> T): T {
             return when (cycleDetector.check(source)) {
                 CycleResult.None -> {
-                    f(copy(source = source)).also {
+                    f(withSource(source)).also {
                         cycleDetector.pop()
                     }
                 }
                 CycleResult.Cycle -> {
-                    throw FailedToGenerateException(cycleDetector.trace(provider, "Cycle detected"), source)
+                    throw FailedToGenerateException(trace("Cycle detected"), source)
                 }
                 CycleResult.Resolvable -> TODO()
             }
         }
+
+        fun trace(message: String): String = "$message:\n" +
+                cycleDetector.elements.reversed()
+                    .joinToString(separator = "\n") { with(provider) { it.toTrace() } }
     }
 
     sealed class Result(val name: String?) {
