@@ -407,8 +407,8 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
 
     private fun Context.findWithIndex(key: TypeKey, index: Int, size: Int): Result? {
         val indexFromEnd = size - index - 1
-        args.asReversed().forEachIndexed { i, (type, name) ->
-            if (i == indexFromEnd && type.isAssignableFrom(key.type)) {
+        args.asReversed().getOrNull(indexFromEnd)?.let { (type, name) ->
+            if (type.isAssignableFrom(key.type)) {
                 return Result.Arg(name)
             }
         }

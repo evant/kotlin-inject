@@ -312,7 +312,7 @@ private class KSAstType(provider: KSAstProvider) : AstType(), KSAstAnnotated, KS
     }
 
     override fun isFunction(): Boolean {
-        val name = actualType().qualifiedName ?: return false
+        val name = type.actualType().declaration.qualifiedName ?: return false
         return name.getQualifier() == "kotlin" && name.getShortName().matches(Regex("Function[0-9]+"))
     }
 
@@ -347,7 +347,9 @@ private class KSAstType(provider: KSAstProvider) : AstType(), KSAstAnnotated, KS
 
     override fun isAssignableFrom(other: AstType): Boolean {
         require(other is KSAstType)
-        return type.isAssignableFrom(other.type)
+        // potential bug in isAssignableFrom when using typealises, manually check their underlying type
+        // https://github.com/android/kotlin/issues/106
+        return type.actualType().isAssignableFrom(other.type.actualType())
     }
 
     override fun equals(other: Any?): Boolean {
@@ -359,9 +361,9 @@ private class KSAstType(provider: KSAstProvider) : AstType(), KSAstAnnotated, KS
         return asTypeName().hashCode()
     }
 
-    private fun actualType() = when (val declaration = declaration) {
-        is KSTypeAlias -> declaration.findActualType()
-        else -> declaration
+    private fun KSType.actualType(): KSType = when (val declaration = declaration) {
+        is KSTypeAlias -> declaration.type.resolve()!!.actualType()
+        else -> this
     }
 }
 
