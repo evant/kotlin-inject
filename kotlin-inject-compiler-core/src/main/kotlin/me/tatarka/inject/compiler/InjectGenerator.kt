@@ -251,14 +251,27 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
 
             val receiverParamType = method.receiverParameterType
             val changeScope = providesResult.name != null && receiverParamType != null
+            val changeScopeName = providesResult.name?.let {
+                if (context.parentScopeName != null) {
+                    it.removePrefix("${context.parentScopeName}.")
+                } else {
+                    it
+                }
+            }
 
             if (providesResult.name != null) {
                 if (changeScope) {
-                    codeBlock.add("with(%L)", providesResult.name)
+                    codeBlock.add("with(%L)", changeScopeName)
                     codeBlock.beginControlFlow(" {")
                 } else {
-                    codeBlock.add("%L.", providesResult.name)
+                    codeBlock.add("%L.", changeScopeName)
                 }
+            }
+
+            val context = if (changeScope) {
+                context.withParentScopeName(providesResult.name)
+            } else {
+                context
             }
 
             when (method) {
@@ -481,11 +494,17 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         val cycleDetector: CycleDetector,
         val scopeInterface: AstClass? = null,
         val args: List<Pair<AstType, String>> = emptyList(),
-        val skipScoped: AstType? = null
+        val skipScoped: AstType? = null,
+        val parentScopeName: String? = null
     ) {
         fun withoutScoped(scoped: AstType) = copy(skipScoped = scoped)
 
         fun withSource(source: AstElement) = copy(source = source)
+
+        fun withParentScopeName(name: String?): Context {
+            if (name == null) return this
+            return copy(parentScopeName = if (parentScopeName == null) name else "$parentScopeName.$name")
+        }
 
         fun withArgs(args: List<Pair<AstType, String>>) = copy(args = args)
 
