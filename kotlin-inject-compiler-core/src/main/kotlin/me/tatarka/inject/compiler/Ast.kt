@@ -156,6 +156,8 @@ abstract class AstType : AstElement() {
 
     abstract fun isTypeAlis(): Boolean
 
+    abstract fun resolvedType(): AstType
+
     @Suppress("NOTHING_TO_INLINE")
     inline fun isNotUnit() = !isUnit()
 

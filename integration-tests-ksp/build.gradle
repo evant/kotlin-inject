@@ -1,6 +1,6 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.4.0-rc'
-    id("org.jetbrains.kotlin.ksp") version "1.4.0-rc-dev-experimental-20200731"
+    id("org.jetbrains.kotlin.ksp") version "1.4.0-rc-dev-experimental-20200814"
 }
 
 dependencies {
@@ -21,6 +21,10 @@ sourceSets {
     test {
         kotlin.srcDir '../integration-tests/src/test/kotlin'
     }
+}
+
+ksp {
+    arg("me.tatarka.inject.enableJavaxAnnotations", "true")
 }
 
 sourceCompatibility = 1.8
