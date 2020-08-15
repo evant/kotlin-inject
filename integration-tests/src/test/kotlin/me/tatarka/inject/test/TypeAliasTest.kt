@@ -29,6 +29,13 @@ typealias NamedFoo2 = NamedFoo
     @Provides fun foo2(): NamedFoo2 = NamedFoo("2")
 }
 
+@CustomScope @Component abstract class ScopedConstructorAliasedComponent {
+    abstract val aliasedFoo: AliasedFoo
+
+    @CustomScope @Provides fun foo1(): NamedFoo1 = NamedFoo("1")
+    @CustomScope @Provides fun foo2(): NamedFoo2 = NamedFoo("2")
+}
+
 @Target(AnnotationTarget.TYPE)
 annotation class FooAnnotation
 
@@ -57,6 +64,16 @@ class QualifierTest {
     @Test
     fun generates_a_component_that_constructs_different_values_based_on_the_type_alias_name() {
         val component = ConstructorAliasedComponent::class.create()
+
+        assertAll {
+            assertThat(component.aliasedFoo.foo1.name).isEqualTo("1")
+            assertThat(component.aliasedFoo.foo2.name).isEqualTo("2")
+        }
+    }
+
+    @Test
+    fun generates_a_component_that_constructs_different_scoped_values_based_on_the_type_alias_name() {
+        val component = ScopedConstructorAliasedComponent::class.create()
 
         assertAll {
             assertThat(component.aliasedFoo.foo1.name).isEqualTo("1")

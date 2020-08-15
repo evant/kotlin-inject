@@ -80,7 +80,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
 
                         addProperty(
                             PropertySpec.builder(
-                                type.asElement().simpleName.asScopedProp(),
+                                type.simpleName.asScopedProp(),
                                 type.asTypeName()
                             ).apply {
                                 if (context.scopeInterface != null) {
@@ -143,7 +143,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                 for (type in context.collector.scoped) {
                     addProperty(
                         PropertySpec.builder(
-                            type.asElement().simpleName.asScopedProp(),
+                            type.simpleName.asScopedProp(),
                             type.asTypeName()
                         ).build()
                     )
@@ -335,7 +335,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         if (result.name != null) {
             codeBlock.add("(%L as Inject%N).", result.name, result.astClass.name)
         }
-        codeBlock.add("%N", key.type.asElement().simpleName.asScopedProp())
+        codeBlock.add("%N", key.type.simpleName.asScopedProp())
         return codeBlock.build()
     }
 
