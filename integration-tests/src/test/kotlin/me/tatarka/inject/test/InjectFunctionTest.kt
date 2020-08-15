@@ -10,10 +10,12 @@ import org.junit.Test
     abstract val bar: bar
 }
 
-typealias foo = (String) -> String
+typealias F = String
+
+typealias foo = (F) -> String
 
 @Inject
-fun foo(dep: Foo, arg: String): String = arg
+fun foo(dep: Foo, arg: F): String = arg
 
 typealias bar = () -> String
 
