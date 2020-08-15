@@ -26,7 +26,9 @@ fun KSAnnotated.hasAnnotation(className: String): Boolean {
 
 fun KSDeclaration.asClassName(): ClassName {
     val name = qualifiedName!!
-    return ClassName(name.getQualifier(), name.getShortName())
+    val packageName = packageName.asString()
+    val shortName = name.asString().removePrefix("$packageName.")
+    return ClassName(if (packageName == "<root>") "" else packageName, shortName.split('.'))
 }
 
 fun KSDeclaration.isAbstract() = when (this) {

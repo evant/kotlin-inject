@@ -144,7 +144,6 @@ private class KSAstClass(provider: KSAstProvider, override val declaration: KSCl
 
     override val primaryConstructor: AstConstructor? by lazy {
         declaration.primaryConstructor?.let { KSAstConstructor(this, this, it) }
-            ?: KSAstEmptyConstructor(this, this)
     }
 
     override val methods: List<AstMethod> by lazy {
@@ -194,26 +193,6 @@ private class KSAstConstructor(
     }
 }
 
-private class KSAstEmptyConstructor(
-    provider: KSAstProvider,
-    private val parent: AstClass
-) : AstConstructor(parent), KSAstProvider by provider {
-
-    override val parameters: List<AstParam> = emptyList()
-
-    override fun hasAnnotation(className: String): Boolean = false
-
-    override fun typeAnnotatedWith(className: String): AstClass? = null
-
-    override fun equals(other: Any?): Boolean {
-        return other is KSAstEmptyConstructor && parent == other.parent
-    }
-
-    override fun hashCode(): Int {
-        return parent.hashCode()
-    }
-}
-
 private class KSAstFunction(provider: KSAstProvider, override val declaration: KSFunctionDeclaration) : AstFunction(),
     KSAstAnnotated, KSAstProvider by provider {
 
@@ -245,7 +224,7 @@ private class KSAstFunction(provider: KSAstProvider, override val declaration: K
 
     override fun asMemberName(): MemberName {
         val packageName = declaration.qualifiedName?.getQualifier().orEmpty()
-        return MemberName(packageName, declaration.simpleName.toString())
+        return MemberName(packageName, declaration.simpleName.asString())
     }
 
     override fun equals(other: Any?): Boolean {
@@ -333,11 +312,21 @@ private class KSAstType(provider: KSAstProvider) : AstType(), KSAstAnnotated, KS
     }
 
     override fun isFunction(): Boolean {
-        return type.declaration.qualifiedName!!.asString().matches(Regex("kotlin\\.Function[0-9]+.*"))
+        val name = actualType().qualifiedName ?: return false
+        return name.getQualifier() == "kotlin" && name.getShortName().matches(Regex("Function[0-9]+"))
     }
 
     override fun isTypeAlis(): Boolean {
         return declaration is KSTypeAlias
+    }
+
+    override fun resolvedType(): AstType {
+        val declaration = declaration
+        return if (declaration is KSTypeAlias) {
+            KSAstType(this, declaration.type)
+        } else {
+            this
+        }
     }
 
     override fun asElement(): AstBasicElement {
@@ -368,6 +357,11 @@ private class KSAstType(provider: KSAstProvider) : AstType(), KSAstAnnotated, KS
 
     override fun hashCode(): Int {
         return asTypeName().hashCode()
+    }
+
+    private fun actualType() = when (val declaration = declaration) {
+        is KSTypeAlias -> declaration.findActualType()
+        else -> declaration
     }
 }
 

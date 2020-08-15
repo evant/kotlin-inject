@@ -69,7 +69,7 @@ class ProjectCompiler(private val root: File, private val target: Target) {
 
         val buildFile = dir.resolve("build.gradle")
 
-        val pluginVersion = if (target == Target.ksp) "1.4.0-rc-dev-experimental-20200731" else kotlinVersion
+        val pluginVersion = if (target == Target.ksp) "1.4.0-rc-dev-experimental-20200814" else kotlinVersion
 
         buildFile.writeText(
             """

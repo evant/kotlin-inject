@@ -175,12 +175,13 @@ private class ModelAstClass(
 ) : AstClass(),
     ModelAstElement, ModelAstProvider by provider {
 
-    override val packageName: String get() {
-        if (kmClass != null) {
-            return kmClass.packageName
+    override val packageName: String
+        get() {
+            if (kmClass != null) {
+                return kmClass.packageName
+            }
+            return elements.getPackageOf(element).qualifiedName.toString()
         }
-        return elements.getPackageOf(element).qualifiedName.toString()
-    }
 
     override val name: String get() = element.simpleName.toString()
 
@@ -454,19 +455,21 @@ private class ModelAstType(
 
     override val element: Element get() = types.asElement(type)
 
-    override val packageName: String get() {
-        if (kmType != null) {
-            return kmType.packageName
+    override val packageName: String
+        get() {
+            if (kmType != null) {
+                return kmType.packageName
+            }
+            return elements.getPackageOf(element).qualifiedName.toString()
         }
-        return elements.getPackageOf(element).qualifiedName.toString()
-    }
 
-    override val simpleName: String get() {
-        if (kmType != null) {
-            return kmType.simpleName
+    override val simpleName: String
+        get() {
+            if (kmType != null) {
+                return kmType.simpleName
+            }
+            return element.simpleName.toString()
         }
-        return element.simpleName.toString()
-    }
 
     override val annotations: List<AstAnnotation> by lazy {
         if (kmType != null) {
@@ -501,6 +504,15 @@ private class ModelAstType(
 
     override fun isTypeAlis(): Boolean {
         return kmType?.abbreviatedType != null
+    }
+
+    override fun resolvedType(): AstType {
+        val abbreviatedType = kmType?.abbreviatedType
+        return if (abbreviatedType != null) {
+            ModelAstType(this, type, abbreviatedType)
+        } else {
+            this
+        }
     }
 
     override fun asElement(): AstBasicElement =
