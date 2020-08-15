@@ -421,12 +421,9 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
             return typeCreator.toResult(skipScoped)
         }
         if (key.type.isFunction()) {
-            val typeAliasName = key.type.typeAliasName
-            if (typeAliasName != null) {
+            if (key.type.isTypeAlis()) {
                 // Check to see if we have a function matching the type alias
-                val packageName = typeAliasName.substringBeforeLast('.')
-                val simpleName = typeAliasName.substringAfterLast('.')
-                val functions = findFunctions(packageName, simpleName)
+                val functions = findFunctions(key.type.packageName, key.type.simpleName)
                 val injectedFunction = functions.find { it.hasAnnotation<Inject>() }
                 if (injectedFunction != null) {
                     return Result.NamedFunction(
@@ -442,7 +439,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                 args = key.type.arguments.dropLast(1)
             )
         }
-        if (key.type.name.startsWith("kotlin.Lazy")) {
+        if (key.type.packageName == "kotlin" && key.type.simpleName == "Lazy") {
             val lKey = TypeKey(key.type.arguments[0])
             return Result.Lazy(key = lKey)
         }

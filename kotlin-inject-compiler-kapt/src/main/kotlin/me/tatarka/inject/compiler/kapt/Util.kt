@@ -165,6 +165,46 @@ fun TypeMirror.asTypeName(kmType: KmType?): TypeName {
     return asTypeName()
 }
 
+val KmClass.packageName: String get() = name.packageName
+
+val KmType.packageName: String get() {
+    val abbreviatedType = abbreviatedType
+    if (abbreviatedType != null) {
+        return abbreviatedType.packageName
+    }
+    return when (val c = classifier) {
+        is KmClassifier.Class -> c.name.packageName
+        is KmClassifier.TypeAlias -> c.name.packageName
+        is KmClassifier.TypeParameter -> ""
+    }
+}
+
+val KmType.simpleName: String get() {
+    val abbreviatedType = abbreviatedType
+    if (abbreviatedType != null) {
+        return abbreviatedType.simpleName
+    }
+    return when (val c = classifier) {
+        is KmClassifier.Class -> c.name.simpleName
+        is KmClassifier.TypeAlias -> c.name.simpleName
+        is KmClassifier.TypeParameter -> ""
+    }
+}
+
+val kotlinx.metadata.ClassName.packageName: String get() {
+    val split = lastIndexOf('/')
+    return if (split == -1) {
+        ""
+    } else {
+        substring(0, split).replace('/', '.')
+    }
+}
+
+val kotlinx.metadata.ClassName.simpleName: String get() {
+    val split = lastIndexOf('/')
+    return substring(split + 1)
+}
+
 fun KmType.asTypeName(): TypeName? {
     val abbreviatedType = abbreviatedType
     if (abbreviatedType != null) {

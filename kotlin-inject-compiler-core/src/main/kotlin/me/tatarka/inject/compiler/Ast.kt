@@ -129,19 +129,32 @@ abstract class AstProperty : AstMethod() {
     }
 }
 
+private val DEFAULT_IMPORTS = arrayOf(
+    "kotlin",
+    "kotlin.annotation",
+    "kotlin.collections",
+    "kotlin.comparisons",
+    "kotlin.io",
+    "kotlin.ranges",
+    "kotlin.sequences",
+    "kotlin.text"
+)
+
 abstract class AstType : AstElement() {
 
-    abstract val name: String
+    abstract val packageName: String
+
+    abstract val simpleName: String
 
     abstract val annotations: List<AstAnnotation>
-
-    abstract val typeAliasName: String?
 
     abstract val arguments: List<AstType>
 
     abstract fun isUnit(): Boolean
 
     abstract fun isFunction(): Boolean
+
+    abstract fun isTypeAlis(): Boolean
 
     @Suppress("NOTHING_TO_INLINE")
     inline fun isNotUnit() = !isUnit()
@@ -154,9 +167,13 @@ abstract class AstType : AstElement() {
 
     abstract fun isAssignableFrom(other: AstType): Boolean
 
-    override fun toString(): String {
-        val n = name
-        return if (n.substringBeforeLast('.') == "kotlin") n.removePrefix("kotlin.") else n
+    final override fun toString(): String {
+        val packageName = packageName
+        return if (packageName in DEFAULT_IMPORTS) {
+            asTypeName().toString().removePrefix("$packageName.")
+        } else {
+            asTypeName().toString()
+        }
     }
 }
 
