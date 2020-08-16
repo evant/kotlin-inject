@@ -2,6 +2,7 @@ package me.tatarka.inject.test
 
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Scope
+import kotlin.annotation.AnnotationTarget.*
 
 interface IFoo
 
@@ -34,6 +35,7 @@ interface INamedBar {
 class NamedBar(override val name: String) : INamedBar
 
 @Scope
+@Target(CLASS, FUNCTION, PROPERTY_GETTER)
 annotation class CustomScope
 
 var customScopeBarConstructorCount = 0

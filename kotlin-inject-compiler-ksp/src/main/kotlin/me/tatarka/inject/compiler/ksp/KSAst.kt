@@ -211,7 +211,7 @@ private class KSAstFunction(provider: KSAstProvider, override val declaration: K
         get() = declaration.extensionReceiver?.let { KSAstType(this, it) }
 
     override fun overrides(other: AstMethod): Boolean {
-        require(other is KSAstFunction)
+        if (other !is KSAstFunction) return false
         return declaration.overrides(other.declaration)
     }
 
@@ -249,8 +249,8 @@ private class KSAstProperty(provider: KSAstProvider, override val declaration: K
         get() = declaration.extensionReceiver?.let { KSAstType(this, it) }
 
     override fun overrides(other: AstMethod): Boolean {
-        require(other is KSAstProperty)
-        return false //TODO?
+        if (other !is KSAstProperty) return false
+        return declaration.overrides(other.declaration)
     }
 
     override val returnType: AstType
@@ -264,6 +264,18 @@ private class KSAstProperty(provider: KSAstProvider, override val declaration: K
     override fun asMemberName(): MemberName {
         val packageName = declaration.qualifiedName?.getQualifier().orEmpty()
         return MemberName(packageName, declaration.simpleName.toString())
+    }
+
+    override fun hasAnnotation(className: String): Boolean {
+        // also check the declaration itself https://github.com/android/kotlin/issues/108
+        return declaration.getter?.hasAnnotation(className) == true
+                || declaration.hasAnnotation(className)
+    }
+
+    override fun typeAnnotatedWith(className: String): AstClass? {
+        // also check the declaration itself https://github.com/android/kotlin/issues/108
+        return (declaration.getter?.typeAnnotatedWith(className)?.declaration as? KSClassDeclaration)?.toAstClass()
+            ?: (declaration.typeAnnotatedWith(className)?.declaration as? KSClassDeclaration)?.toAstClass()
     }
 
     override fun equals(other: Any?): Boolean {

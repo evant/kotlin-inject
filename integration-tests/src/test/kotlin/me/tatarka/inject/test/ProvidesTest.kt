@@ -34,9 +34,8 @@ class ProvidesFoo(val bar: ProvidesBar? = null)
 
     abstract val foo: ProvidesFoo
 
-    @Provides
     val provideFoo
-        get() = ProvidesFoo().also { providesCalled = true }
+        @Provides get() = ProvidesFoo().also { providesCalled = true }
 }
 
 @Component abstract class ProvidesExtensionFunctionComponent {
@@ -53,12 +52,11 @@ class ProvidesFoo(val bar: ProvidesBar? = null)
 
     abstract val foo: ProvidesFoo
 
-    @Provides
     val ProvidesBar.provideFoo
-        get() = ProvidesFoo(this).also { providesCalled = true }
+        @Provides get() = ProvidesFoo(this).also { providesCalled = true }
 }
 
-@Component abstract class ProvidesValConstructorComponent(@Provides val provideFoo: ProvidesFoo) {
+@Component abstract class ProvidesValConstructorComponent(@get:Provides val provideFoo: ProvidesFoo) {
     abstract val foo: ProvidesFoo
 }
 
@@ -79,13 +77,11 @@ class Foo2
     @Provides
     fun foo(bar: ProvidesBar) = Foo2()
 
-    @Provides
     val foo
-        get() = Foo3()
+        @Provides get() = Foo3()
 
-    @Provides
     val Foo3.foo: IFoo
-        get() = this
+        @Provides get() = this
 }
 
 class IntFoo(val int: Int)
@@ -114,65 +110,50 @@ class StringArrayFoo(val stringArray: Array<String>)
 @Component abstract class ProvidesBasicTypes {
     abstract val basicType: BasicTypes
 
-    @Provides
     val boolean
-        get() = true
+        @Provides get() = true
 
-    @Provides
     val byte
-        get() = 1.toByte()
+        @Provides get() = 1.toByte()
 
-    @Provides
     val char
-        get() = 'a'
+        @Provides get() = 'a'
 
-    @Provides
     val short
-        get() = 2.toShort()
+        @Provides get() = 2.toShort()
 
-    @Provides
     val int
-        get() = 3
+        @Provides get() = 3
 
-    @Provides
     val long
-        get() = 4L
+        @Provides get() = 4L
 
-    @Provides
     val float
-        get() = 5f
+        @Provides get() = 5f
 
-    @Provides
     val double
-        get() = 6.0
+        @Provides get() = 6.0
 
-    @Provides
     val string
-        get() = "b"
+        @Provides get() = "b"
 
-    @Provides
     val booleanArray
-        get() = booleanArrayOf(true)
+        @Provides get() = booleanArrayOf(true)
 
-    @Provides
     val stringArray
-        get() = arrayOf("c")
+        @Provides get() = arrayOf("c")
 
-    @Provides
     val intArray
-        get() = intArrayOf(7)
+        @Provides get() = intArrayOf(7)
 
-    @Provides
     val Int.bind
-        get() = IntFoo(this)
+        @Provides get() = IntFoo(this)
 
-    @Provides
     val IntArray.bind
-        get() = IntArrayFoo(this)
+        @Provides get() = IntArrayFoo(this)
 
-    @Provides
     val Array<String>.bind
-        get() = StringArrayFoo(this)
+        @Provides get() = StringArrayFoo(this)
 }
 
 class ProvidesTest {

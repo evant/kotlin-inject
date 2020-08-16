@@ -8,7 +8,6 @@ import com.squareup.kotlinpoet.TypeVariableName
 import org.jetbrains.kotlin.ksp.isAbstract
 import org.jetbrains.kotlin.ksp.symbol.*
 import org.jetbrains.kotlin.ksp.visitor.KSDefaultVisitor
-import kotlin.reflect.KClass
 
 fun KSAnnotated.typeAnnotatedWith(className: String): KSType? {
     for (annotation in annotations) {
@@ -33,10 +32,16 @@ fun KSDeclaration.asClassName(): ClassName {
 
 fun KSDeclaration.isAbstract() = when (this) {
     is KSFunctionDeclaration -> isAbstract
-    is KSPropertyDeclaration -> isAbstract()
+    is KSPropertyDeclaration -> {
+        isAbstractWorkaround()
+    }
     is KSClassDeclaration -> isAbstract()
     else -> false
 }
+
+// https://github.com/android/kotlin/issues/107
+fun KSPropertyDeclaration.isAbstractWorkaround() = this.modifiers.contains(Modifier.ABSTRACT) ||
+        ((this.parentDeclaration as? KSClassDeclaration)?.classKind == ClassKind.INTERFACE && getter?.origin == Origin.SYNTHETIC)
 
 fun KSTypeReference.memberOf(enclosingClass: KSClassDeclaration): KSTypeReference {
     val declaration = resolve()!!.declaration
@@ -63,6 +68,7 @@ fun KSType.asTypeName(): TypeName {
         override fun visitTypeAlias(typeAlias: KSTypeAlias, data: Unit): TypeName {
             return fromDeclaration(typeAlias)
         }
+
         override fun visitTypeParameter(typeParameter: KSTypeParameter, data: Unit): TypeName {
             return TypeVariableName(
                 name = typeParameter.name.asString(),

@@ -411,27 +411,9 @@ private class ModelAstProperty(
             ModelAstType(this, element.parameters[0].asType(), it)
         }
 
-    private val annotatedElement: Element? by lazy {
-        val signature = kmProperty.syntheticMethodForAnnotations ?: return@lazy null
-        for (method in ElementFilter.methodsIn(element.enclosingElement.enclosedElements)) {
-            if (method.matches(signature)) {
-                return@lazy method
-            }
-        }
-        null
-    }
-
     override fun overrides(other: AstMethod): Boolean {
         require(other is ModelAstMethod)
         return elements.overrides(element, other.element, parent)
-    }
-
-    override fun hasAnnotation(className: String): Boolean {
-        return annotatedElement?.hasAnnotation(className) == true
-    }
-
-    override fun typeAnnotatedWith(className: String): AstClass? {
-        return annotatedElement?.typeAnnotatedWith(className)?.toAstClass()
     }
 
     override fun asMemberName(): MemberName {

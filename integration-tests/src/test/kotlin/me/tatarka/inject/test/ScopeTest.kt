@@ -18,10 +18,8 @@ import kotlin.test.Test
 
     abstract val foo: IFoo
 
-    @Provides
-    @CustomScope
     val Foo.binds: IFoo
-        get() = this
+        @Provides @CustomScope get() = this
 }
 
 
