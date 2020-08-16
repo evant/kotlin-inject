@@ -32,14 +32,16 @@ fun KSDeclaration.asClassName(): ClassName {
 
 fun KSDeclaration.isAbstract() = when (this) {
     is KSFunctionDeclaration -> isAbstract
-    is KSPropertyDeclaration -> isAbstractWorkaround()
+    is KSPropertyDeclaration -> {
+        isAbstractWorkaround()
+    }
     is KSClassDeclaration -> isAbstract()
     else -> false
 }
 
 // https://github.com/android/kotlin/issues/107
 fun KSPropertyDeclaration.isAbstractWorkaround() = this.modifiers.contains(Modifier.ABSTRACT) ||
-        ((this.parentDeclaration as? KSClassDeclaration)?.classKind == ClassKind.INTERFACE && getter == null)
+        ((this.parentDeclaration as? KSClassDeclaration)?.classKind == ClassKind.INTERFACE && getter?.origin == Origin.SYNTHETIC)
 
 fun KSTypeReference.memberOf(enclosingClass: KSClassDeclaration): KSTypeReference {
     val declaration = resolve()!!.declaration
