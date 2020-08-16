@@ -211,7 +211,7 @@ private class KSAstFunction(provider: KSAstProvider, override val declaration: K
         get() = declaration.extensionReceiver?.let { KSAstType(this, it) }
 
     override fun overrides(other: AstMethod): Boolean {
-        require(other is KSAstFunction)
+        if (other !is KSAstFunction) return false
         return declaration.overrides(other.declaration)
     }
 
@@ -249,7 +249,7 @@ private class KSAstProperty(provider: KSAstProvider, override val declaration: K
         get() = declaration.extensionReceiver?.let { KSAstType(this, it) }
 
     override fun overrides(other: AstMethod): Boolean {
-        require(other is KSAstProperty)
+//        require(other is KSAstProperty)
         return false //TODO?
     }
 
