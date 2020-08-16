@@ -266,6 +266,18 @@ private class KSAstProperty(provider: KSAstProvider, override val declaration: K
         return MemberName(packageName, declaration.simpleName.toString())
     }
 
+    override fun hasAnnotation(className: String): Boolean {
+        // also check the declaration itself https://github.com/android/kotlin/issues/108
+        return declaration.getter?.hasAnnotation(className) == true
+                || declaration.hasAnnotation(className)
+    }
+
+    override fun typeAnnotatedWith(className: String): AstClass? {
+        // also check the declaration itself https://github.com/android/kotlin/issues/108
+        return (declaration.getter?.typeAnnotatedWith(className)?.declaration as? KSClassDeclaration)?.toAstClass()
+            ?: (declaration.typeAnnotatedWith(className)?.declaration as? KSClassDeclaration)?.toAstClass()
+    }
+
     override fun equals(other: Any?): Boolean {
         return other is KSAstProperty && declaration == other.declaration
     }

@@ -12,7 +12,7 @@ annotation class Inject
 annotation class Component
 
 @Retention(RUNTIME)
-@Target(FUNCTION, PROPERTY)
+@Target(FUNCTION, PROPERTY_GETTER)
 annotation class Provides
 
 @Retention(RUNTIME)
@@ -20,10 +20,10 @@ annotation class Provides
 annotation class Scope
 
 @Retention(RUNTIME)
-@Target(FUNCTION, PROPERTY)
+@Target(FUNCTION, PROPERTY_GETTER)
 annotation class IntoSet
 
 @Retention(RUNTIME)
-@Target(FUNCTION, PROPERTY)
+@Target(FUNCTION, PROPERTY_GETTER)
 annotation class IntoMap
 

@@ -9,7 +9,8 @@ A compile-time dependency injection library for kotlin.
     
     @Provides protected fun jsonParser() = JsonParser()
 
-    @Provides protected val RealHttp.http: Http get() = this
+    protected val RealHttp.http: Http
+        @Provides get() = this
 }
 
 interface Http
@@ -111,7 +112,8 @@ For external dependencies, you can declare a function or read-only property in t
 certain type. kotlin-inject will use the return type to provide this instance where it is requested.
 
 ```kotlin
-    @Provides protected val RealHttp.http: Http get() = this
+    protected val RealHttp.http: Http
+        @Provides get() = this
 ```
 You can declare arguments to a providing function/property to help you construct your instance. Here we are taking in an
 instance of `RealHttp` and providing it for the interface `Http`. You can see a little sugar with this as the receiver 
@@ -141,7 +143,7 @@ If you need to pass any instances into your component you can declare them as co
 the generated create function. You can optionally annotate it with `@Provides` to provide the value to the dependency graph.
 
 ```kotlin
-@Component abstract class MyComponent(@Provides protected val foo: Foo)
+@Component abstract class MyComponent(@get:Provides protected val foo: Foo)
 ```
 
 ```kotlin

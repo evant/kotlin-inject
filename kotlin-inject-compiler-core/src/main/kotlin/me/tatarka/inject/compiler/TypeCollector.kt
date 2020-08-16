@@ -95,9 +95,14 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
             val scopedComponent = if (scopeType != null) astClass else null
             if (method.hasAnnotation<IntoMap>()) {
                 // Pair<A, B> -> Map<A, B>
-                val typeArgs = method.returnTypeFor(astClass).arguments
-                val mapType = TypeKey(declaredTypeOf(Map::class, typeArgs[0], typeArgs[1]))
-                addContainerType(mapType, mapOf, method, accessor, scopedComponent)
+                val type = method.returnTypeFor(astClass)
+                if (type.packageName == "kotlin" && type.simpleName == "Pair") {
+                    val typeArgs = method.returnTypeFor(astClass).arguments
+                    val mapType = TypeKey(declaredTypeOf(Map::class, typeArgs[0], typeArgs[1]))
+                    addContainerType(mapType, mapOf, method, accessor, scopedComponent)
+                } else {
+                    error("@IntoMap must have return type of type Pair", method)
+                }
             } else if (method.hasAnnotation<IntoSet>()) {
                 // A -> Set<A>
                 val setType = TypeKey(declaredTypeOf(Set::class, method.returnTypeFor(astClass)))

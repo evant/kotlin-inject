@@ -13,9 +13,8 @@ data class FooValue(val name: String)
     @Provides @IntoSet
     fun fooValue1() = FooValue("1")
 
-    @Provides @IntoSet
     val fooValue2
-        get() = FooValue("2")
+        @Provides @IntoSet get() = FooValue("2")
 }
 
 @Component abstract class DynamicKeyComponent {
@@ -25,23 +24,19 @@ data class FooValue(val name: String)
     @Provides @IntoMap
     fun fooValue1() = "1" to FooValue("1")
 
-    @Provides @IntoMap
     val fooValue2
-        get() = "2" to FooValue("2") }
+        @Provides @IntoMap get() = "2" to FooValue("2") }
 
 @Component abstract class ParentSetComponent {
-    @Provides @IntoSet
     val Foo.bind: IFoo
-        get() = this
+        @Provides @IntoSet get() = this
 
-    @Provides @IntoSet
     val Bar.bind: IFoo
-        get() = this
+        @Provides @IntoSet get() = this
 
     // Should not be in the set
-    @Provides
     val Baz.bind: IFoo
-        get() = this
+        @Provides get() = this
 }
 
 @Component abstract class ChildSetComponent(@Component val parent: ParentSetComponent) {

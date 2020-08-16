@@ -11,17 +11,15 @@ import kotlin.test.Test
     @Provides
     fun foo() = NamedFoo("parent")
 
-    @Provides
     val Foo.binds: IFoo
-        get() = this
+        @Provides get() = this
 }
 
 @Component abstract class SimpleChildComponent1(@Component val parent: ParentComponent) {
     abstract val namedFoo: NamedFoo
 
-    @Provides
     val BarImpl.binds: IBar
-        get() = this
+        @Provides get() = this
 
     abstract val foo: IFoo
 }
