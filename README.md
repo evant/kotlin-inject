@@ -225,7 +225,9 @@ instance you can scope it to a component. The instance will live as long as that
 
 First create your scope annotation.
 ```kotlin
-@Scope annotation class MyScope
+@Scope
+@Target(CLASS, FUNCTION, PROPERTY_GETTER)
+annotation class MyScope
 ```
 
 Then annotate your component with that scope annotation.
