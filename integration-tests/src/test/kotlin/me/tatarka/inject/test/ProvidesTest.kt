@@ -156,6 +156,18 @@ class StringArrayFoo(val stringArray: Array<String>)
         @Provides get() = StringArrayFoo(this)
 }
 
+@Inject class ValConstructorBasicTypes(
+    val boolean: Boolean,
+    val string: String
+)
+
+@Component abstract class ProvidesValConstructorBasicTypes(
+    @get:Provides val boolean: Boolean,
+    @get:Provides val string: String
+) {
+    abstract val basicType: ValConstructorBasicTypes
+}
+
 class ProvidesTest {
 
     @Test fun generates_a_component_that_provides_a_dep_from_a_function() {
@@ -210,7 +222,7 @@ class ProvidesTest {
         assertThat(component.foo4).isNotNull()
     }
 
-    @Test fun generates_a_conmponent_that_provides_basic_types() {
+    @Test fun generates_a_component_that_provides_basic_types() {
         val component = ProvidesBasicTypes::class.create()
 
         assertThat(component.basicType.boolean).isTrue()
@@ -227,6 +239,16 @@ class ProvidesTest {
         assertThat(component.basicType.intFoo.int).isEqualTo(3)
         assertThat(component.basicType.intArrayFoo.intArray.toTypedArray()).containsExactly(7)
         assertThat(component.basicType.stringArrayFoo.stringArray).containsExactly("c")
+    }
+
+    @Test fun generates_a_component_that_provides_val_constructor_basic_types() {
+        val component = ProvidesValConstructorBasicTypes::class.create(
+            true,
+            "a"
+        )
+
+        assertThat(component.basicType.boolean).isTrue()
+        assertThat(component.basicType.string).isEqualTo("a")
     }
 }
 

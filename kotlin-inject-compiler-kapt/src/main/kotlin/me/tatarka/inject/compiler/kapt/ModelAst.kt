@@ -569,7 +569,9 @@ private class ModelAstParam(
         ModelAstType(this, element.asType(), kmValueParameter?.type)
     }
 
-    override fun asParameterSpec(): ParameterSpec = ParameterSpec.get(element)
+    override fun asParameterSpec(): ParameterSpec {
+        return ParameterSpec(name, type.asTypeName())
+    }
 }
 
 private val KmClass.type: KmType
