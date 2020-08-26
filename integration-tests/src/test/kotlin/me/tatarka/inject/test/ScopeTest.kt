@@ -7,6 +7,9 @@ import assertk.assertions.isSameAs
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Provides
+import me.tatarka.inject.test.different.DifferentPackageFoo
+import me.tatarka.inject.test.different.DifferentPackageScopedComponent
+import me.tatarka.inject.test.different.create
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 
@@ -51,6 +54,9 @@ class ScopedBar()
     abstract val bar: ScopedBar
 }
 
+@Component abstract class DifferentPackageChildComponent(@Component val parent: DifferentPackageScopedComponent) {
+    abstract val foo: DifferentPackageFoo
+}
 
 class ScopeTest {
     @BeforeTest
@@ -117,5 +123,11 @@ class ScopeTest {
         val component = DependentCustomScopeComponent::class.create()
 
         assertThat(component.bar).isSameAs(component.foo.bar)
+    }
+
+    @Test fun generates_a_component_with_a_parent_scoped_component_in_a_different_package() {
+        val component = DifferentPackageChildComponent::class.create(DifferentPackageScopedComponent::class.create())
+
+        assertThat(component.foo).isSameAs(component.foo)
     }
 }
