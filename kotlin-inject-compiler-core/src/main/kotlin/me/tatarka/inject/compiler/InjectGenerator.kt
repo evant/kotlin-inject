@@ -333,7 +333,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
     private fun provideScoped(key: TypeKey, result: Result.Scoped): CodeBlock {
         val codeBlock = CodeBlock.builder()
         if (result.name != null) {
-            codeBlock.add("(%L as Inject%N).", result.name, result.astClass.name)
+            codeBlock.add("(%L as %T).", result.name, ClassName(result.astClass.packageName, "Inject${result.astClass.name}"))
         }
         codeBlock.add("%N", key.type.simpleName.asScopedProp())
         return codeBlock.build()
