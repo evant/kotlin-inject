@@ -2,6 +2,7 @@ package me.tatarka.inject.test
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import me.tatarka.inject.test.module.*
 import assertk.assertions.isNotNull
 import assertk.assertions.isSameAs
 import me.tatarka.inject.annotations.Component
@@ -56,6 +57,10 @@ class ScopedBar()
 
 @Component abstract class DifferentPackageChildComponent(@Component val parent: DifferentPackageScopedComponent) {
     abstract val foo: DifferentPackageFoo
+}
+
+@Component @ExternalScope abstract class ExternalScopedComponent {
+    abstract val foo: ScopedExternalFoo
 }
 
 class ScopeTest {

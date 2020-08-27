@@ -7,7 +7,6 @@ import com.tschuchort.compiletesting.KotlinCompilation
 import com.tschuchort.compiletesting.SourceFile
 import com.tschuchort.compiletesting.symbolProcessors
 import me.tatarka.inject.compiler.kapt.InjectCompiler
-import me.tatarka.inject.compiler.kapt.ScopedInjectCompiler
 import me.tatarka.inject.compiler.ksp.InjectProcessor
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -34,7 +33,7 @@ class ProjectCompiler(private val root: File, private val target: Target) {
             inheritClassPath = true
             when (target) {
                 Target.kapt -> {
-                    annotationProcessors = listOf(InjectCompiler(), ScopedInjectCompiler())
+                    annotationProcessors = listOf(InjectCompiler())
                 }
                 Target.ksp -> {
                     symbolProcessors = listOf(InjectProcessor())

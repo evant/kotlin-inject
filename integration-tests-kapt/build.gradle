@@ -6,6 +6,7 @@ plugins {
 dependencies {
     kapt project(':kotlin-inject-compiler-kapt')
     implementation project(':kotlin-inject-runtime')
+    implementation project(':integration-tests-module')
 
     implementation 'org.jetbrains.kotlin:kotlin-stdlib'
 
