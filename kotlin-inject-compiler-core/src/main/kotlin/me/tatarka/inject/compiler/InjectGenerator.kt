@@ -1,7 +1,19 @@
 package me.tatarka.inject.compiler
 
-import com.squareup.kotlinpoet.*
+import com.squareup.kotlinpoet.ANY
+import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.MemberName
+import com.squareup.kotlinpoet.ParameterSpec
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.plusParameter
+import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.STRING
+import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.asClassName
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Provides
@@ -72,21 +84,18 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                 }
 
                 try {
-                    for (type in context.collector.scoped) {
-                        val codeBlock = CodeBlock.builder()
-                        codeBlock.add("lazy { ")
-                        codeBlock.add(provide(TypeKey(type), context.withoutScoped(type)))
-                        codeBlock.add(" }")
-
+                    val scope = astClass.scopeClass(messenger, options)
+                    if (scope != null) {
+                        val mapType = ClassName("java.util.concurrent", "ConcurrentHashMap")
+                            .parameterizedBy(STRING, ANY.copy(nullable = true))
                         addProperty(
-                            PropertySpec.builder(
-                                type.simpleName.asScopedProp(),
-                                type.asTypeName()
-                            ).apply {
-                                if (context.scopeInterface != null) {
-                                    addModifiers(KModifier.OVERRIDE)
+                            PropertySpec.builder("_scoped", mapType)
+                                .initializer("%T()", mapType)
+                                .apply {
+                                    if (context.scopeInterface != null) {
+                                        addModifiers(KModifier.OVERRIDE)
+                                    }
                                 }
-                            }.delegate(codeBlock.build())
                                 .build()
                         )
                     }
@@ -140,14 +149,9 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         return TypeSpec.interfaceBuilder("Inject${astClass.name}")
             .addOriginatingElement(astClass)
             .apply {
-                for (type in context.collector.scoped) {
-                    addProperty(
-                        PropertySpec.builder(
-                            type.simpleName.asScopedProp(),
-                            type.asTypeName()
-                        ).build()
-                    )
-                }
+                val mapType = ClassName("java.util.concurrent", "ConcurrentHashMap")
+                    .parameterizedBy(STRING, ANY.copy(nullable = true))
+                addProperty(PropertySpec.builder("_scoped", mapType).build())
             }.build()
     }
 
@@ -231,7 +235,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
             )
         return when (result) {
             is Result.Provides -> provideProvides(result, context)
-            is Result.Scoped -> provideScoped(key, result)
+            is Result.Scoped -> provideScoped(key, result, context)
             is Result.Constructor -> provideConstructor(result.constructor, context)
             is Result.Container -> provideContainer(result, context)
             is Result.Function -> provideFunction(result, context)
@@ -330,13 +334,19 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         codeBlock.build()
     }
 
-    private fun provideScoped(key: TypeKey, result: Result.Scoped): CodeBlock {
-        val codeBlock = CodeBlock.builder()
-        if (result.name != null) {
-            codeBlock.add("(%L as %T).", result.name, ClassName(result.astClass.packageName, "Inject${result.astClass.name}"))
-        }
-        codeBlock.add("%N", key.type.simpleName.asScopedProp())
-        return codeBlock.build()
+    private fun provideScoped(key: TypeKey, result: Result.Scoped, context: Context): CodeBlock {
+        return CodeBlock.builder().apply {
+            if (result.name != null) {
+                add(
+                    "(%L as %T).",
+                    result.name,
+                    ClassName(result.astClass.packageName, "Inject${result.astClass.name}")
+                )
+            }
+            add("_scoped.%M(%S)", MemberName("me.tatarka.inject.internal", "lazyGet"), key.type).beginControlFlow("{")
+            add(provide(key, context.withoutScoped(key.type)))
+            endControlFlow()
+        }.build()
     }
 
     private fun provideContainer(containerResult: Result.Container, context: Context): CodeBlock {

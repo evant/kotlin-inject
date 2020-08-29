@@ -1,6 +1,7 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm'
     id 'org.jetbrains.kotlin.kapt'
+    id "me.champeau.gradle.jmh" version "0.5.1"
 }
 
 dependencies {
