@@ -23,7 +23,7 @@ import kotlin.reflect.KClass
 class InjectGenerator(provider: AstProvider, private val options: Options) :
     AstProvider by provider {
 
-    fun generate(astClass: AstClass, scopedClasses: Collection<AstClass> = emptyList()): FileSpec {
+    fun generate(astClass: AstClass): FileSpec {
         if (AstModifier.ABSTRACT !in astClass.modifiers) {
             throw FailedToGenerateException("@Component class: $astClass must be abstract", astClass)
         } else if (AstModifier.PRIVATE in astClass.modifiers) {
@@ -32,9 +32,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
 
         val constructor = astClass.primaryConstructor
 
-        val scopedInjects = scopedClasses.filter { it.isInject(options) }
-
-        val injectComponent = generateInjectComponent(astClass, constructor, scopedInjects)
+        val injectComponent = generateInjectComponent(astClass, constructor)
         val createFunction = generateCreate(astClass, constructor, injectComponent)
 
         return FileSpec.builder(astClass.packageName, "Inject${astClass.name}")
@@ -44,21 +42,19 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
     }
 
     fun generateScopedInterfaces(scopedClasses: Collection<AstClass>): List<FileSpec> {
-        val scopedInjects = scopedClasses.filter { it.isInject(options) }
         val scopedInterfaces = scopedClasses.filter { !it.isInject(options) && !it.hasAnnotation<Component>() }
         return scopedInterfaces.map {
             FileSpec.builder(it.packageName, "Inject${it.name}")
-                .addType(generateScopedInterface(it, scopedInjects))
+                .addType(generateScopedInterface(it))
                 .build()
         }
     }
 
     private fun generateInjectComponent(
         astClass: AstClass,
-        constructor: AstConstructor?,
-        scopedInjects: Collection<AstClass>
+        constructor: AstConstructor?
     ): TypeSpec {
-        val context = collectTypes(astClass, scopedInjects, isComponent = true)
+        val context = collectTypes(astClass, isComponent = true)
 
         return TypeSpec.classBuilder("Inject${astClass.name}")
             .addOriginatingElement(astClass)
@@ -141,11 +137,8 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
     }
 
     private fun generateScopedInterface(
-        astClass: AstClass,
-        scopedInjects: Collection<AstClass>
+        astClass: AstClass
     ): TypeSpec {
-        val context = collectTypes(astClass, scopedInjects, isComponent = false)
-
         return TypeSpec.interfaceBuilder("Inject${astClass.name}")
             .addOriginatingElement(astClass)
             .apply {
@@ -201,15 +194,13 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
 
     private fun collectTypes(
         astClass: AstClass,
-        scopedInjects: Collection<AstClass>,
         isComponent: Boolean
     ): Context {
         val typeCollector = TypeCollector(
             provider = this,
             options = options,
             astClass = astClass,
-            isComponent = isComponent,
-            scopedInjects = scopedInjects
+            isComponent = isComponent
         )
         val cycleDetector = CycleDetector()
         val elementScopeClass = astClass.scopeClass(messenger, options)

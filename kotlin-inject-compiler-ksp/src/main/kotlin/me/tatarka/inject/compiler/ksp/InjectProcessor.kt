@@ -39,11 +39,12 @@ class InjectProcessor : SymbolProcessor, KSAstProvider {
             val scopedClass = astClass.scopeClass(messenger, options)
 
             val scopeType = scopedClass?.scopeType(options)
-            val scopedClasses = scopeType?.let { scopedClasses(it, resolver) } ?: emptyList()
-            allScopeClasses.addAll(scopedClasses)
+            if (scopeType != null) {
+                allScopeClasses.addAll(scopedClasses(scopeType, resolver))
+            }
 
             try {
-                val file = generator.generate(astClass, scopedClasses)
+                val file = generator.generate(astClass)
                 file.writeTo(codeGenerator)
             } catch (e: FailedToGenerateException) {
                 error(e.message.orEmpty(), e.element)

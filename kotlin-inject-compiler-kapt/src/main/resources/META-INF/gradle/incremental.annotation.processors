@@ -1,2 +1,1 @@
 me.tatarka.inject.compiler.kapt.InjectCompiler,isolating
-me.tatarka.inject.compiler.kapt.ScopedInjectCompiler,aggregating
