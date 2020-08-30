@@ -42,16 +42,6 @@ class InjectCompiler : BaseInjectCompiler() {
                 continue
             }
         }
-
-        try {
-            for (file in generator.generateScopedInterfaces(allScopedClasses)) {
-                file.writeTo(filer)
-            }
-        } catch (e: FailedToGenerateException) {
-            error(e.message.orEmpty(), e.element)
-            // Continue so we can see all errors
-        }
-
         return false
     }
 

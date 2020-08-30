@@ -6,7 +6,6 @@ import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
-import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.plusParameter
@@ -41,32 +40,19 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
             .build()
     }
 
-    fun generateScopedInterfaces(scopedClasses: Collection<AstClass>): List<FileSpec> {
-        val scopedInterfaces = scopedClasses.filter { !it.isInject(options) && !it.hasAnnotation<Component>() }
-        return scopedInterfaces.map {
-            FileSpec.builder(it.packageName, "Inject${it.name}")
-                .addType(generateScopedInterface(it))
-                .build()
-        }
-    }
-
     private fun generateInjectComponent(
         astClass: AstClass,
         constructor: AstConstructor?
     ): TypeSpec {
         val context = collectTypes(astClass, isComponent = true)
+        val scope = astClass.scopeClass(messenger, options)
 
         return TypeSpec.classBuilder("Inject${astClass.name}")
             .addOriginatingElement(astClass)
             .superclass(astClass.asClassName())
             .apply {
-                if (context.scopeInterface != null) {
-                    addSuperinterface(
-                        ClassName(
-                            context.scopeInterface.packageName,
-                            "Inject${context.scopeInterface.name}"
-                        )
-                    )
+                if (scope != null) {
+                    addSuperinterface(ClassName("me.tatarka.inject.internal", "ScopedComponent"))
                 }
 
                 if (constructor != null) {
@@ -80,18 +66,13 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                 }
 
                 try {
-                    val scope = astClass.scopeClass(messenger, options)
                     if (scope != null) {
                         val mapType = ClassName("java.util.concurrent", "ConcurrentHashMap")
-                            .parameterizedBy(STRING, ANY.copy(nullable = true))
+                            .parameterizedBy(STRING, ANY)
                         addProperty(
                             PropertySpec.builder("_scoped", mapType)
+                                .addModifiers(KModifier.OVERRIDE)
                                 .initializer("%T()", mapType)
-                                .apply {
-                                    if (context.scopeInterface != null) {
-                                        addModifiers(KModifier.OVERRIDE)
-                                    }
-                                }
                                 .build()
                         )
                     }
@@ -134,18 +115,6 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                 }
             }
             .build()
-    }
-
-    private fun generateScopedInterface(
-        astClass: AstClass
-    ): TypeSpec {
-        return TypeSpec.interfaceBuilder("Inject${astClass.name}")
-            .addOriginatingElement(astClass)
-            .apply {
-                val mapType = ClassName("java.util.concurrent", "ConcurrentHashMap")
-                    .parameterizedBy(STRING, ANY.copy(nullable = true))
-                addProperty(PropertySpec.builder("_scoped", mapType).build())
-            }.build()
     }
 
     private fun generateCreate(
@@ -331,10 +300,10 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                 add(
                     "(%L as %T).",
                     result.name,
-                    ClassName(result.astClass.packageName, "Inject${result.astClass.name}")
+                    ClassName("me.tatarka.inject.internal", "ScopedComponent")
                 )
             }
-            add("_scoped.%M(%S)", MemberName("me.tatarka.inject.internal", "lazyGet"), key.type).beginControlFlow("{")
+            add("_lazyGet(%S)", key.type).beginControlFlow("{")
             add(provide(key, context.withoutScoped(key.type)))
             endControlFlow()
         }.build()

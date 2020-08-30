@@ -52,15 +52,6 @@ class InjectProcessor : SymbolProcessor, KSAstProvider {
                 continue
             }
         }
-
-        try {
-            for (file in generator.generateScopedInterfaces(allScopeClasses)) {
-                file.writeTo(codeGenerator)
-            }
-        } catch (e: FailedToGenerateException) {
-            error(e.message.orEmpty(), e.element)
-            // Continue so we can see all errors
-        }
     }
 
     private fun scopedClasses(scopeType: AstClass, resolver: Resolver): List<AstClass> {

@@ -1,6 +1,6 @@
 package me.tatarka.inject.benchmark
 
-import me.tatarka.inject.internal.lazyGet
+import me.tatarka.inject.internal.ScopedComponent
 import org.openjdk.jmh.annotations.Benchmark
 import org.openjdk.jmh.annotations.Scope
 import java.util.concurrent.ConcurrentHashMap
@@ -23,10 +23,10 @@ class InjectLazyScopedAccessComponent : ScopedAccessComponent() {
         get() = _foo
 }
 
-class InjectDynamicScopedAccessComponent : ScopedAccessComponent() {
-    private val _scope = ConcurrentHashMap<String, Any?>()
+class InjectDynamicScopedAccessComponent : ScopedAccessComponent(), ScopedComponent {
+    override val _scoped = ConcurrentHashMap<String, Any>()
 
-    override val foo: Foo = _scope.lazyGet("me.tatarka.inject.benchmark.Foo") { Foo() }
+    override val foo: Foo = _lazyGet("me.tatarka.inject.benchmark.Foo") { Foo() }
 }
 
 open class ScopedAccessBenchmark {
