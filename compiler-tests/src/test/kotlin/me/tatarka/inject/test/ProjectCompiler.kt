@@ -11,7 +11,7 @@ class ProjectCompiler(private val root: File, private val target: Target) {
     private lateinit var sourceDir: File
 
     fun setup(): ProjectCompiler {
-        val kotlinVersion = if (target == Target.ksp) "1.4.0-rc" else "1.3.70"
+        val kotlinVersion = "1.4.0"
 
         val settingsFile = root.resolve("settings.gradle")
 
@@ -19,7 +19,6 @@ class ProjectCompiler(private val root: File, private val target: Target) {
            pluginManagement {
                repositories {
                    google()
-                   maven { url "https://dl.bintray.com/kotlin/kotlin-eap" }
                    mavenCentral()
                    gradlePluginPortal()
                }
@@ -54,10 +53,13 @@ class ProjectCompiler(private val root: File, private val target: Target) {
 
         rootBuildFile.writeText(
             """
+            plugins {
+                id 'org.jetbrains.kotlin.jvm' version '${kotlinVersion}' apply false
+            }
+                
             allprojects {
                 repositories {
                     google()
-                    maven { url "https://dl.bintray.com/kotlin/kotlin-eap" }
                     mavenCentral()
                 }
             }
@@ -69,13 +71,11 @@ class ProjectCompiler(private val root: File, private val target: Target) {
 
         val buildFile = dir.resolve("build.gradle")
 
-        val pluginVersion = if (target == Target.ksp) "1.4.0-rc-dev-experimental-20200814" else kotlinVersion
-
         buildFile.writeText(
             """
             plugins {
-                id 'org.jetbrains.kotlin.jvm' version '${kotlinVersion}'
-                id("org.jetbrains.kotlin.$target") version '${pluginVersion}'
+                id 'org.jetbrains.kotlin.jvm'
+                id 'org.jetbrains.kotlin.$target' ${if (target == Target.ksp) " version '1.4.0-dev-experimental-20200828'" else ""}
             }
             
             dependencies {
@@ -85,6 +85,8 @@ class ProjectCompiler(private val root: File, private val target: Target) {
             }
             """.trimIndent()
         )
+
+        println(buildFile.readText())
 
         sourceDir = dir.resolve("src/main/kotlin")
         sourceDir.mkdirs()
@@ -106,7 +108,7 @@ class ProjectCompiler(private val root: File, private val target: Target) {
     fun compile() {
         GradleRunner.create()
             .withProjectDir(root)
-            .withArguments("assemble")
+            .withArguments("assemble", "--stacktrace")
             .build()
     }
 }

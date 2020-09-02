@@ -6,21 +6,37 @@ import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeVariableName
 import org.jetbrains.kotlin.ksp.isAbstract
-import org.jetbrains.kotlin.ksp.symbol.*
+import org.jetbrains.kotlin.ksp.symbol.AnnotationUseSiteTarget
+import org.jetbrains.kotlin.ksp.symbol.KSAnnotated
+import org.jetbrains.kotlin.ksp.symbol.KSClassDeclaration
+import org.jetbrains.kotlin.ksp.symbol.KSDeclaration
+import org.jetbrains.kotlin.ksp.symbol.KSFunctionDeclaration
+import org.jetbrains.kotlin.ksp.symbol.KSNode
+import org.jetbrains.kotlin.ksp.symbol.KSPropertyDeclaration
+import org.jetbrains.kotlin.ksp.symbol.KSType
+import org.jetbrains.kotlin.ksp.symbol.KSTypeAlias
+import org.jetbrains.kotlin.ksp.symbol.KSTypeParameter
+import org.jetbrains.kotlin.ksp.symbol.KSTypeReference
+import org.jetbrains.kotlin.ksp.symbol.Nullability
+import org.jetbrains.kotlin.ksp.symbol.Variance
 import org.jetbrains.kotlin.ksp.visitor.KSDefaultVisitor
 
-fun KSAnnotated.typeAnnotatedWith(className: String): KSType? {
+fun KSAnnotated.typeAnnotatedWith(className: String, useSiteTarget: AnnotationUseSiteTarget? = null): KSType? {
     for (annotation in annotations) {
         val t = annotation.annotationType.resolve()
-        if (t?.declaration?.hasAnnotation(className) == true) {
+        if (t?.declaration?.hasAnnotation(className, useSiteTarget) == true) {
             return t
         }
     }
     return null
 }
 
-fun KSAnnotated.hasAnnotation(className: String): Boolean {
-    return annotations.any { it.annotationType.resolve()?.declaration?.qualifiedName?.asString() == className }
+fun KSAnnotated.hasAnnotation(className: String, useSiteTarget: AnnotationUseSiteTarget? = null): Boolean {
+    return annotations.any {
+        // only check short name until https://github.com/android/kotlin/issues/126 is resolved.
+        it.shortName.asString() == className.substringAfterLast(".") &&
+                useSiteTarget == it.useSiteTarget
+    }
 }
 
 fun KSDeclaration.asClassName(): ClassName {
@@ -32,16 +48,10 @@ fun KSDeclaration.asClassName(): ClassName {
 
 fun KSDeclaration.isAbstract() = when (this) {
     is KSFunctionDeclaration -> isAbstract
-    is KSPropertyDeclaration -> {
-        isAbstractWorkaround()
-    }
+    is KSPropertyDeclaration -> isAbstract()
     is KSClassDeclaration -> isAbstract()
     else -> false
 }
-
-// https://github.com/android/kotlin/issues/107
-fun KSPropertyDeclaration.isAbstractWorkaround() = this.modifiers.contains(Modifier.ABSTRACT) ||
-        ((this.parentDeclaration as? KSClassDeclaration)?.classKind == ClassKind.INTERFACE && getter?.origin == Origin.SYNTHETIC)
 
 fun KSTypeReference.memberOf(enclosingClass: KSClassDeclaration): KSTypeReference {
     val declaration = resolve()!!.declaration

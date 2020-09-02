@@ -1,12 +1,12 @@
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '1.4.0-rc'
+    id 'org.jetbrains.kotlin.jvm'
 }
 
 dependencies {
     implementation project(':kotlin-inject-runtime')
     implementation project(':kotlin-inject-compiler-core')
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
-    implementation 'org.jetbrains.kotlin:kotlin-symbol-processing-api:1.4.0-rc-dev-experimental-20200814'
+    implementation 'org.jetbrains.kotlin:kotlin-symbol-processing-api:1.4.0-dev-experimental-20200828'
 }
 
 sourceCompatibility = 1.8
