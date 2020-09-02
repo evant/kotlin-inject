@@ -267,15 +267,13 @@ private class KSAstProperty(provider: KSAstProvider, override val declaration: K
     }
 
     override fun hasAnnotation(className: String): Boolean {
-        // also check the declaration itself https://github.com/android/kotlin/issues/108
         return declaration.getter?.hasAnnotation(className) == true
-                || declaration.hasAnnotation(className)
+                || declaration.hasAnnotation(className, AnnotationUseSiteTarget.GET)
     }
 
     override fun typeAnnotatedWith(className: String): AstClass? {
-        // also check the declaration itself https://github.com/android/kotlin/issues/108
         return (declaration.getter?.typeAnnotatedWith(className)?.declaration as? KSClassDeclaration)?.toAstClass()
-            ?: (declaration.typeAnnotatedWith(className)?.declaration as? KSClassDeclaration)?.toAstClass()
+            ?: (declaration.typeAnnotatedWith(className, AnnotationUseSiteTarget.GET)?.declaration as? KSClassDeclaration)?.toAstClass()
     }
 
     override fun equals(other: Any?): Boolean {
@@ -359,9 +357,7 @@ private class KSAstType(provider: KSAstProvider) : AstType(), KSAstAnnotated, KS
 
     override fun isAssignableFrom(other: AstType): Boolean {
         require(other is KSAstType)
-        // potential bug in isAssignableFrom when using typealises, manually check their underlying type
-        // https://github.com/android/kotlin/issues/106
-        return type.actualType().isAssignableFrom(other.type.actualType())
+        return type.isAssignableFrom(other.type)
     }
 
     override fun equals(other: Any?): Boolean {

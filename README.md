@@ -27,8 +27,8 @@ val repo = appComponent.repo
 
 ```groovy
 plugins {
-    id 'org.jetbrains.kotlin.jvm'
-    id 'org.jetbrains.kotlin.kapt'
+    id 'org.jetbrains.kotlin.jvm' version '1.4.0'
+    id 'org.jetbrains.kotlin.kapt' version '1.4.0'
 }
 
 repositories {
@@ -71,8 +71,8 @@ pluginManagement {
 `build.gradle`
 ```groovy
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version "1.4.0-rc"
-    id 'org.jetbrains.kotlin.ksp' version "1.4.0-rc-dev-experimental-20200814"
+    id 'org.jetbrains.kotlin.jvm' version '1.4.0'
+    id 'org.jetbrains.kotlin.ksp' version '1.4.0-dev-experimental-20200828'
 }
 
 repositories {
