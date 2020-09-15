@@ -75,7 +75,7 @@ class ProjectCompiler(private val root: File, private val target: Target) {
             """
             plugins {
                 id 'org.jetbrains.kotlin.jvm'
-                id 'org.jetbrains.kotlin.$target' ${if (target == Target.ksp) " version '1.4.0-dev-experimental-20200828'" else ""}
+                id 'org.jetbrains.kotlin.$target' ${if (target == Target.ksp) " version '1.4.0-dev-experimental-20200914'" else ""}
             }
             
             dependencies {
