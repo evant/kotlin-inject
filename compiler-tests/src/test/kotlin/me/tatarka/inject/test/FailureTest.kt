@@ -3,50 +3,31 @@ package me.tatarka.inject.test
 import assertk.assertThat
 import assertk.assertions.contains
 import assertk.assertions.isFailure
-import com.squareup.burst.BurstJUnit4
-import org.junit.After
-import org.junit.AfterClass
 import org.junit.Before
-import org.junit.BeforeClass
+import org.junit.Rule
+import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
-import java.io.File
-import kotlin.test.Test
+import org.junit.runners.Parameterized
 
-
-@RunWith(BurstJUnit4::class)
-class FailureTest(private val target: Target) {
+@RunWith(Parameterized::class)
+class FailureTest(val target: Target) {
 
     companion object {
-        private val projectCompilerMap = mutableMapOf<Target, ProjectCompiler>()
-        lateinit var tempDir: File
-
-        @BeforeClass
         @JvmStatic
-        fun init() {
-            tempDir = File.createTempFile("junit", "", null)
-            tempDir.delete()
-            tempDir.mkdir()
-        }
-
-        @AfterClass
-        @JvmStatic
-        fun dispose() {
-            tempDir.recursiveDelete()
+        @Parameterized.Parameters(name = "{0}") fun data(): Iterable<Array<Any>> {
+            return Target.values().map { arrayOf(it) }
         }
     }
+
+    @get: Rule
+    val tempDir = TemporaryFolder()
 
     lateinit var projectCompiler: ProjectCompiler
 
     @Before
     fun setup() {
-        projectCompiler = projectCompilerMap.getOrPut(target) {
-            ProjectCompiler(tempDir.resolve(target.name).apply { mkdirs() }, target).setup()
-        }
-    }
-
-    @After
-    fun teardown() {
-        projectCompiler.clear()
+        projectCompiler = ProjectCompiler(tempDir.newFolder(), target)
     }
 
     @Test
