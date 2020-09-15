@@ -33,8 +33,7 @@ fun KSAnnotated.typeAnnotatedWith(className: String, useSiteTarget: AnnotationUs
 
 fun KSAnnotated.hasAnnotation(className: String, useSiteTarget: AnnotationUseSiteTarget? = null): Boolean {
     return annotations.any {
-        // only check short name until https://github.com/android/kotlin/issues/126 is resolved.
-        it.shortName.asString() == className.substringAfterLast(".") &&
+        it.annotationType.resolve()?.declaration?.qualifiedName?.asString() == className &&
                 useSiteTarget == it.useSiteTarget
     }
 }
