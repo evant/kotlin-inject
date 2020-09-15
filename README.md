@@ -61,9 +61,8 @@ pluginManagement {
     }
 
     repositories {
-            gradlePluginPortal()
-            maven { url "https://dl.bintray.com/kotlin/kotlin-eap" }
-            google()
+        gradlePluginPortal()
+        google()
     }
 }
 ```
@@ -77,7 +76,6 @@ plugins {
 
 repositories {
     mavenCentral()
-    maven { url "https://dl.bintray.com/kotlin/kotlin-eap" }
     google()
     maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
 }
