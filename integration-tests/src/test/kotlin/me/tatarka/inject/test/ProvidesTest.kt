@@ -5,6 +5,7 @@ import assertk.assertions.*
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Provides
+import me.tatarka.inject.test.different.DifferentPackageFoo
 import kotlin.test.Test
 
 class ProvidesFoo(val bar: ProvidesBar? = null)
@@ -168,6 +169,10 @@ class StringArrayFoo(val stringArray: Array<String>)
     abstract val basicType: ValConstructorBasicTypes
 }
 
+@Component abstract class ProvidesInnerClassComponent {
+    abstract val fooFactory: DifferentPackageFoo.Factory
+}
+
 class ProvidesTest {
 
     @Test fun generates_a_component_that_provides_a_dep_from_a_function() {
@@ -249,6 +254,12 @@ class ProvidesTest {
 
         assertThat(component.basicType.boolean).isTrue()
         assertThat(component.basicType.string).isEqualTo("a")
+    }
+
+    @Test fun generates_a_component_that_references_an_inner_class() {
+        val component = ProvidesInnerClassComponent::class.create()
+
+        assertThat(component.fooFactory).isNotNull()
     }
 }
 

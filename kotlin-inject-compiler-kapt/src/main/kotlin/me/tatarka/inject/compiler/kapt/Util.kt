@@ -151,7 +151,7 @@ fun kotlinx.metadata.ClassName.asClassName(): ClassName {
     return if (split == -1) {
         ClassName("", this)
     } else {
-        ClassName(substring(0, split).replace('/', '.'), substring(split + 1))
+        ClassName(substring(0, split).replace('/', '.'), substring(split + 1).split('.'))
     }
 }
 
