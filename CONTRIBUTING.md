@@ -14,11 +14,11 @@
  
 To debug the compiler, you can write the code you want to test and then run
  ```
-gradlew :integration-tests-kapt:test --no-daemon -Dorg.gradle.debug=true -Dkotlin.compiler.execution.strategy=in-process
+./gradlew :integration-tests-kapt:test --no-daemon -Dorg.gradle.debug=true -Dkotlin.compiler.execution.strategy=in-process
 ```
 or
 ```
-gradlew :integration-tests-ksp:test --no-daemon -Dorg.gradle.debug=true -Dkotlin.compiler.execution.strategy=in-process
+./gradlew :integration-tests-ksp:test --no-daemon -Dorg.gradle.debug=true -Dkotlin.compiler.execution.strategy=in-process
 ```
 for kapt or ksp respectively. Then you can create and run a remote run configuration in intellij to attach the debugger.
  

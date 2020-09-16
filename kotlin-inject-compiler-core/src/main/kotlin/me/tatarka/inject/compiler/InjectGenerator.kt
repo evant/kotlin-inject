@@ -80,10 +80,11 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                     astClass.visitInheritanceChain { parentClass ->
                         for (method in parentClass.methods) {
                             if (method.isProvider()) {
-                                context.use(method) { context ->
+                                val returnType = method.returnTypeFor(astClass)
+
+                                context.withoutProvider(returnType).use(method) { context ->
                                     val codeBlock = CodeBlock.builder()
                                     codeBlock.add("return ")
-                                    val returnType = method.returnTypeFor(astClass)
 
                                     codeBlock.add(
                                         provide(
@@ -402,7 +403,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
     }
 
     private fun Context.find(key: TypeKey): Result? {
-        val typeCreator = collector.resolve(key)
+        val typeCreator = collector.resolve(key, skipSelf = key.type == skipProvider)
         if (typeCreator != null) {
             return typeCreator.toResult(skipScoped)
         }
@@ -465,9 +466,12 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         val scopeInterface: AstClass? = null,
         val args: List<Pair<AstType, String>> = emptyList(),
         val skipScoped: AstType? = null,
+        val skipProvider: AstType? = null,
         val parentScopeName: String? = null
     ) {
         fun withoutScoped(scoped: AstType) = copy(skipScoped = scoped)
+
+        fun withoutProvider(provider: AstType) = copy(skipProvider = provider)
 
         fun withSource(source: AstElement) = copy(source = source)
 
