@@ -611,6 +611,9 @@ private fun collectModifiers(flags: Flags?): Set<AstModifier> {
     if (Flag.Common.IS_ABSTRACT(flags)) {
         result.add(AstModifier.ABSTRACT)
     }
+    if (Flag.Class.IS_INTERFACE(flags)) {
+        result.add(AstModifier.INTERFACE)
+    }
     return result
 }
 

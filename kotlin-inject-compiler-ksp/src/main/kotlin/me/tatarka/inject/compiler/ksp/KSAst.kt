@@ -176,7 +176,7 @@ private class KSAstClass(provider: KSAstProvider, override val declaration: KSCl
 
 private class KSAstConstructor(
     provider: KSAstProvider,
-    private val parent: AstClass,
+    parent: AstClass,
     override val declaration: KSFunctionDeclaration
 ) : AstConstructor(parent), KSAstAnnotated, KSAstProvider by provider {
 
@@ -403,6 +403,9 @@ private fun collectModifiers(declaration: KSDeclaration): Set<AstModifier> {
         }
         if (declaration.isAbstract()) {
             add(AstModifier.ABSTRACT)
+        }
+        if (declaration is KSClassDeclaration && declaration.classKind == ClassKind.INTERFACE) {
+            add(AstModifier.INTERFACE)
         }
     }
 }
