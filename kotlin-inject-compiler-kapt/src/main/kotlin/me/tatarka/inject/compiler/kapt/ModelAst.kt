@@ -334,17 +334,20 @@ private class ModelAstFunction(
         }
 
     override val parameters: List<AstParam> by lazy {
-        element.parameters.mapNotNull { element ->
-            for (parameter in kmFunction.valueParameters) {
-                if (element.simpleName.contentEquals(parameter.name)) {
-                    return@mapNotNull ModelAstParam(
-                        this,
-                        element,
-                        parameter
-                    )
-                }
-            }
-            null
+        val params = if (kmFunction.receiverParameterType != null) {
+            // drop the extension function receiver if present
+            element.parameters.drop(1)
+        } else {
+            element.parameters
+        }
+        val kmParams: List<KmValueParameter> = kmFunction.valueParameters
+        params.mapIndexed { index, param ->
+            val kmParam = kmParams.getOrNull(index)
+            ModelAstParam(
+                this,
+                param,
+                kmParam
+            )
         }
     }
 
@@ -561,9 +564,10 @@ private class ModelAstParam(
 ) : AstParam(),
     ModelAstElement, ModelAstProvider by provider {
 
-    override val name: String get() {
-        return kmValueParameter?.name ?: element.simpleName.toString()
-    }
+    override val name: String
+        get() {
+            return kmValueParameter?.name ?: element.simpleName.toString()
+        }
 
     override val type: AstType by lazy {
         ModelAstType(this, element.asType(), kmValueParameter?.type)
