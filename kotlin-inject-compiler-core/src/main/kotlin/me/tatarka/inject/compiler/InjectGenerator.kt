@@ -1,7 +1,18 @@
 package me.tatarka.inject.compiler
 
-import com.squareup.kotlinpoet.*
+import com.squareup.kotlinpoet.ANY
+import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.ParameterSpec
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.plusParameter
+import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.STRING
+import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.asClassName
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Provides
@@ -11,7 +22,7 @@ import kotlin.reflect.KClass
 class InjectGenerator(provider: AstProvider, private val options: Options) :
     AstProvider by provider {
 
-    fun generate(astClass: AstClass, scopedClasses: Collection<AstClass> = emptyList()): FileSpec {
+    fun generate(astClass: AstClass): FileSpec {
         if (AstModifier.ABSTRACT !in astClass.modifiers) {
             throw FailedToGenerateException("@Component class: $astClass must be abstract", astClass)
         } else if (AstModifier.PRIVATE in astClass.modifiers) {
@@ -20,9 +31,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
 
         val constructor = astClass.primaryConstructor
 
-        val scopedInjects = scopedClasses.filter { it.isInject(options) }
-
-        val injectComponent = generateInjectComponent(astClass, constructor, scopedInjects)
+        val injectComponent = generateInjectComponent(astClass, constructor)
         val createFunction = generateCreate(astClass, constructor, injectComponent)
 
         return FileSpec.builder(astClass.packageName, "Inject${astClass.name}")
@@ -31,34 +40,19 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
             .build()
     }
 
-    fun generateScopedInterfaces(scopedClasses: Collection<AstClass>): List<FileSpec> {
-        val scopedInjects = scopedClasses.filter { it.isInject(options) }
-        val scopedInterfaces = scopedClasses.filter { !it.isInject(options) && !it.hasAnnotation<Component>() }
-        return scopedInterfaces.map {
-            FileSpec.builder(it.packageName, "Inject${it.name}")
-                .addType(generateScopedInterface(it, scopedInjects))
-                .build()
-        }
-    }
-
     private fun generateInjectComponent(
         astClass: AstClass,
-        constructor: AstConstructor?,
-        scopedInjects: Collection<AstClass>
+        constructor: AstConstructor?
     ): TypeSpec {
-        val context = collectTypes(astClass, scopedInjects, isComponent = true)
+        val context = collectTypes(astClass, isComponent = true)
+        val scope = astClass.scopeClass(messenger, options)
 
         return TypeSpec.classBuilder("Inject${astClass.name}")
             .addOriginatingElement(astClass)
             .superclass(astClass.asClassName())
             .apply {
-                if (context.scopeInterface != null) {
-                    addSuperinterface(
-                        ClassName(
-                            context.scopeInterface.packageName,
-                            "Inject${context.scopeInterface.name}"
-                        )
-                    )
+                if (scope != null) {
+                    addSuperinterface(ClassName("me.tatarka.inject.internal", "ScopedComponent"))
                 }
 
                 if (constructor != null) {
@@ -72,21 +66,12 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                 }
 
                 try {
-                    for (type in context.collector.scoped) {
-                        val codeBlock = CodeBlock.builder()
-                        codeBlock.add("lazy { ")
-                        codeBlock.add(provide(TypeKey(type), context.withoutScoped(type)))
-                        codeBlock.add(" }")
-
+                    if (scope != null) {
+                        val mapType = ClassName("me.tatarka.inject.internal", "LazyMap")
                         addProperty(
-                            PropertySpec.builder(
-                                type.simpleName.asScopedProp(),
-                                type.asTypeName()
-                            ).apply {
-                                if (context.scopeInterface != null) {
-                                    addModifiers(KModifier.OVERRIDE)
-                                }
-                            }.delegate(codeBlock.build())
+                            PropertySpec.builder("_scoped", mapType)
+                                .addModifiers(KModifier.OVERRIDE)
+                                .initializer("%T()", mapType)
                                 .build()
                         )
                     }
@@ -94,10 +79,11 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                     astClass.visitInheritanceChain { parentClass ->
                         for (method in parentClass.methods) {
                             if (method.isProvider()) {
-                                context.use(method) { context ->
+                                val returnType = method.returnTypeFor(astClass)
+
+                                context.withoutProvider(returnType).use(method) { context ->
                                     val codeBlock = CodeBlock.builder()
                                     codeBlock.add("return ")
-                                    val returnType = method.returnTypeFor(astClass)
 
                                     codeBlock.add(
                                         provide(
@@ -129,26 +115,6 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                 }
             }
             .build()
-    }
-
-    private fun generateScopedInterface(
-        astClass: AstClass,
-        scopedInjects: Collection<AstClass>
-    ): TypeSpec {
-        val context = collectTypes(astClass, scopedInjects, isComponent = false)
-
-        return TypeSpec.interfaceBuilder("Inject${astClass.name}")
-            .addOriginatingElement(astClass)
-            .apply {
-                for (type in context.collector.scoped) {
-                    addProperty(
-                        PropertySpec.builder(
-                            type.simpleName.asScopedProp(),
-                            type.asTypeName()
-                        ).build()
-                    )
-                }
-            }.build()
     }
 
     private fun generateCreate(
@@ -197,15 +163,13 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
 
     private fun collectTypes(
         astClass: AstClass,
-        scopedInjects: Collection<AstClass>,
         isComponent: Boolean
     ): Context {
         val typeCollector = TypeCollector(
             provider = this,
             options = options,
             astClass = astClass,
-            isComponent = isComponent,
-            scopedInjects = scopedInjects
+            isComponent = isComponent
         )
         val cycleDetector = CycleDetector()
         val elementScopeClass = astClass.scopeClass(messenger, options)
@@ -231,7 +195,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
             )
         return when (result) {
             is Result.Provides -> provideProvides(result, context)
-            is Result.Scoped -> provideScoped(key, result)
+            is Result.Scoped -> provideScoped(key, result, context)
             is Result.Constructor -> provideConstructor(result.constructor, context)
             is Result.Container -> provideContainer(result, context)
             is Result.Function -> provideFunction(result, context)
@@ -330,13 +294,19 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         codeBlock.build()
     }
 
-    private fun provideScoped(key: TypeKey, result: Result.Scoped): CodeBlock {
-        val codeBlock = CodeBlock.builder()
-        if (result.name != null) {
-            codeBlock.add("(%L as %T).", result.name, ClassName(result.astClass.packageName, "Inject${result.astClass.name}"))
-        }
-        codeBlock.add("%N", key.type.simpleName.asScopedProp())
-        return codeBlock.build()
+    private fun provideScoped(key: TypeKey, result: Result.Scoped, context: Context): CodeBlock {
+        return CodeBlock.builder().apply {
+            if (result.name != null) {
+                add(
+                    "(%L as %T).",
+                    result.name,
+                    ClassName("me.tatarka.inject.internal", "ScopedComponent")
+                )
+            }
+            add("_scoped.get(%S)", key.type).beginControlFlow("{")
+            add(provide(key, context.withoutScoped(key.type)))
+            endControlFlow()
+        }.build()
     }
 
     private fun provideContainer(containerResult: Result.Container, context: Context): CodeBlock {
@@ -432,7 +402,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
     }
 
     private fun Context.find(key: TypeKey): Result? {
-        val typeCreator = collector.resolve(key)
+        val typeCreator = collector.resolve(key, skipSelf = key.type == skipProvider)
         if (typeCreator != null) {
             return typeCreator.toResult(skipScoped)
         }
@@ -495,9 +465,12 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         val scopeInterface: AstClass? = null,
         val args: List<Pair<AstType, String>> = emptyList(),
         val skipScoped: AstType? = null,
+        val skipProvider: AstType? = null,
         val parentScopeName: String? = null
     ) {
         fun withoutScoped(scoped: AstType) = copy(skipScoped = scoped)
+
+        fun withoutProvider(provider: AstType) = copy(skipProvider = provider)
 
         fun withSource(source: AstElement) = copy(source = source)
 

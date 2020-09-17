@@ -10,6 +10,8 @@ import me.tatarka.inject.annotations.Provides
 import me.tatarka.inject.test.different.DifferentPackageFoo
 import me.tatarka.inject.test.different.DifferentPackageScopedComponent
 import me.tatarka.inject.test.different.create
+import me.tatarka.inject.test.module.ExternalScope
+import me.tatarka.inject.test.module.ScopedExternalFoo
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 
@@ -56,6 +58,20 @@ class ScopedBar()
 
 @Component abstract class DifferentPackageChildComponent(@Component val parent: DifferentPackageScopedComponent) {
     abstract val foo: DifferentPackageFoo
+}
+
+@Component @ExternalScope abstract class ExternalScopedComponent {
+    abstract val foo: ScopedExternalFoo
+}
+
+@Inject class UseBar1(val bar: ScopedBar)
+
+@Inject class UseBar2(val bar: ScopedBar)
+
+@CustomScope @Component abstract class MultipleUseScopedComponent {
+    abstract val bar1: UseBar1
+
+    abstract val bar2: UseBar2
 }
 
 class ScopeTest {
@@ -129,5 +145,11 @@ class ScopeTest {
         val component = DifferentPackageChildComponent::class.create(DifferentPackageScopedComponent::class.create())
 
         assertThat(component.foo).isSameAs(component.foo)
+    }
+
+    @Test fun generates_a_component_that_reuses_the_same_scoped_dependency() {
+        val component = MultipleUseScopedComponent::class.create()
+
+        assertThat(component.bar1.bar).isSameAs(component.bar2.bar)
     }
 }
