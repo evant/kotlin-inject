@@ -195,7 +195,7 @@ abstract class AstParam : AstElement() {
 }
 
 enum class AstModifier {
-    PRIVATE, ABSTRACT
+    PRIVATE, ABSTRACT, INTERFACE
 }
 
 fun ParameterSpec.Companion.parametersOf(constructor: AstConstructor) =
