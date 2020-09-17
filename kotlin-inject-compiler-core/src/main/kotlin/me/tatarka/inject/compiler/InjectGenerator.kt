@@ -67,8 +67,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
 
                 try {
                     if (scope != null) {
-                        val mapType = ClassName("java.util.concurrent", "ConcurrentHashMap")
-                            .parameterizedBy(STRING, ANY)
+                        val mapType = ClassName("me.tatarka.inject.internal", "LazyMap")
                         addProperty(
                             PropertySpec.builder("_scoped", mapType)
                                 .addModifiers(KModifier.OVERRIDE)
@@ -304,7 +303,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                     ClassName("me.tatarka.inject.internal", "ScopedComponent")
                 )
             }
-            add("_lazyGet(%S)", key.type).beginControlFlow("{")
+            add("_scoped.get(%S)", key.type).beginControlFlow("{")
             add(provide(key, context.withoutScoped(key.type)))
             endControlFlow()
         }.build()

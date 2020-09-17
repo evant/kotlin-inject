@@ -2,19 +2,23 @@ package me.tatarka.inject.internal
 
 import java.util.concurrent.ConcurrentHashMap
 
+interface ScopedComponent {
+    val _scoped: LazyMap
+}
+
 private val NULL = Any()
 
-interface ScopedComponent {
-    val _scoped: ConcurrentHashMap<String, Any>
+class LazyMap {
+    private val map = ConcurrentHashMap<String, Any>()
 
-    fun <T> _lazyGet(key: String, init: () -> T): T {
-        val result = _scoped[key]
+    fun <T> get(key: String, init: () -> T): T {
+        val result = map[key]
         if (result == null) {
-            synchronized(_scoped) {
-                var result = _scoped[key]
+            synchronized(map) {
+                var result = map[key]
                 if (result == null) {
                     result = init() ?: NULL
-                    _scoped[key] = result
+                    map[key] = result
                 }
                 return coerceResult(result)
             }
