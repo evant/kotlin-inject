@@ -190,8 +190,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
     ): CodeBlock {
         val result = find(context, key)
             ?: throw FailedToGenerateException(
-                context.trace("Cannot find an @Inject constructor or provider for: $key"),
-                context.source
+                context.trace("Cannot find an @Inject constructor or provider for: $key")
             )
         return when (result) {
             is Result.Provides -> provideProvides(result, context)
@@ -489,13 +488,13 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                     }
                 }
                 CycleResult.Cycle -> {
-                    throw FailedToGenerateException(trace("Cycle detected"), source)
+                    throw FailedToGenerateException(trace("Cycle detected"))
                 }
                 CycleResult.Resolvable -> TODO()
             }
         }
 
-        fun trace(message: String): String = "$message:\n" +
+        fun trace(message: String): String = "$message\n" +
                 cycleDetector.elements.reversed()
                     .joinToString(separator = "\n") { with(provider) { it.toTrace() } }
     }

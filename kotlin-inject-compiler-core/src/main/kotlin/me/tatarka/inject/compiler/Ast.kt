@@ -10,9 +10,9 @@ interface AstProvider {
 
     fun declaredTypeOf(klass: KClass<*>, vararg astTypes: AstType): AstType
 
-    fun warn(message: String, element: AstElement) = messenger.warn(message, element)
+    fun warn(message: String, element: AstElement? = null) = messenger.warn(message, element)
 
-    fun error(message: String, element: AstElement) =
+    fun error(message: String, element: AstElement? = null) =
         messenger.error(message, element)
 
     fun AstElement.toTrace(): String
@@ -21,9 +21,9 @@ interface AstProvider {
 }
 
 interface Messenger {
-    fun warn(message: String, element: AstElement)
+    fun warn(message: String, element: AstElement? = null)
 
-    fun error(message: String, element: AstElement)
+    fun error(message: String, element: AstElement? = null)
 }
 
 sealed class AstElement : AstAnnotated {
@@ -72,7 +72,7 @@ abstract class AstClass : AstElement() {
     abstract override fun hashCode(): Int
 
     override fun toString(): String {
-        return if (packageName.isEmpty() || packageName == "kotlin") name else "$packageName.$name"
+        return if (packageName.isEmpty() || packageName == "kotlin") name else type.toString()
     }
 }
 

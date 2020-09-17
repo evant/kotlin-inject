@@ -44,7 +44,7 @@ interface ModelAstProvider :
                 ) {
                     val metadata = element.metadata?.toKmPackage() ?: continue
                     val kmFunction = metadata.functions.find { it.name == functionName } ?: continue
-                    results.add(ModelAstFunction(this, element, function, kmFunction))
+                    results.add(ModelAstFunction(this, element.toAstClass(), function, kmFunction))
                 }
             }
         }
@@ -99,7 +99,10 @@ interface ModelAstProvider :
 
     override fun AstElement.toTrace(): String {
         require(this is ModelAstElement)
-        return toString()
+        return when (this) {
+            is ModelAstMethod -> "${parent.type}.${toString()}"
+            else -> toString()
+        }
     }
 
     override fun TypeSpec.Builder.addOriginatingElement(astClass: AstClass): TypeSpec.Builder = apply {
@@ -109,16 +112,16 @@ interface ModelAstProvider :
 }
 
 class ModelAstMessenger(private val messager: Messager) : Messenger {
-    override fun warn(message: String, element: AstElement) {
+    override fun warn(message: String, element: AstElement?) {
         print(Diagnostic.Kind.WARNING, message, element)
     }
 
-    override fun error(message: String, element: AstElement) {
+    override fun error(message: String, element: AstElement?) {
         print(Diagnostic.Kind.ERROR, message, element)
     }
 
-    private fun print(kind: Diagnostic.Kind, message: String, element: AstElement) {
-        messager.printMessage(kind, message, (element as ModelAstElement).element)
+    private fun print(kind: Diagnostic.Kind, message: String, element: AstElement?) {
+        messager.printMessage(kind, message, (element as? ModelAstElement)?.element)
     }
 }
 
@@ -135,6 +138,8 @@ private interface ModelAstElement : ModelAstProvider, AstAnnotated {
 }
 
 private interface ModelAstMethod : ModelAstElement {
+    val name: String
+    val parent: AstClass
     override val element: ExecutableElement
 }
 
@@ -232,7 +237,7 @@ private class ModelAstClass(
                     if (method.matches(property)) {
                         return@mapNotNull ModelAstProperty(
                             this,
-                            element,
+                            this,
                             method,
                             property
                         )
@@ -242,7 +247,7 @@ private class ModelAstClass(
                     if (method.matches(function)) {
                         return@mapNotNull ModelAstFunction(
                             this,
-                            element,
+                            this,
                             method,
                             function
                         )
@@ -296,7 +301,7 @@ private class ModelAstConstructor(
 
 private class ModelAstFunction(
     provider: ModelAstProvider,
-    val parent: TypeElement,
+    override val parent: AstClass,
     override val element: ExecutableElement,
     private val kmFunction: KmFunction
 ) : AstFunction(),
@@ -353,7 +358,7 @@ private class ModelAstFunction(
 
     override fun overrides(other: AstMethod): Boolean {
         require(other is ModelAstMethod)
-        return elements.overrides(element, other.element, parent)
+        return elements.overrides(element, other.element, parent.element)
     }
 
     override fun asMemberName(): MemberName {
@@ -371,7 +376,7 @@ private class ModelAstFunction(
 
 private class ModelAstProperty(
     provider: ModelAstProvider,
-    val parent: TypeElement,
+    override val parent: AstClass,
     override val element: ExecutableElement,
     private val kmProperty: KmProperty
 ) : AstProperty(),
@@ -416,7 +421,7 @@ private class ModelAstProperty(
 
     override fun overrides(other: AstMethod): Boolean {
         require(other is ModelAstMethod)
-        return elements.overrides(element, other.element, parent)
+        return elements.overrides(element, other.element, parent.element)
     }
 
     override fun asMemberName(): MemberName {

@@ -62,12 +62,12 @@ object KSAstMessenger : Messenger {
     private val errorMessages = mutableListOf<Message>()
     internal lateinit var logger: KSPLogger
 
-    override fun warn(message: String, element: AstElement) {
-        logger.warn(message, (element as KSAstAnnotated).declaration)
+    override fun warn(message: String, element: AstElement?) {
+        logger.warn(message, (element as? KSAstAnnotated)?.declaration)
     }
 
-    override fun error(message: String, element: AstElement) {
-        logger.error(message, (element as KSAstAnnotated).declaration)
+    override fun error(message: String, element: AstElement?) {
+        logger.error(message, (element as? KSAstAnnotated)?.declaration)
         errorMessages.add(Message(message, element))
     }
 
