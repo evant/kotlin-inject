@@ -64,7 +64,11 @@ class ProvidesFoo(val bar: ProvidesBar? = null)
 class Foo1
 class Foo2
 
-@Inject class Foo3 : IFoo
+@Inject class Foo3 : IFoo {
+    override fun equals(other: Any?) = other is Foo
+
+    override fun hashCode() = 0
+}
 
 @Component abstract class ProvidesOverloadsComponent {
     abstract val foo1: Foo1

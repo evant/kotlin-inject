@@ -40,6 +40,9 @@ data class FooValue(val name: String)
 }
 
 @Component abstract class ChildSetComponent(@Component val parent: ParentSetComponent) {
+    val Foo3.bind: IFoo
+        @Provides @IntoSet get() = this
+
     abstract val items: Set<IFoo>
 }
 
@@ -68,7 +71,8 @@ class MultibindsTest {
 
         assertThat(component.items).containsOnly(
             Foo(),
-            Bar(Foo())
+            Bar(Foo()),
+            Foo3()
         )
     }
 }
