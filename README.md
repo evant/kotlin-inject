@@ -31,13 +31,9 @@ plugins {
     id 'org.jetbrains.kotlin.kapt' version '1.4.0'
 }
 
-repositories {
-  maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
-}
-
 dependencies {
-    kapt "me.tatarka.inject:kotlin-inject-compiler-kapt:0.0.1-SNAPSHOT"
-    implementation "me.tatarka.inject:kotlin-inject-runtime:0.0.1-SNAPSHOT"
+    kapt "me.tatarka.inject:kotlin-inject-compiler-kapt:0.1.0"
+    implementation "me.tatarka.inject:kotlin-inject-runtime:0.1.0"
 }
 ```
 
@@ -77,12 +73,11 @@ plugins {
 repositories {
     mavenCentral()
     google()
-    maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
 }
 
 dependencies {
-    ksp "me.tatarka.inject:kotlin-inject-compiler-ksp:0.0.1-SNAPSHOT"
-    implementation "me.tatarka.inject:kotlin-inject-runtime:0.0.1-SNAPSHOT"
+    ksp "me.tatarka.inject:kotlin-inject-compiler-ksp:0.1.0"
+    implementation "me.tatarka.inject:kotlin-inject-runtime:0.1.0"
 }
 ```
 
