@@ -5,10 +5,7 @@ import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import kotlinx.metadata.*
 import kotlinx.metadata.jvm.*
-import javax.lang.model.element.Element
-import javax.lang.model.element.ExecutableElement
-import javax.lang.model.element.Modifier
-import javax.lang.model.element.TypeElement
+import javax.lang.model.element.*
 import javax.lang.model.type.*
 import javax.lang.model.util.SimpleTypeVisitor7
 
@@ -16,10 +13,10 @@ fun Element.hasAnnotation(className: String): Boolean {
     return annotationMirrors.any { it.annotationType.toString() == className }
 }
 
-fun Element.typeAnnotatedWith(className: String) =
+fun Element.annotationAnnotatedWith(className: String) =
     annotationMirrors.find {
         it.annotationType.asElement().hasAnnotation(className)
-    }?.annotationType?.asElement() as? TypeElement
+    }
 
 val TypeElement.metadata: KotlinClassMetadata?
     get() {
@@ -217,4 +214,18 @@ fun KmType.asTypeName(): TypeName? {
     } else {
         className.parameterizedBy(arguments.map { it.type!!.asTypeName()!! })
     }.copy(nullable = isNullable)
+}
+
+fun AnnotationMirror.eqv(other: AnnotationMirror): Boolean {
+    if (annotationType != other.annotationType) {
+        return false
+    }
+    val values = elementValues.values
+    val otherValues = other.elementValues.values
+
+    if (values.size != otherValues.size) {
+        return false
+    }
+
+    return values.zip(otherValues).all { (a, b) -> a.value == b.value }
 }

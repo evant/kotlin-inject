@@ -29,13 +29,13 @@ interface Messenger {
 sealed class AstElement : AstAnnotated {
     inline fun <reified T : Annotation> hasAnnotation() = hasAnnotation(T::class.qualifiedName!!)
 
-    inline fun <reified T : Annotation> typeAnnotatedWith(): AstClass? = typeAnnotatedWith(T::class.qualifiedName!!)
+    inline fun <reified T : Annotation> annotationAnnotatedWith(): AstAnnotation? = annotationAnnotatedWith(T::class.qualifiedName!!)
 }
 
 interface AstAnnotated {
     fun hasAnnotation(className: String): Boolean
 
-    fun typeAnnotatedWith(className: String): AstClass?
+    fun annotationAnnotatedWith(className: String): AstAnnotation?
 }
 
 abstract class AstBasicElement : AstElement() {
@@ -179,7 +179,9 @@ abstract class AstType : AstElement() {
     }
 }
 
-abstract class AstAnnotation : AstElement()
+abstract class AstAnnotation : AstElement() {
+    abstract val type: AstType
+}
 
 abstract class AstParam : AstElement() {
 

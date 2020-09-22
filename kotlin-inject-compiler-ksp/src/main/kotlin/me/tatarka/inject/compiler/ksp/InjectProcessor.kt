@@ -54,8 +54,8 @@ class InjectProcessor : SymbolProcessor, KSAstProvider {
         }
     }
 
-    private fun scopedClasses(scopeType: AstClass, resolver: Resolver): List<AstClass> {
-        return resolver.getSymbolsWithAnnotation(scopeType.asClassName().toString()).mapNotNull {
+    private fun scopedClasses(scopeType: AstType, resolver: Resolver): List<AstClass> {
+        return resolver.getSymbolsWithAnnotation(scopeType.toAstClass().asClassName().toString()).mapNotNull {
             (it as? KSClassDeclaration)?.toAstClass()
         }
     }

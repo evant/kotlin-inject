@@ -1,11 +1,7 @@
 package me.tatarka.inject.compiler.kapt
 
 import me.tatarka.inject.annotations.Component
-import me.tatarka.inject.compiler.AstClass
-import me.tatarka.inject.compiler.FailedToGenerateException
-import me.tatarka.inject.compiler.InjectGenerator
-import me.tatarka.inject.compiler.scopeClass
-import me.tatarka.inject.compiler.scopeType
+import me.tatarka.inject.compiler.*
 import javax.annotation.processing.RoundEnvironment
 import javax.lang.model.element.TypeElement
 
@@ -45,8 +41,8 @@ class InjectCompiler : BaseInjectCompiler() {
         return false
     }
 
-    private fun scopedClasses(scopeType: AstClass, env: RoundEnvironment): List<AstClass> {
-        return env.getElementsAnnotatedWith(scopeType.element).mapNotNull {
+    private fun scopedClasses(scopeType: AstType, env: RoundEnvironment): List<AstClass> {
+        return env.getElementsAnnotatedWith(scopeType.toAstClass().element).mapNotNull {
             (it as? TypeElement)?.toAstClass()
         }
     }

@@ -6,26 +6,16 @@ import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeVariableName
 import org.jetbrains.kotlin.ksp.isAbstract
-import org.jetbrains.kotlin.ksp.symbol.AnnotationUseSiteTarget
-import org.jetbrains.kotlin.ksp.symbol.KSAnnotated
-import org.jetbrains.kotlin.ksp.symbol.KSClassDeclaration
-import org.jetbrains.kotlin.ksp.symbol.KSDeclaration
-import org.jetbrains.kotlin.ksp.symbol.KSFunctionDeclaration
-import org.jetbrains.kotlin.ksp.symbol.KSNode
-import org.jetbrains.kotlin.ksp.symbol.KSPropertyDeclaration
-import org.jetbrains.kotlin.ksp.symbol.KSType
-import org.jetbrains.kotlin.ksp.symbol.KSTypeAlias
-import org.jetbrains.kotlin.ksp.symbol.KSTypeParameter
-import org.jetbrains.kotlin.ksp.symbol.KSTypeReference
-import org.jetbrains.kotlin.ksp.symbol.Nullability
-import org.jetbrains.kotlin.ksp.symbol.Variance
+import org.jetbrains.kotlin.ksp.symbol.*
 import org.jetbrains.kotlin.ksp.visitor.KSDefaultVisitor
 
-fun KSAnnotated.typeAnnotatedWith(className: String, useSiteTarget: AnnotationUseSiteTarget? = null): KSType? {
+fun KSAnnotated.annotationAnnotatedWith(className: String, useSiteTarget: AnnotationUseSiteTarget? = null): KSAnnotation? {
     for (annotation in annotations) {
-        val t = annotation.annotationType.resolve()
-        if (t?.declaration?.hasAnnotation(className, useSiteTarget) == true) {
-            return t
+        if (annotation.useSiteTarget == useSiteTarget) {
+            val t = annotation.annotationType.resolve()
+            if (t?.declaration?.hasAnnotation(className) == true) {
+                return annotation
+            }
         }
     }
     return null
@@ -108,3 +98,7 @@ fun KSType.asTypeName(): TypeName {
     }, Unit)
 }
 
+fun KSAnnotation.eqv(other: KSAnnotation): Boolean {
+    return annotationType.resolve() == other.annotationType.resolve() &&
+            arguments == other.arguments
+}

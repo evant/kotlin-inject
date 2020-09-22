@@ -4,8 +4,8 @@ import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ClassName
 import kotlinx.metadata.*
 import kotlinx.metadata.jvm.annotations
-import kotlinx.metadata.jvm.syntheticMethodForAnnotations
 import me.tatarka.inject.compiler.*
+import java.util.*
 import javax.annotation.processing.Messager
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.*
@@ -132,8 +132,10 @@ private interface ModelAstElement : ModelAstProvider, AstAnnotated {
         return element.hasAnnotation(className)
     }
 
-    override fun typeAnnotatedWith(className: String): AstClass? {
-        return element.typeAnnotatedWith(className)?.toAstClass()
+    override fun annotationAnnotatedWith(className: String): AstAnnotation? {
+        return element.annotationAnnotatedWith(className)?.let {
+            ModelAstAnnotation(this, it, null)
+        }
     }
 }
 
@@ -170,7 +172,7 @@ private class PrimitiveModelAstClass(
     }
 
     override fun hasAnnotation(className: String): Boolean = false
-    override fun typeAnnotatedWith(className: String): AstClass? = null
+    override fun annotationAnnotatedWith(className: String): AstAnnotation? = null
 }
 
 private class ModelAstClass(
@@ -463,17 +465,15 @@ private class ModelAstType(
         }
 
     override val annotations: List<AstAnnotation> by lazy {
-        if (kmType != null) {
-            kmType.annotations.map { annotation ->
-                val mirror = provider.elements.getTypeElement(annotation.className.replace('/', '.'))
-                ModelAstAnnotation(
-                    this,
-                    mirror.asType() as DeclaredType,
-                    annotation
-                )
-            }
-        } else {
-            emptyList()
+        val typeAnnotations = type.annotationMirrors
+        val kmTypeAnnotations = kmType?.annotations
+        typeAnnotations.mapIndexed { index, annotation ->
+            val kmAnnotation = kmTypeAnnotations?.get(index)
+            ModelAstAnnotation(
+                this,
+                annotation,
+                kmAnnotation
+            )
         }
     }
 
@@ -539,25 +539,33 @@ private class ModelAstType(
 
 private class ModelAstAnnotation(
     provider: ModelAstProvider,
-    val annotationType: DeclaredType,
-    private val kmAnnotation: KmAnnotation
+    val mirror: AnnotationMirror,
+    private val kmAnnotation: KmAnnotation?
 ) : AstAnnotation(),
     ModelAstElement, ModelAstProvider by provider {
-    override val element: Element get() = types.asElement(annotationType)
+    override val element: Element get() = types.asElement(mirror.annotationType)
+
+    override val type: AstType
+        get() = ModelAstType(this, mirror.annotationType, kmAnnotation?.type)
 
     override fun equals(other: Any?): Boolean {
         if (other !is ModelAstAnnotation) return false
-        return kmAnnotation == other.kmAnnotation
+        return kmAnnotation == other.kmAnnotation && mirror.eqv(other.mirror)
     }
 
     override fun hashCode(): Int {
-        return kmAnnotation.hashCode()
+        return Objects.hash(kmAnnotation, mirror.annotationType)
     }
 
     override fun toString(): String {
-        return "@$annotationType(${
-            kmAnnotation.arguments.toList()
-                .joinToString(separator = ", ") { (name, value) -> "$name=${value.value}" }
+        return "@${mirror.annotationType}(${
+            if (kmAnnotation != null) {
+                kmAnnotation.arguments.toList()
+                    .joinToString(separator = ", ") { (name, value) -> "$name=${value.value}" }
+            } else {
+                mirror.elementValues.toList()
+                    .joinToString(separator = ", ") { (element, value) -> "${element.simpleName}=${value.value}" }
+            }
         })"
     }
 }
