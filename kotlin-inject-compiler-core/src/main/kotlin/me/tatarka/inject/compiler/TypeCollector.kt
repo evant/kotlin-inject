@@ -31,7 +31,7 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
     private val _scoped = mutableListOf<AstType>()
 
     // Map of scoped components and the accessors to obtain them
-    private val scopedAccessors = mutableMapOf<AstClass, ScopedComponent>()
+    private val scopedAccessors = mutableMapOf<AstType, ScopedComponent>()
 
     private fun collectTypes(
         astClass: AstClass,
@@ -99,7 +99,7 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
                 val type = method.returnTypeFor(astClass)
                 if (type.packageName == "kotlin" && type.simpleName == "Pair") {
                     val typeArgs = method.returnTypeFor(astClass).arguments
-                    val mapType = TypeKey(declaredTypeOf(Map::class, typeArgs[0], typeArgs[1]))
+                    val mapType = TypeKey(declaredTypeOf(Map::class, typeArgs[0], typeArgs[1]), method.qualifier(options))
                     addContainerType(mapType, mapOf, method, accessor, scopedComponent)
                 } else {
                     error("@IntoMap must have return type of type Pair", method)
@@ -110,7 +110,7 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
                 addContainerType(setType, setOf, method, accessor, scopedComponent)
             } else {
                 val returnType = method.returnTypeFor(astClass)
-                val key = TypeKey(returnType)
+                val key = TypeKey(returnType, method.qualifier(options))
                 addMethod(key, method, accessor, scopedComponent)
                 if (scopeType != null) {
                     _scoped.add(returnType)
@@ -120,7 +120,7 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
 
         for (method in providerMethods) {
             val returnType = method.returnTypeFor(astClass)
-            val key = TypeKey(returnType)
+            val key = TypeKey(returnType, method.qualifier(options))
             if (isComponent) {
                 addProviderMethod(key, method, accessor)
             } else {
@@ -230,7 +230,7 @@ sealed class TypeCreator(val source: AstElement) {
     class Constructor(
         val constructor: AstConstructor,
         val accessor: String? = null,
-        val scope: AstClass? = null,
+        val scope: AstType? = null,
         val scopedComponent: AstClass? = null
     ) :
         TypeCreator(constructor)
@@ -238,7 +238,7 @@ sealed class TypeCreator(val source: AstElement) {
     class Method(
         val method: AstMethod,
         val accessor: String? = null,
-        val scope: AstClass? = null,
+        val scope: AstType? = null,
         val scopedComponent: AstClass? = null
     ) : TypeCreator(method)
 

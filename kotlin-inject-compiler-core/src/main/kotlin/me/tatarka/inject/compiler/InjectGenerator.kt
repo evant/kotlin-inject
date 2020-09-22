@@ -88,7 +88,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
 
                                     codeBlock.add(
                                         provide(
-                                            key = TypeKey(returnType),
+                                            key = TypeKey(returnType, method.qualifier(options)),
                                             context = context
                                         )
                                     )
@@ -241,14 +241,14 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
             when (method) {
                 is AstProperty -> {
                     if (receiverParamType != null) {
-                        codeBlock.add(provide(key = TypeKey(receiverParamType), context = context))
+                        codeBlock.add(provide(key = TypeKey(receiverParamType, method.qualifier(options)), context = context))
                         codeBlock.add(".")
                     }
                     codeBlock.add("%N", method.name)
                 }
                 is AstFunction -> {
                     if (receiverParamType != null) {
-                        codeBlock.add(provide(key = TypeKey(receiverParamType), context = context))
+                        codeBlock.add(provide(key = TypeKey(receiverParamType, method.qualifier(options)), context = context))
                         codeBlock.add(".")
                     }
                     codeBlock.add("%N(", method.name)
@@ -259,7 +259,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                         }
                         codeBlock.add(
                             provide(
-                                key = TypeKey(param.type),
+                                key = TypeKey(param.type, param.qualifier(options)),
                                 context = context
                             ) { context, key -> context.findWithIndex(key, i, size) })
                     }
@@ -286,7 +286,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
             if (i != 0) {
                 codeBlock.add(",")
             }
-            codeBlock.add(provide(key = TypeKey(param.type), context = context) { context, key ->
+            codeBlock.add(provide(key = TypeKey(param.type, param.qualifier(options)), context = context) { context, key ->
                 context.findWithIndex(key, i, size)
             })
         }
@@ -369,7 +369,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                     if (i != 0) {
                         add(",")
                     }
-                    add(provide(TypeKey(param.type), context.withArgs(argList)) { context, key ->
+                    add(provide(TypeKey(param.type, param.qualifier(options)), context.withArgs(argList)) { context, key ->
                         context.findWithIndex(key, i, size)
                     })
                 }
@@ -419,7 +419,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                     )
                 }
             }
-            val fKey = TypeKey(resolveType.arguments.last())
+            val fKey = TypeKey(resolveType.arguments.last(), key.qualifier)
             return Result.Function(
                 element = key.type.toAstClass(),
                 key = fKey,
@@ -427,7 +427,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
             )
         }
         if (key.type.packageName == "kotlin" && key.type.simpleName == "Lazy") {
-            val lKey = TypeKey(key.type.arguments[0])
+            val lKey = TypeKey(key.type.arguments[0], key.qualifier)
             return Result.Lazy(key = lKey)
         }
         return null
@@ -515,14 +515,14 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
 }
 
 
-fun AstElement.scopeType(options: Options): AstClass? {
+fun AstElement.scopeType(options: Options): AstType? {
     if (options.enableJavaxAnnotations) {
-        val type = typeAnnotatedWith("javax.inject.Scope")
-        if (type != null) {
-            return type
+        val annotation = annotationAnnotatedWith("javax.inject.Scope")
+        if (annotation != null) {
+            return annotation.type
         }
     }
-    return typeAnnotatedWith<Scope>()
+    return annotationAnnotatedWith<Scope>()?.type
 }
 
 private fun String.asScopedProp(): String = "_" + decapitalize()
@@ -538,6 +538,14 @@ fun AstClass.isInject(options: Options): Boolean {
         }
     }
     return hasAnnotation<Inject>()
+}
+
+fun AstElement.qualifier(options: Options): Any? {
+    return if (options.enableJavaxAnnotations) {
+        annotationAnnotatedWith("javax.inject.Qualifier")
+    } else {
+        null
+    }
 }
 
 fun AstMethod.isProvider(): Boolean =

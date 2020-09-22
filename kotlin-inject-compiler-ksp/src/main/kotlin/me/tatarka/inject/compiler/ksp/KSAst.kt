@@ -9,6 +9,7 @@ import org.jetbrains.kotlin.ksp.isPrivate
 import org.jetbrains.kotlin.ksp.processing.KSPLogger
 import org.jetbrains.kotlin.ksp.processing.Resolver
 import org.jetbrains.kotlin.ksp.symbol.*
+import java.util.*
 import kotlin.reflect.KClass
 
 interface KSAstProvider : AstProvider {
@@ -111,8 +112,10 @@ private interface KSAstAnnotated : AstAnnotated, KSAstProvider {
         return declaration.hasAnnotation(className)
     }
 
-    override fun typeAnnotatedWith(className: String): AstClass? {
-        return (declaration.typeAnnotatedWith(className)?.declaration as? KSClassDeclaration)?.toAstClass()
+    override fun annotationAnnotatedWith(className: String): AstAnnotation? {
+        return declaration.annotationAnnotatedWith(className)?.let {
+            KSAstAnnotation(this, it)
+        }
     }
 }
 
@@ -271,9 +274,13 @@ private class KSAstProperty(provider: KSAstProvider, override val declaration: K
                 || declaration.hasAnnotation(className, AnnotationUseSiteTarget.GET)
     }
 
-    override fun typeAnnotatedWith(className: String): AstClass? {
-        return (declaration.getter?.typeAnnotatedWith(className)?.declaration as? KSClassDeclaration)?.toAstClass()
-            ?: (declaration.typeAnnotatedWith(className, AnnotationUseSiteTarget.GET)?.declaration as? KSClassDeclaration)?.toAstClass()
+    override fun annotationAnnotatedWith(className: String): AstAnnotation? {
+        return (declaration.getter?.annotationAnnotatedWith(className) ?: declaration.annotationAnnotatedWith(
+            className,
+            AnnotationUseSiteTarget.GET
+        ))?.let {
+            KSAstAnnotation(this, it)
+        }
     }
 
     override fun equals(other: Any?): Boolean {
@@ -394,6 +401,33 @@ private class KSAstParam(
     }
 
     override fun toString(): String = "$name: $type"
+}
+
+private class KSAstAnnotation(provider: KSAstProvider, val annotation: KSAnnotation) : AstAnnotation(),
+    KSAstProvider by provider {
+
+    override val type: AstType
+        get() = KSAstType(this, annotation.annotationType)
+
+    override fun hasAnnotation(className: String): Boolean {
+        TODO("Not yet implemented")
+    }
+
+    override fun annotationAnnotatedWith(className: String): AstAnnotation? {
+        TODO("Not yet implemented")
+    }
+
+    override fun equals(other: Any?): Boolean {
+        return other is KSAstAnnotation && annotation.eqv(other.annotation)
+    }
+
+    override fun hashCode(): Int {
+        return toString().hashCode()
+    }
+
+    override fun toString(): String {
+        return "${annotation}(${annotation.arguments.joinToString(", ") { arg -> "${arg.name?.asString()}=${arg.value}" }})"
+    }
 }
 
 private fun collectModifiers(declaration: KSDeclaration): Set<AstModifier> {
