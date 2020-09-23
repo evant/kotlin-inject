@@ -1,18 +1,16 @@
-package me.tatarka.inject.test
+package me.tatarka.inject
 
-import assertk.Assert
-import assertk.assertions.isNotNull
-import assertk.assertions.message
 import com.tschuchort.compiletesting.KotlinCompilation
 import com.tschuchort.compiletesting.SourceFile
 import com.tschuchort.compiletesting.symbolProcessors
+import me.tatarka.inject.compiler.Profiler
 import me.tatarka.inject.compiler.kapt.InjectCompiler
 import me.tatarka.inject.compiler.ksp.InjectProcessor
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.PrintStream
 
-class ProjectCompiler(private val root: File, private val target: Target) {
+class ProjectCompiler(private val target: Target, private val root: File? = null, private val profiler: Profiler? = null) {
 
     private val sourceFiles = mutableListOf<SourceFile>()
 
@@ -29,14 +27,14 @@ class ProjectCompiler(private val root: File, private val target: Target) {
         val result = KotlinCompilation().apply {
             sources = sourceFiles
             messageOutputStream = printOut
-            workingDir = root
+            root?.let { workingDir = it }
             inheritClassPath = true
             when (target) {
                 Target.kapt -> {
-                    annotationProcessors = listOf(InjectCompiler())
+                    annotationProcessors = listOf(InjectCompiler(profiler))
                 }
                 Target.ksp -> {
-                    symbolProcessors = listOf(InjectProcessor())
+                    symbolProcessors = listOf(InjectProcessor(profiler))
                 }
             }
         }.compile()
@@ -47,8 +45,6 @@ class ProjectCompiler(private val root: File, private val target: Target) {
         }
     }
 }
-
-fun Assert<Throwable>.output(): Assert<String> = message().isNotNull()
 
 enum class Target {
     kapt,

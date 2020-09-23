@@ -5,28 +5,29 @@ plugins {
 dependencies {
     implementation 'org.jetbrains.kotlin:kotlin-stdlib'
 
+    implementation project(':kotlin-inject-compiler-core')
+    implementation project(':kotlin-inject-compiler-kapt')
+    implementation project(':kotlin-inject-compiler-ksp')
+
+    implementation 'com.github.tschuchortdev:kotlin-compile-testing-ksp:1.2.10'
+    implementation 'org.jetbrains.kotlin:kotlin-compiler-embeddable:1.4.0'
+    implementation('org.jetbrains.kotlin:kotlin-ksp') {
+        version {
+            strictly '1.4.0-dev-experimental-20200914'
+        }
+    }
+    implementation('org.jetbrains.kotlin:kotlin-symbol-processing-api') {
+        version {
+            strictly '1.4.0-dev-experimental-20200914'
+        }
+    }
+
     testImplementation "org.jetbrains.kotlin:kotlin-test"
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit"
     testImplementation 'org.jetbrains.kotlin:kotlin-reflect'
 
-    testImplementation project(':kotlin-inject-compiler-core')
-    testImplementation project(':kotlin-inject-compiler-kapt')
-    testImplementation project(':kotlin-inject-compiler-ksp')
     testImplementation 'com.willowtreeapps.assertk:assertk-jvm:0.22'
     testImplementation 'com.squareup.burst:burst-junit4:1.2.0'
-
-    testImplementation 'com.github.tschuchortdev:kotlin-compile-testing-ksp:1.2.10'
-    testImplementation 'org.jetbrains.kotlin:kotlin-compiler-embeddable:1.4.0'
-    testImplementation('org.jetbrains.kotlin:kotlin-ksp') {
-        version {
-            strictly '1.4.0-dev-experimental-20200914'
-        }
-    }
-    testImplementation('org.jetbrains.kotlin:kotlin-symbol-processing-api') {
-        version {
-            strictly '1.4.0-dev-experimental-20200914'
-        }
-    }
 }
 
 sourceCompatibility = 1.8

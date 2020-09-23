@@ -9,7 +9,7 @@ import org.jetbrains.kotlin.ksp.processing.Resolver
 import org.jetbrains.kotlin.ksp.processing.SymbolProcessor
 import org.jetbrains.kotlin.ksp.symbol.KSClassDeclaration
 
-class InjectProcessor : SymbolProcessor, KSAstProvider {
+class InjectProcessor(private val profiler: Profiler? = null) : SymbolProcessor, KSAstProvider {
 
     private lateinit var options: Options
     private lateinit var codeGenerator: CodeGenerator
@@ -22,7 +22,7 @@ class InjectProcessor : SymbolProcessor, KSAstProvider {
         codeGenerator: CodeGenerator,
         logger: KSPLogger
     ) {
-        this.options = Options.from(options)
+        this.options = Options.from(options, profiler)
         this.codeGenerator = codeGenerator
         this.logger = logger
     }

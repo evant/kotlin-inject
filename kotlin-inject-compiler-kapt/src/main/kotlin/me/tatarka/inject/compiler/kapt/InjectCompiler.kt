@@ -5,7 +5,7 @@ import me.tatarka.inject.compiler.*
 import javax.annotation.processing.RoundEnvironment
 import javax.lang.model.element.TypeElement
 
-class InjectCompiler : BaseInjectCompiler() {
+class InjectCompiler(profiler: Profiler? = null) : BaseInjectCompiler(profiler) {
 
     private val annotationNames = mutableSetOf<String>()
 

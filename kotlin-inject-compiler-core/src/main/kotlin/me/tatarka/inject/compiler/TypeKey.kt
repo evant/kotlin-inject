@@ -1,8 +1,6 @@
 package me.tatarka.inject.compiler
 
-import java.util.*
-
-class TypeKey(val type: AstType, val qualifier: Any? = null) {
+class TypeKey(val type: AstType, val qualifier: AstAnnotation? = null) {
 
     override fun equals(other: Any?): Boolean {
         if (other !is TypeKey) return false
@@ -10,7 +8,10 @@ class TypeKey(val type: AstType, val qualifier: Any? = null) {
     }
 
     override fun hashCode(): Int {
-        return Objects.hash(type, qualifier)
+        return collectHash {
+            hash(type)
+            hash(qualifier)
+        }
     }
 
     override fun toString(): String = StringBuilder().apply {

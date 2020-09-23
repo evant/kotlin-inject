@@ -3,6 +3,8 @@ package me.tatarka.inject.test
 import assertk.assertThat
 import assertk.assertions.contains
 import assertk.assertions.isFailure
+import me.tatarka.inject.ProjectCompiler
+import me.tatarka.inject.Target
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -27,7 +29,7 @@ class FailureTest(val target: Target) {
 
     @Before
     fun setup() {
-        projectCompiler = ProjectCompiler(tempDir.newFolder(), target)
+        projectCompiler = ProjectCompiler(target, tempDir.newFolder())
     }
 
     @Test

@@ -5,12 +5,14 @@ private const val OPTION_ENABLE_JAVAX_ANNOTATIONS = "me.tatarka.inject.enableJav
 
 data class Options(
         val generateCompanionExtensions: Boolean,
-        val enableJavaxAnnotations: Boolean
+        val enableJavaxAnnotations: Boolean,
+        val profiler: Profiler? = null
 ) {
     companion object {
-        fun from(map: Map<String, String>) = Options(
-                generateCompanionExtensions = map[OPTION_GENERATE_COMPANION_EXTENSIONS]?.toBoolean() ?: false,
-                enableJavaxAnnotations = map[OPTION_ENABLE_JAVAX_ANNOTATIONS]?.toBoolean() ?: false
+        fun from(map: Map<String, String>, profiler: Profiler? = null) = Options(
+            generateCompanionExtensions = map[OPTION_GENERATE_COMPANION_EXTENSIONS]?.toBoolean() ?: false,
+            enableJavaxAnnotations = map[OPTION_ENABLE_JAVAX_ANNOTATIONS]?.toBoolean() ?: false,
+            profiler = profiler
         )
     }
 }
