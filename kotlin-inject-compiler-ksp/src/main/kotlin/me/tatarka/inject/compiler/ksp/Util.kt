@@ -55,13 +55,6 @@ fun KSDeclaration.asClassName(): ClassName {
     return ClassName(if (packageName == "<root>") "" else packageName, shortName.split('.'))
 }
 
-fun KSDeclaration.isAbstract() = when (this) {
-    is KSFunctionDeclaration -> isAbstract
-    is KSPropertyDeclaration -> isAbstract()
-    is KSClassDeclaration -> isAbstract()
-    else -> false
-}
-
 fun KSTypeReference.memberOf(enclosingClass: KSClassDeclaration): KSTypeReference {
     val declaration = resolve()!!.declaration
     return if (declaration is KSTypeParameter) {

@@ -155,7 +155,9 @@ private class PrimitiveModelAstClass(
 ) : AstClass(), ModelAstProvider by type {
     override val packageName: String = "kotlin"
     override val name: String = type.toString()
-    override val modifiers: Set<AstModifier> = emptySet()
+    override val isAbstract: Boolean = false
+    override val isPrivate: Boolean = false
+    override val isInterface: Boolean = false
     override val companion: AstClass? = null
     override val superTypes: List<AstClass> = emptyList()
     override val primaryConstructor: AstConstructor? = null
@@ -192,8 +194,14 @@ private class ModelAstClass(
 
     override val name: String get() = element.simpleName.toString()
 
-    override val modifiers: Set<AstModifier>
-        get() = collectModifiers(kmClass?.flags)
+    override val isAbstract: Boolean
+        get() = kmClass?.isAbstract() ?: false
+
+    override val isPrivate: Boolean
+        get() = kmClass?.isPrivate() ?: false
+
+    override val isInterface: Boolean
+        get() = kmClass?.isInterface() ?: false
 
     override val companion: AstClass?
         get() {
@@ -315,8 +323,11 @@ private class ModelAstFunction(
 
     override val name: String get() = kmFunction.name
 
-    override val modifiers: Set<AstModifier>
-        get() = collectModifiers(kmFunction.flags)
+    override val isAbstract: Boolean
+        get() = kmFunction.isAbstract()
+
+    override val isPrivate: Boolean
+        get() = kmFunction.isPrivate()
 
     override val returnType: AstType
         get() = ModelAstType(
@@ -388,18 +399,11 @@ private class ModelAstProperty(
 
     override val name: String get() = kmProperty.name
 
-    override val modifiers: Set<AstModifier>
-        get() {
-            val result = mutableSetOf<AstModifier>()
-            val flags = kmProperty.flags
-            if (Flag.Common.IS_PRIVATE(flags)) {
-                result.add(AstModifier.PRIVATE)
-            }
-            if (Flag.Common.IS_ABSTRACT(flags)) {
-                result.add(AstModifier.ABSTRACT)
-            }
-            return result
-        }
+    override val isAbstract: Boolean
+        get() = kmProperty.isAbstract()
+
+    override val isPrivate: Boolean
+        get() = kmProperty.isPrivate()
 
     override val returnType: AstType
         get() = ModelAstType(
@@ -620,21 +624,6 @@ private fun String.toKmType(args: List<KmTypeProjection>): KmType = KmType(0).ap
     classifier = KmClassifier.Class(this@toKmType).apply {
         arguments.addAll(args)
     }
-}
-
-private fun collectModifiers(flags: Flags?): Set<AstModifier> {
-    val result = mutableSetOf<AstModifier>()
-    if (flags == null) return result
-    if (Flag.Common.IS_PRIVATE(flags)) {
-        result.add(AstModifier.PRIVATE)
-    }
-    if (Flag.Common.IS_ABSTRACT(flags)) {
-        result.add(AstModifier.ABSTRACT)
-    }
-    if (Flag.Class.IS_INTERFACE(flags)) {
-        result.add(AstModifier.INTERFACE)
-    }
-    return result
 }
 
 val AstClass.element: TypeElement

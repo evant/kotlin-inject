@@ -1,3 +1,5 @@
+@file:Suppress("NOTHING_TO_INLINE")
+
 package me.tatarka.inject.compiler.kapt
 
 import com.squareup.kotlinpoet.*
@@ -283,3 +285,17 @@ fun TypeMirror.eqvHashCode(collector: HashCollector = HashCollector()): Int = co
         }
     }
 }
+
+inline fun KmClass.isAbstract() = Flag.Common.IS_ABSTRACT(flags)
+
+inline fun KmClass.isPrivate() = Flag.Common.IS_PRIVATE(flags)
+
+inline fun KmClass.isInterface() = Flag.Class.IS_INTERFACE(flags)
+
+inline fun KmFunction.isAbstract() = Flag.Common.IS_ABSTRACT(flags)
+
+inline fun KmFunction.isPrivate() = Flag.Common.IS_PRIVATE(flags)
+
+inline fun KmProperty.isAbstract() = Flag.Common.IS_ABSTRACT(flags)
+
+inline fun KmProperty.isPrivate() = Flag.Common.IS_PRIVATE(flags)

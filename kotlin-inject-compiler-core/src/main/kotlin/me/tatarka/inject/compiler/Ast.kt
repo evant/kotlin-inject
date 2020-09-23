@@ -44,15 +44,15 @@ abstract class AstBasicElement : AstElement() {
     abstract val simpleName: String
 }
 
-abstract class AstClass : AstElement() {
+abstract class AstClass : AstElement(), AstHasModifiers {
 
     abstract val packageName: String
 
     abstract val name: String
 
-    abstract val modifiers: Set<AstModifier>
-
     abstract val companion: AstClass?
+
+    abstract val isInterface: Boolean
 
     abstract val superTypes: List<AstClass>
 
@@ -78,10 +78,8 @@ abstract class AstClass : AstElement() {
     }
 }
 
-sealed class AstMethod : AstElement() {
+sealed class AstMethod : AstElement(), AstHasModifiers {
     abstract val name: String
-
-    abstract val modifiers: Set<AstModifier>
 
     abstract val receiverParameterType: AstType?
 
@@ -198,8 +196,9 @@ abstract class AstParam : AstElement() {
     }
 }
 
-enum class AstModifier {
-    PRIVATE, ABSTRACT, INTERFACE
+interface AstHasModifiers {
+    val isPrivate: Boolean
+    val isAbstract: Boolean
 }
 
 fun ParameterSpec.Companion.parametersOf(constructor: AstConstructor) =

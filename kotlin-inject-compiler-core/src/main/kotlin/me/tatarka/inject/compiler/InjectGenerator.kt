@@ -25,9 +25,9 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
     fun generate(astClass: AstClass): FileSpec {
         options.profiler?.onStart()
 
-        if (AstModifier.ABSTRACT !in astClass.modifiers) {
+        if (!astClass.isAbstract) {
             throw FailedToGenerateException("@Component class: $astClass must be abstract", astClass)
-        } else if (AstModifier.PRIVATE in astClass.modifiers) {
+        } else if (astClass.isPrivate) {
             throw FailedToGenerateException("@Component class: $astClass must not be private", astClass)
         }
 
@@ -57,7 +57,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         return TypeSpec.classBuilder("Inject${astClass.name}")
             .addOriginatingElement(astClass)
             .apply {
-                if (AstModifier.INTERFACE in astClass.modifiers) {
+                if (astClass.isInterface) {
                     addSuperinterface(astClass.asClassName())
                 } else {
                     superclass(astClass.asClassName())
@@ -573,7 +573,7 @@ fun AstElement.qualifier(options: Options): AstAnnotation? {
 }
 
 fun AstMethod.isProvider(): Boolean =
-    !hasAnnotation<Provides>() && AstModifier.ABSTRACT in modifiers && when (this) {
+    !hasAnnotation<Provides>() && isAbstract && when (this) {
         is AstFunction -> parameters.isEmpty()
         is AstProperty -> true
     } && receiverParameterType == null && returnType.isNotUnit()

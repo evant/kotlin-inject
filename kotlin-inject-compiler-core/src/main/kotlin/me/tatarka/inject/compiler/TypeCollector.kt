@@ -66,11 +66,12 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
             }
 
             for (method in parentClass.methods) {
-                if (isComponent && AstModifier.ABSTRACT !in method.modifiers) {
+                val abstract = method.isAbstract
+                if (isComponent && !abstract) {
                     concreteMethods.add(method)
                 }
                 if (method.isProvides()) {
-                    if (AstModifier.PRIVATE in method.modifiers) {
+                    if (method.isPrivate) {
                         error("@Provides method must not be private", method)
                         continue
                     }
@@ -78,7 +79,7 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
                         error("@Provides method must return a value", method)
                         continue
                     }
-                    if (isComponent && AstModifier.ABSTRACT in method.modifiers) {
+                    if (isComponent && abstract) {
                         val providesImpl = concreteMethods.find { it.overrides(method) }
                         if (providesImpl == null) {
                             error("@Provides method must have a concrete implementation", method)
