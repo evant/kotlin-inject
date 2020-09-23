@@ -2,7 +2,10 @@ package me.tatarka.inject.compiler.ksp
 
 import com.squareup.kotlinpoet.FileSpec
 import me.tatarka.inject.annotations.Component
-import me.tatarka.inject.compiler.*
+import me.tatarka.inject.compiler.FailedToGenerateException
+import me.tatarka.inject.compiler.InjectGenerator
+import me.tatarka.inject.compiler.Options
+import me.tatarka.inject.compiler.Profiler
 import org.jetbrains.kotlin.ksp.processing.CodeGenerator
 import org.jetbrains.kotlin.ksp.processing.KSPLogger
 import org.jetbrains.kotlin.ksp.processing.Resolver
@@ -31,17 +34,10 @@ class InjectProcessor(private val profiler: Profiler? = null) : SymbolProcessor,
         this.resolver = resolver
 
         val generator = InjectGenerator(this, options)
-        val allScopeClasses = mutableSetOf<AstClass>()
 
         for (element in resolver.getSymbolsWithAnnotation(Component::class.qualifiedName!!)) {
             if (element !is KSClassDeclaration) continue
             val astClass = element.toAstClass()
-            val scopedClass = astClass.scopeClass(messenger, options)
-
-            val scopeType = scopedClass?.scopeType(options)
-            if (scopeType != null) {
-                allScopeClasses.addAll(scopedClasses(scopeType, resolver))
-            }
 
             try {
                 val file = generator.generate(astClass)
@@ -51,12 +47,6 @@ class InjectProcessor(private val profiler: Profiler? = null) : SymbolProcessor,
                 // Continue so we can see all errors
                 continue
             }
-        }
-    }
-
-    private fun scopedClasses(scopeType: AstType, resolver: Resolver): List<AstClass> {
-        return resolver.getSymbolsWithAnnotation(scopeType.toAstClass().asClassName().toString()).mapNotNull {
-            (it as? KSClassDeclaration)?.toAstClass()
         }
     }
 

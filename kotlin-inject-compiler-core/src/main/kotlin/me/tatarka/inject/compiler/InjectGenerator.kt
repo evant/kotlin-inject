@@ -19,6 +19,9 @@ import kotlin.reflect.KClass
 class InjectGenerator(provider: AstProvider, private val options: Options) :
     AstProvider by provider {
 
+    var scopeType: AstType? = null
+        private set
+
     fun generate(astClass: AstClass): FileSpec {
         options.profiler?.onStart()
 
@@ -33,7 +36,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         val injectComponent = generateInjectComponent(astClass, constructor)
         val createFunction = generateCreate(astClass, constructor, injectComponent)
 
-        val result =  FileSpec.builder(astClass.packageName, "Inject${astClass.name}")
+        val result = FileSpec.builder(astClass.packageName, "Inject${astClass.name}")
             .addType(injectComponent)
             .addFunction(createFunction)
             .build()
@@ -48,7 +51,8 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         constructor: AstConstructor?
     ): TypeSpec {
         val context = collectTypes(astClass, isComponent = true)
-        val scope = astClass.scopeClass(messenger, options)
+        val scope = context.collector.scopeClass
+        scopeType = scope?.scopeType(options)
 
         return TypeSpec.classBuilder("Inject${astClass.name}")
             .addOriginatingElement(astClass)
@@ -83,37 +87,33 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                         )
                     }
 
-                    astClass.visitInheritanceChain { parentClass ->
-                        for (method in parentClass.methods) {
-                            if (method.isProvider()) {
-                                val returnType = method.returnTypeFor(astClass)
+                    for (method in context.collector.providerMethods) {
+                        val returnType = method.returnTypeFor(astClass)
 
-                                context.withoutProvider(returnType).use(method) { context ->
-                                    val codeBlock = CodeBlock.builder()
-                                    codeBlock.add("return ")
+                        context.withoutProvider(returnType).use(method) { context ->
+                            val codeBlock = CodeBlock.builder()
+                            codeBlock.add("return ")
 
-                                    codeBlock.add(
-                                        provide(
-                                            key = TypeKey(returnType, method.qualifier(options)),
-                                            context = context
-                                        )
-                                    )
+                            codeBlock.add(
+                                provide(
+                                    key = TypeKey(returnType, method.qualifier(options)),
+                                    context = context
+                                )
+                            )
 
-                                    addProperty(
-                                        PropertySpec.builder(
-                                            method.name,
-                                            returnType.asTypeName(),
-                                            KModifier.OVERRIDE
-                                        )
-                                            .getter(
-                                                FunSpec.getterBuilder()
-                                                    .addCode(codeBlock.build())
-                                                    .build()
-                                            )
+                            addProperty(
+                                PropertySpec.builder(
+                                    method.name,
+                                    returnType.asTypeName(),
+                                    KModifier.OVERRIDE
+                                )
+                                    .getter(
+                                        FunSpec.getterBuilder()
+                                            .addCode(codeBlock.build())
                                             .build()
                                     )
-                                }
-                            }
+                                    .build()
+                            )
                         }
                     }
                 } catch (e: FailedToGenerateException) {
@@ -179,14 +179,14 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
             isComponent = isComponent
         )
         val cycleDetector = CycleDetector()
-        val elementScopeClass = astClass.scopeClass(messenger, options)
+        val elementScopeClass = typeCollector.scopeClass
         val scopeFromParent = elementScopeClass != astClass
         return Context(
             provider = this,
             source = astClass,
             collector = typeCollector,
             cycleDetector = cycleDetector,
-            scopeInterface = if (scopeFromParent) elementScopeClass else null
+            scopeInterface = if (scopeFromParent) elementScopeClass else null,
         )
     }
 
@@ -247,14 +247,24 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
             when (method) {
                 is AstProperty -> {
                     if (receiverParamType != null) {
-                        codeBlock.add(provide(key = TypeKey(receiverParamType, method.qualifier(options)), context = context))
+                        codeBlock.add(
+                            provide(
+                                key = TypeKey(receiverParamType, method.qualifier(options)),
+                                context = context
+                            )
+                        )
                         codeBlock.add(".")
                     }
                     codeBlock.add("%N", method.name)
                 }
                 is AstFunction -> {
                     if (receiverParamType != null) {
-                        codeBlock.add(provide(key = TypeKey(receiverParamType, method.qualifier(options)), context = context))
+                        codeBlock.add(
+                            provide(
+                                key = TypeKey(receiverParamType, method.qualifier(options)),
+                                context = context
+                            )
+                        )
                         codeBlock.add(".")
                     }
                     codeBlock.add("%N(", method.name)
@@ -292,9 +302,13 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
             if (i != 0) {
                 codeBlock.add(",")
             }
-            codeBlock.add(provide(key = TypeKey(param.type, param.qualifier(options)), context = context) { context, key ->
-                context.findWithIndex(key, i, size)
-            })
+            codeBlock.add(
+                provide(
+                    key = TypeKey(param.type, param.qualifier(options)),
+                    context = context
+                ) { context, key ->
+                    context.findWithIndex(key, i, size)
+                })
         }
         codeBlock.add(")")
         codeBlock.build()
@@ -375,9 +389,13 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                     if (i != 0) {
                         add(",")
                     }
-                    add(provide(TypeKey(param.type, param.qualifier(options)), context.withArgs(argList)) { context, key ->
-                        context.findWithIndex(key, i, size)
-                    })
+                    add(
+                        provide(
+                            TypeKey(param.type, param.qualifier(options)),
+                            context.withArgs(argList)
+                        ) { context, key ->
+                            context.findWithIndex(key, i, size)
+                        })
                 }
                 add(")")
 

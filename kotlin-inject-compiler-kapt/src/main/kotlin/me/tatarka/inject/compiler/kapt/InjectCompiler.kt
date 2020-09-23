@@ -15,22 +15,17 @@ class InjectCompiler(profiler: Profiler? = null) : BaseInjectCompiler(profiler) 
 
     override fun process(elements: Set<TypeElement>, env: RoundEnvironment): Boolean {
         val generator = InjectGenerator(this, options)
-        val allScopedClasses = mutableSetOf<AstClass>()
 
         for (element in env.getElementsAnnotatedWith(Component::class.java)) {
             if (element !is TypeElement) continue
 
             val astClass = element.toAstClass()
-            val scopeClass = astClass.scopeClass(messenger, options)
-            if (scopeClass != null) {
-                val scopeType = scopeClass.scopeType(options)!!
-                annotationNames.add(scopeType.toString())
-                val scopedClasses = scopedClasses(scopeType, env)
-                allScopedClasses.addAll(scopedClasses)
-            }
 
             try {
                 val file = generator.generate(astClass)
+                generator.scopeType?.let {
+                    annotationNames.add(it.toString())
+                }
                 file.writeTo(filer)
             } catch (e: FailedToGenerateException) {
                 error(e.message.orEmpty(), e.element)
@@ -39,12 +34,6 @@ class InjectCompiler(profiler: Profiler? = null) : BaseInjectCompiler(profiler) 
             }
         }
         return false
-    }
-
-    private fun scopedClasses(scopeType: AstType, env: RoundEnvironment): List<AstClass> {
-        return env.getElementsAnnotatedWith(scopeType.toAstClass().element).mapNotNull {
-            (it as? TypeElement)?.toAstClass()
-        }
     }
 
     override fun getSupportedAnnotationTypes(): Set<String> = annotationNames
