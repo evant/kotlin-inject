@@ -8,6 +8,8 @@ import me.tatarka.inject.annotations.Provides
 import kotlin.test.Test
 
 @Component abstract class ParentComponent {
+    abstract val parentNamedFoo: NamedFoo
+
     @Provides
     fun foo() = NamedFoo("parent")
 
@@ -38,6 +40,7 @@ class NestedComponentTest {
         val parent = ParentComponent::class.create()
         val component = SimpleChildComponent1::class.create(parent)
 
+        assertThat(component.parent.parentNamedFoo.name).isEqualTo("parent")
         assertThat(component.namedFoo.name).isEqualTo("parent")
         assertThat(component.foo).isNotNull()
     }
@@ -48,6 +51,7 @@ class NestedComponentTest {
         val child1 = SimpleChildComponent1::class.create(parent)
         val component = SimpleChildComponent2::class.create(child1)
 
+        assertThat(component.parent.parent.parentNamedFoo.name).isEqualTo("parent")
         assertThat(component.namedFoo.name).isEqualTo("parent")
         assertThat(component.foo).isNotNull()
         assertThat(component.bar).isNotNull()

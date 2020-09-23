@@ -16,7 +16,9 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
             accessor: String? = null,
             isComponent: Boolean = true,
         ): TypeCollector = TypeCollector(provider, options).apply {
-            scopeClass = collectTypes(astClass, accessor, isComponent)
+            val result = collectTypes(astClass, accessor, isComponent)
+            scopeClass = result.scopeClass
+            providerMethods = result.providerMethods
         }
     }
 
@@ -35,14 +37,14 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
     var scopeClass: AstClass? = null
         private set
 
-    val providerMethods: List<AstMethod> get() =
-        _providerMethods.values.map { it.method }
+    var providerMethods: List<AstMethod> = emptyList()
+        private set
 
     private fun collectTypes(
         astClass: AstClass,
         accessor: String? = null,
         isComponent: Boolean = true,
-    ): AstClass? {
+    ): TypeCollectionResult {
         val concreteMethods = mutableSetOf<AstMethod>()
         val providesMethods = mutableListOf<AstMethod>()
         val providerMethods = mutableListOf<AstMethod>()
@@ -157,8 +159,16 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
             }
         }
 
-        return scopeClass
+        return TypeCollectionResult(
+            providerMethods = providerMethods,
+            scopeClass = scopeClass
+        )
     }
+
+    private class TypeCollectionResult(
+        val providerMethods: List<AstMethod>,
+        val scopeClass: AstClass?
+    )
 
     private fun addContainerType(
         key: TypeKey,
