@@ -79,7 +79,7 @@ interface ModelAstProvider :
             qualifiedName = java.canonicalName
             simpleName = java.simpleName
         }
-        val packageName = qualifiedName.removeSuffix(simpleName).replace('.', '/')
+        val packageName = qualifiedName.removeSuffix(".$simpleName").replace('.', '/')
         return "${packageName}/${simpleName}"
     }
 
@@ -192,77 +192,80 @@ private class ModelAstClass(
 
     override val name: String get() = element.simpleName.toString()
 
-    override val modifiers: Set<AstModifier> by lazy {
-        collectModifiers(
-            kmClass?.flags
-        )
-    }
+    override val modifiers: Set<AstModifier>
+        get() = collectModifiers(kmClass?.flags)
 
-    override val companion: AstClass? by lazy {
-        val companionName = kmClass?.companionObject ?: return@lazy null
-        val companionType = ElementFilter.typesIn(element.enclosedElements).firstOrNull { type ->
-            type.simpleName.contentEquals(companionName)
-        }
-        companionType?.toAstClass()
-    }
-
-    override val superTypes: List<AstClass> by lazy {
-        mutableListOf<AstClass>().apply {
-            val superclassType = element.superclass
-            if (superclassType !is NoType) {
-                val superclass = provider.types.asElement(superclassType) as TypeElement
-                add(superclass.toAstClass())
+    override val companion: AstClass?
+        get() {
+            val companionName = kmClass?.companionObject ?: return null
+            val companionType = ElementFilter.typesIn(element.enclosedElements).firstOrNull { type ->
+                type.simpleName.contentEquals(companionName)
             }
-            addAll(element.interfaces.mapNotNull { ifaceType ->
-                val iface = provider.types.asElement(ifaceType) as TypeElement
-                iface.toAstClass()
-            })
+            return companionType?.toAstClass()
         }
-    }
 
-    override val primaryConstructor: AstConstructor? by lazy {
-        ElementFilter.constructorsIn(element.enclosedElements).mapNotNull { constructor ->
-            //TODO: not sure how to match constructors
-            ModelAstConstructor(
-                this,
-                this,
-                constructor,
-                kmClass?.constructors?.first()
-            )
-        }.firstOrNull()
-    }
-
-    override val methods: List<AstMethod> by lazy {
-        ElementFilter.methodsIn(element.enclosedElements).mapNotNull<ExecutableElement, AstMethod> { method ->
-            if (kmClass != null) {
-                for (property in kmClass.properties) {
-                    if (method.matches(property)) {
-                        return@mapNotNull ModelAstProperty(
-                            this,
-                            this,
-                            method,
-                            property
-                        )
-                    }
+    override val superTypes: List<AstClass>
+        get() {
+            return mutableListOf<AstClass>().apply {
+                val superclassType = element.superclass
+                if (superclassType !is NoType) {
+                    val superclass = types.asElement(superclassType) as TypeElement
+                    add(superclass.toAstClass())
                 }
-                for (function in kmClass.functions) {
-                    if (method.matches(function)) {
-                        return@mapNotNull ModelAstFunction(
-                            this,
-                            this,
-                            method,
-                            function
-                        )
-                    }
-                }
+                addAll(element.interfaces.mapNotNull { ifaceType ->
+                    val iface = types.asElement(ifaceType) as TypeElement
+                    iface.toAstClass()
+                })
             }
-            null
         }
-    }
 
-    override val type: AstType by lazy {
-        ModelAstType(provider, element.asType(), kmClass?.type)
-    }
+    override val primaryConstructor: AstConstructor?
+        get() {
+            return ElementFilter.constructorsIn(element.enclosedElements).mapNotNull { constructor ->
+                //TODO: not sure how to match constructors
+                ModelAstConstructor(
+                    this,
+                    this,
+                    constructor,
+                    kmClass?.constructors?.first()
+                )
+            }.firstOrNull()
+        }
+
+    override val methods: List<AstMethod>
+        get() {
+            return ElementFilter.methodsIn(element.enclosedElements)
+                .mapNotNull<ExecutableElement, AstMethod> { method ->
+                    if (kmClass != null) {
+                        for (property in kmClass.properties) {
+                            if (method.matches(property)) {
+                                return@mapNotNull ModelAstProperty(
+                                    this,
+                                    this,
+                                    method,
+                                    property
+                                )
+                            }
+                        }
+                        for (function in kmClass.functions) {
+                            if (method.matches(function)) {
+                                return@mapNotNull ModelAstFunction(
+                                    this,
+                                    this,
+                                    method,
+                                    function
+                                )
+                            }
+                        }
+                    }
+                    null
+                }
+        }
+
+    override val type: AstType
+        get() {
+            return ModelAstType(this, element.asType(), kmClass?.type)
+        }
 
     override fun asClassName(): ClassName = element.asClassName()
 
@@ -279,18 +282,19 @@ private class ModelAstConstructor(
 ) : AstConstructor(parent),
     ModelAstElement, ModelAstProvider by provider {
 
-    override val parameters: List<AstParam> by lazy {
-        val params = element.parameters
-        val kmParams: List<KmValueParameter> = kmConstructor?.valueParameters ?: emptyList()
-        params.mapIndexed { index, param ->
-            val kmParam = kmParams.getOrNull(index)
-            ModelAstParam(
-                this,
-                param,
-                kmParam
-            )
+    override val parameters: List<AstParam>
+        get() {
+            val params = element.parameters
+            val kmParams: List<KmValueParameter> = kmConstructor?.valueParameters ?: emptyList()
+            return params.mapIndexed { index, param ->
+                val kmParam = kmParams.getOrNull(index)
+                ModelAstParam(
+                    this,
+                    param,
+                    kmParam
+                )
+            }
         }
-    }
 
     override fun equals(other: Any?): Boolean {
         return other is ModelAstConstructor && element == other.element
@@ -311,11 +315,8 @@ private class ModelAstFunction(
 
     override val name: String get() = kmFunction.name
 
-    override val modifiers: Set<AstModifier> by lazy {
-        collectModifiers(
-            kmFunction.flags
-        )
-    }
+    override val modifiers: Set<AstModifier>
+        get() = collectModifiers(kmFunction.flags)
 
     override val returnType: AstType
         get() = ModelAstType(
@@ -340,23 +341,24 @@ private class ModelAstFunction(
             ModelAstType(this, element.parameters[0].asType(), it)
         }
 
-    override val parameters: List<AstParam> by lazy {
-        val params = if (kmFunction.receiverParameterType != null) {
-            // drop the extension function receiver if present
-            element.parameters.drop(1)
-        } else {
-            element.parameters
+    override val parameters: List<AstParam>
+        get() {
+            val params = if (kmFunction.receiverParameterType != null) {
+                // drop the extension function receiver if present
+                element.parameters.drop(1)
+            } else {
+                element.parameters
+            }
+            val kmParams: List<KmValueParameter> = kmFunction.valueParameters
+            return params.mapIndexed { index, param ->
+                val kmParam = kmParams.getOrNull(index)
+                ModelAstParam(
+                    this,
+                    param,
+                    kmParam
+                )
+            }
         }
-        val kmParams: List<KmValueParameter> = kmFunction.valueParameters
-        params.mapIndexed { index, param ->
-            val kmParam = kmParams.getOrNull(index)
-            ModelAstParam(
-                this,
-                param,
-                kmParam
-            )
-        }
-    }
 
     override fun overrides(other: AstMethod): Boolean {
         require(other is ModelAstMethod)
@@ -386,17 +388,18 @@ private class ModelAstProperty(
 
     override val name: String get() = kmProperty.name
 
-    override val modifiers: Set<AstModifier> by lazy {
-        val result = mutableSetOf<AstModifier>()
-        val flags = kmProperty.flags
-        if (Flag.Common.IS_PRIVATE(flags)) {
-            result.add(AstModifier.PRIVATE)
+    override val modifiers: Set<AstModifier>
+        get() {
+            val result = mutableSetOf<AstModifier>()
+            val flags = kmProperty.flags
+            if (Flag.Common.IS_PRIVATE(flags)) {
+                result.add(AstModifier.PRIVATE)
+            }
+            if (Flag.Common.IS_ABSTRACT(flags)) {
+                result.add(AstModifier.ABSTRACT)
+            }
+            return result
         }
-        if (Flag.Common.IS_ABSTRACT(flags)) {
-            result.add(AstModifier.ABSTRACT)
-        }
-        result
-    }
 
     override val returnType: AstType
         get() = ModelAstType(
@@ -464,28 +467,30 @@ private class ModelAstType(
             return element.simpleName.toString()
         }
 
-    override val annotations: List<AstAnnotation> by lazy {
-        val typeAnnotations = type.annotationMirrors
-        val kmTypeAnnotations = kmType?.annotations
-        typeAnnotations.mapIndexed { index, annotation ->
-            val kmAnnotation = kmTypeAnnotations?.get(index)
-            ModelAstAnnotation(
-                this,
-                annotation,
-                kmAnnotation
-            )
+    override val annotations: List<AstAnnotation>
+        get() {
+            val typeAnnotations = type.annotationMirrors
+            val kmTypeAnnotations = kmType?.annotations
+            return typeAnnotations.mapIndexed { index, annotation ->
+                val kmAnnotation = kmTypeAnnotations?.get(index)
+                ModelAstAnnotation(
+                    this,
+                    annotation,
+                    kmAnnotation
+                )
+            }
         }
-    }
 
-    override val arguments: List<AstType> by lazy {
-        val kmArgs: List<KmType?> = kmType?.arguments?.map { it.type } ?: emptyList()
-        val args: List<TypeMirror> = (type as DeclaredType).typeArguments
-        if (args.size == kmArgs.size) {
-            args.zip(kmArgs) { a1, a2 -> ModelAstType(this, a1, a2) }
-        } else {
-            args.map { ModelAstType(this, it, null) }
+    override val arguments: List<AstType>
+        get() {
+            val kmArgs: List<KmType?> = kmType?.arguments?.map { it.type } ?: emptyList()
+            val args: List<TypeMirror> = (type as DeclaredType).typeArguments
+            return if (args.size == kmArgs.size) {
+                args.zip(kmArgs) { a1, a2 -> ModelAstType(this, a1, a2) }
+            } else {
+                args.map { ModelAstType(this, it, null) }
+            }
         }
-    }
 
     override fun isUnit(): Boolean = type is NoType
 
@@ -528,12 +533,16 @@ private class ModelAstType(
     }
 
     override fun equals(other: Any?): Boolean {
-        if (other !is AstType) return false
-        return asTypeName() == other.asTypeName()
+        if (other !is ModelAstType) return false
+        return if (kmType != null && other.kmType != null) {
+            kmType.eqv(other.kmType)
+        } else {
+            types.isSameType(type, other.type)
+        }
     }
 
     override fun hashCode(): Int {
-        return asTypeName().hashCode()
+        return kmType?.eqvHashCode() ?: type.eqvHashCode()
     }
 }
 
@@ -550,11 +559,15 @@ private class ModelAstAnnotation(
 
     override fun equals(other: Any?): Boolean {
         if (other !is ModelAstAnnotation) return false
-        return kmAnnotation == other.kmAnnotation && mirror.eqv(other.mirror)
+        return if (kmAnnotation != null && other.kmAnnotation != null) {
+            kmAnnotation == other.kmAnnotation
+        } else {
+            mirror.eqv(other.mirror)
+        }
     }
 
     override fun hashCode(): Int {
-        return Objects.hash(kmAnnotation, mirror.annotationType)
+        return kmAnnotation?.hashCode() ?: mirror.eqvHashCode()
     }
 
     override fun toString(): String {
@@ -582,9 +595,8 @@ private class ModelAstParam(
             return kmValueParameter?.name ?: element.simpleName.toString()
         }
 
-    override val type: AstType by lazy {
-        ModelAstType(this, element.asType(), kmValueParameter?.type)
-    }
+    override val type: AstType
+        get() = ModelAstType(this, element.asType(), kmValueParameter?.type)
 
     override fun asParameterSpec(): ParameterSpec {
         return ParameterSpec(name, type.asTypeName())

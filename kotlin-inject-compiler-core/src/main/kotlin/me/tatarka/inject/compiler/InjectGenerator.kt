@@ -20,6 +20,8 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
     AstProvider by provider {
 
     fun generate(astClass: AstClass): FileSpec {
+        options.profiler?.onStart()
+
         if (AstModifier.ABSTRACT !in astClass.modifiers) {
             throw FailedToGenerateException("@Component class: $astClass must be abstract", astClass)
         } else if (AstModifier.PRIVATE in astClass.modifiers) {
@@ -31,10 +33,14 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         val injectComponent = generateInjectComponent(astClass, constructor)
         val createFunction = generateCreate(astClass, constructor, injectComponent)
 
-        return FileSpec.builder(astClass.packageName, "Inject${astClass.name}")
+        val result =  FileSpec.builder(astClass.packageName, "Inject${astClass.name}")
             .addType(injectComponent)
             .addFunction(createFunction)
             .build()
+
+        options.profiler?.onStop()
+
+        return result
     }
 
     private fun generateInjectComponent(
@@ -540,7 +546,7 @@ fun AstClass.isInject(options: Options): Boolean {
     return hasAnnotation<Inject>()
 }
 
-fun AstElement.qualifier(options: Options): Any? {
+fun AstElement.qualifier(options: Options): AstAnnotation? {
     return if (options.enableJavaxAnnotations) {
         annotationAnnotatedWith("javax.inject.Qualifier")
     } else {

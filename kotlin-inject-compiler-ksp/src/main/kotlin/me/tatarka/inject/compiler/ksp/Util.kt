@@ -5,11 +5,31 @@ import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeVariableName
+import me.tatarka.inject.compiler.HashCollector
+import me.tatarka.inject.compiler.collectHash
+import me.tatarka.inject.compiler.eqv
+import me.tatarka.inject.compiler.eqvItr
 import org.jetbrains.kotlin.ksp.isAbstract
-import org.jetbrains.kotlin.ksp.symbol.*
+import org.jetbrains.kotlin.ksp.symbol.AnnotationUseSiteTarget
+import org.jetbrains.kotlin.ksp.symbol.KSAnnotated
+import org.jetbrains.kotlin.ksp.symbol.KSAnnotation
+import org.jetbrains.kotlin.ksp.symbol.KSClassDeclaration
+import org.jetbrains.kotlin.ksp.symbol.KSDeclaration
+import org.jetbrains.kotlin.ksp.symbol.KSFunctionDeclaration
+import org.jetbrains.kotlin.ksp.symbol.KSNode
+import org.jetbrains.kotlin.ksp.symbol.KSPropertyDeclaration
+import org.jetbrains.kotlin.ksp.symbol.KSType
+import org.jetbrains.kotlin.ksp.symbol.KSTypeAlias
+import org.jetbrains.kotlin.ksp.symbol.KSTypeParameter
+import org.jetbrains.kotlin.ksp.symbol.KSTypeReference
+import org.jetbrains.kotlin.ksp.symbol.Nullability
+import org.jetbrains.kotlin.ksp.symbol.Variance
 import org.jetbrains.kotlin.ksp.visitor.KSDefaultVisitor
 
-fun KSAnnotated.annotationAnnotatedWith(className: String, useSiteTarget: AnnotationUseSiteTarget? = null): KSAnnotation? {
+fun KSAnnotated.annotationAnnotatedWith(
+    className: String,
+    useSiteTarget: AnnotationUseSiteTarget? = null
+): KSAnnotation? {
     for (annotation in annotations) {
         if (annotation.useSiteTarget == useSiteTarget) {
             val t = annotation.annotationType.resolve()
@@ -101,4 +121,38 @@ fun KSType.asTypeName(): TypeName {
 fun KSAnnotation.eqv(other: KSAnnotation): Boolean {
     return annotationType.resolve() == other.annotationType.resolve() &&
             arguments == other.arguments
+}
+
+fun KSTypeReference.eqv(other: KSTypeReference): Boolean {
+    val t1 = resolve()
+    val t2 = other.resolve()
+    return if (t1 != null && t2 != null) {
+        t1.eqv(t2)
+    } else {
+        t1 == null && t2 == null
+    }
+}
+
+fun KSType.eqv(other: KSType): Boolean {
+    return declaration.qualifiedName == other.declaration.qualifiedName &&
+            nullability == other.nullability &&
+            arguments.eqvItr(other.arguments) { a, b ->
+                a.variance == b.variance && a.type.eqv(
+                    b.type,
+                    KSTypeReference::eqv
+                )
+            }
+}
+
+fun KSType.eqvHashCode(collector: HashCollector = HashCollector()): Int = collectHash(collector) {
+    hash(declaration.qualifiedName)
+    hash(nullability)
+    for (argument in arguments) {
+        hash(argument.variance)
+        argument.type?.eqvHashCode(this)
+    }
+}
+
+fun KSTypeReference.eqvHashCode(collector: HashCollector): Int = collectHash(collector) {
+    resolve()?.eqvHashCode(collector)
 }

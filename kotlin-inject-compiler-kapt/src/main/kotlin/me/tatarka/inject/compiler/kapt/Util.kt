@@ -5,6 +5,12 @@ import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import kotlinx.metadata.*
 import kotlinx.metadata.jvm.*
+import me.tatarka.inject.compiler.HashCollector
+import me.tatarka.inject.compiler.collectHash
+import me.tatarka.inject.compiler.eqv
+import me.tatarka.inject.compiler.eqvItr
+import java.util.*
+import java.util.function.BinaryOperator
 import javax.lang.model.element.*
 import javax.lang.model.type.*
 import javax.lang.model.util.SimpleTypeVisitor7
@@ -164,50 +170,54 @@ fun TypeMirror.asTypeName(kmType: KmType?): TypeName {
 
 val KmClass.packageName: String get() = name.packageName
 
-val KmType.packageName: String get() {
-    val abbreviatedType = abbreviatedType
-    if (abbreviatedType != null) {
-        return abbreviatedType.packageName
+val KmType.packageName: String
+    get() {
+        val abbreviatedType = abbreviatedType
+        if (abbreviatedType != null) {
+            return abbreviatedType.packageName
+        }
+        return when (val c = classifier) {
+            is KmClassifier.Class -> c.name.packageName
+            is KmClassifier.TypeAlias -> c.name.packageName
+            is KmClassifier.TypeParameter -> ""
+        }
     }
-    return when (val c = classifier) {
-        is KmClassifier.Class -> c.name.packageName
-        is KmClassifier.TypeAlias -> c.name.packageName
-        is KmClassifier.TypeParameter -> ""
-    }
-}
 
-val KmType.simpleName: String get() {
-    val abbreviatedType = abbreviatedType
-    if (abbreviatedType != null) {
-        return abbreviatedType.simpleName
+val KmType.simpleName: String
+    get() {
+        val abbreviatedType = abbreviatedType
+        if (abbreviatedType != null) {
+            return abbreviatedType.simpleName
+        }
+        return when (val c = classifier) {
+            is KmClassifier.Class -> c.name.simpleName
+            is KmClassifier.TypeAlias -> c.name.simpleName
+            is KmClassifier.TypeParameter -> ""
+        }
     }
-    return when (val c = classifier) {
-        is KmClassifier.Class -> c.name.simpleName
-        is KmClassifier.TypeAlias -> c.name.simpleName
-        is KmClassifier.TypeParameter -> ""
-    }
-}
 
-val kotlinx.metadata.ClassName.packageName: String get() {
-    val split = lastIndexOf('/')
-    return if (split == -1) {
-        ""
-    } else {
-        substring(0, split).replace('/', '.')
+val kotlinx.metadata.ClassName.packageName: String
+    get() {
+        val split = lastIndexOf('/')
+        return if (split == -1) {
+            ""
+        } else {
+            substring(0, split).replace('/', '.')
+        }
     }
-}
 
-val kotlinx.metadata.ClassName.simpleName: String get() {
-    val split = lastIndexOf('/')
-    return substring(split + 1)
-}
+val kotlinx.metadata.ClassName.simpleName: String
+    get() {
+        val split = lastIndexOf('/')
+        return substring(split + 1)
+    }
 
 fun KmType.asTypeName(): TypeName? {
     val abbreviatedType = abbreviatedType
     if (abbreviatedType != null) {
         return abbreviatedType.asTypeName()
     }
-    val isNullable =  Flag.Type.IS_NULLABLE(flags)
+    val isNullable = Flag.Type.IS_NULLABLE(flags)
     val className = classifier.asClassName() ?: return null
     return if (arguments.isEmpty()) {
         className
@@ -220,12 +230,56 @@ fun AnnotationMirror.eqv(other: AnnotationMirror): Boolean {
     if (annotationType != other.annotationType) {
         return false
     }
-    val values = elementValues.values
-    val otherValues = other.elementValues.values
+    return elementValues.values.eqvItr(other.elementValues.values) { a, b -> a.value == b.value }
+}
 
-    if (values.size != otherValues.size) {
-        return false
+fun AnnotationMirror.eqvHashCode(): Int {
+    return collectHash {
+        hash(annotationType)
+        for (value in elementValues.values) {
+            hash(value.value)
+        }
     }
+}
 
-    return values.zip(otherValues).all { (a, b) -> a.value == b.value }
+fun KmType.eqv(other: KmType): Boolean {
+    val abbreviatedType = abbreviatedType
+    if (abbreviatedType != null) {
+        val otherAbbreviatedType = other.abbreviatedType
+        return if (otherAbbreviatedType == null) {
+            false
+        } else {
+            abbreviatedType.eqv(otherAbbreviatedType)
+        }
+    }
+    return classifier == other.classifier &&
+            arguments.eqvItr(other.arguments) { a, b ->
+                a.variance == b.variance &&
+                        a.type.eqv(b.type, KmType::eqv)
+            }
+}
+
+fun KmType.eqvHashCode(collector: HashCollector = HashCollector()): Int {
+    return collectHash(collector) {
+        val abbreviatedType = abbreviatedType
+        if (abbreviatedType != null) {
+            abbreviatedType.eqvHashCode(this)
+        } else {
+            hash(classifier)
+            for (argument in arguments) {
+                hash(argument.variance)
+                argument.type?.eqvHashCode(this)
+            }
+        }
+    }
+}
+
+fun TypeMirror.eqvHashCode(collector: HashCollector = HashCollector()): Int = collectHash(collector) {
+    if (this@eqvHashCode is DeclaredType) {
+        val element = asElement()
+        hash(element.simpleName)
+        for (arg in typeArguments) {
+            arg.eqvHashCode(this)
+        }
+    }
 }
