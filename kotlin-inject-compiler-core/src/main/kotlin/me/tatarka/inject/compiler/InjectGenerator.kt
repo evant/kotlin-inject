@@ -129,6 +129,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         constructor: AstConstructor?,
         injectComponent: TypeSpec
     ): FunSpec {
+        val typeName = element.type.asTypeName()
         return FunSpec.builder("create")
             .apply {
                 if (constructor != null) {
@@ -147,10 +148,10 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                         )
                     }
                 } else {
-                    receiver(KClass::class.asClassName().plusParameter(element.type.asTypeName()))
+                    receiver(KClass::class.asClassName().plusParameter(typeName))
                 }
             }
-            .returns(element.type.asTypeName())
+            .returns(typeName)
             .apply {
                 val codeBlock = CodeBlock.builder()
                 codeBlock.add("return %N(", injectComponent)
