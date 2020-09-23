@@ -1,6 +1,8 @@
 package me.tatarka.inject.compiler
 
 import com.squareup.kotlinpoet.*
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 import kotlin.reflect.KClass
 
 interface AstProvider {
