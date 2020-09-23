@@ -13,7 +13,6 @@ import me.tatarka.inject.compiler.AstConstructor
 import me.tatarka.inject.compiler.AstElement
 import me.tatarka.inject.compiler.AstFunction
 import me.tatarka.inject.compiler.AstMethod
-import me.tatarka.inject.compiler.AstModifier
 import me.tatarka.inject.compiler.AstParam
 import me.tatarka.inject.compiler.AstProperty
 import me.tatarka.inject.compiler.AstProvider
@@ -22,6 +21,7 @@ import me.tatarka.inject.compiler.Messenger
 import org.jetbrains.kotlin.ksp.findActualType
 import org.jetbrains.kotlin.ksp.getDeclaredFunctions
 import org.jetbrains.kotlin.ksp.getDeclaredProperties
+import org.jetbrains.kotlin.ksp.isAbstract
 import org.jetbrains.kotlin.ksp.isPrivate
 import org.jetbrains.kotlin.ksp.processing.KSPLogger
 import org.jetbrains.kotlin.ksp.processing.Resolver
@@ -163,8 +163,14 @@ private class KSAstClass(provider: KSAstProvider, override val declaration: KSCl
     override val name: String
         get() = declaration.simpleName.asString()
 
-    override val modifiers: Set<AstModifier>
-        get() = collectModifiers(declaration)
+    override val isAbstract: Boolean
+        get() = declaration.isAbstract()
+
+    override val isPrivate: Boolean
+        get() = declaration.isPrivate()
+
+    override val isInterface: Boolean
+        get() = declaration.classKind == ClassKind.INTERFACE
 
     override val companion: AstClass?
         get() = TODO("Not yet implemented")
@@ -240,8 +246,11 @@ private class KSAstFunction(provider: KSAstProvider, override val declaration: K
     override val name: String
         get() = declaration.simpleName.asString()
 
-    override val modifiers: Set<AstModifier>
-        get() = collectModifiers(declaration)
+    override val isAbstract: Boolean
+        get() = declaration.isAbstract
+
+    override val isPrivate: Boolean
+        get() = declaration.isPrivate()
 
     override val receiverParameterType: AstType?
         get() = declaration.extensionReceiver?.let { KSAstType(this, it) }
@@ -277,8 +286,11 @@ private class KSAstProperty(provider: KSAstProvider, override val declaration: K
     override val name: String
         get() = declaration.simpleName.asString()
 
-    override val modifiers: Set<AstModifier>
-        get() = collectModifiers(declaration)
+    override val isAbstract: Boolean
+        get() = declaration.isAbstract()
+
+    override val isPrivate: Boolean
+        get() = declaration.isPrivate()
 
     override val receiverParameterType: AstType?
         get() = declaration.extensionReceiver?.let { KSAstType(this, it) }
@@ -459,19 +471,5 @@ private class KSAstAnnotation(provider: KSAstProvider, val annotation: KSAnnotat
 
     override fun toString(): String {
         return "${annotation}(${annotation.arguments.joinToString(", ") { arg -> "${arg.name?.asString()}=${arg.value}" }})"
-    }
-}
-
-private fun collectModifiers(declaration: KSDeclaration): Set<AstModifier> {
-    return mutableSetOf<AstModifier>().apply {
-        if (declaration.isPrivate()) {
-            add(AstModifier.PRIVATE)
-        }
-        if (declaration.isAbstract()) {
-            add(AstModifier.ABSTRACT)
-        }
-        if (declaration is KSClassDeclaration && declaration.classKind == ClassKind.INTERFACE) {
-            add(AstModifier.INTERFACE)
-        }
     }
 }
