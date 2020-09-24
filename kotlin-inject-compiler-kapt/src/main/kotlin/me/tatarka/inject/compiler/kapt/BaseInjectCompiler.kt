@@ -12,7 +12,7 @@ import javax.lang.model.util.Types
 
 private const val OPTION_GENERATE_COMPANION_EXTENSIONS = "me.tatarka.inject.generateCompanionExtensions"
 
-abstract class BaseInjectCompiler(private val profiler: Profiler?) : AbstractProcessor(),
+abstract class BaseInjectCompiler() : AbstractProcessor(),
     ModelAstProvider {
 
     protected lateinit var options: Options
@@ -21,7 +21,7 @@ abstract class BaseInjectCompiler(private val profiler: Profiler?) : AbstractPro
 
     override fun init(processingEnv: ProcessingEnvironment) {
         super.init(processingEnv)
-        this.options = Options.from(processingEnv.options, profiler)
+        this.options = Options.from(processingEnv.options)
         this.env = processingEnv
         this.filer = processingEnv.filer
     }

@@ -23,8 +23,6 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         private set
 
     fun generate(astClass: AstClass): FileSpec {
-        options.profiler?.onStart()
-
         if (!astClass.isAbstract) {
             throw FailedToGenerateException("@Component class: $astClass must be abstract", astClass)
         } else if (astClass.isPrivate) {
@@ -36,14 +34,10 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         val injectComponent = generateInjectComponent(astClass, constructor)
         val createFunction = generateCreate(astClass, constructor, injectComponent)
 
-        val result = FileSpec.builder(astClass.packageName, "Inject${astClass.name}")
+        return FileSpec.builder(astClass.packageName, "Inject${astClass.name}")
             .addType(injectComponent)
             .addFunction(createFunction)
             .build()
-
-        options.profiler?.onStop()
-
-        return result
     }
 
     private fun generateInjectComponent(
