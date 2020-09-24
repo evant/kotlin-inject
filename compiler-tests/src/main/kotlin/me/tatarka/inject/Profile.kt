@@ -3,7 +3,7 @@ package me.tatarka.inject
 import me.tatarka.inject.compiler.Profiler
 
 fun main() {
-    val compiler = ProjectCompiler(Target.kapt, profiler = object : Profiler {
+    val compiler = ProjectCompiler(Target.ksp, profiler = object : Profiler {
         override fun onStart() {
             println("generate start")
             readLine()

@@ -16,6 +16,9 @@ import me.tatarka.inject.annotations.Provides
 import me.tatarka.inject.annotations.Scope
 import kotlin.reflect.KClass
 
+private val SCOPED_COMPONENT =  ClassName("me.tatarka.inject.internal", "ScopedComponent")
+private val LAZY_MAP = ClassName("me.tatarka.inject.internal", "LazyMap")
+
 class InjectGenerator(provider: AstProvider, private val options: Options) :
     AstProvider by provider {
 
@@ -44,7 +47,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         astClass: AstClass,
         constructor: AstConstructor?
     ): TypeSpec {
-        val context = collectTypes(astClass, isComponent = true)
+        val context = collectTypes(astClass)
         val scope = context.collector.scopeClass
         scopeType = scope?.scopeType(options)
 
@@ -57,7 +60,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                     superclass(astClass.asClassName())
                 }
                 if (scope != null) {
-                    addSuperinterface(ClassName("me.tatarka.inject.internal", "ScopedComponent"))
+                    addSuperinterface(SCOPED_COMPONENT)
                 }
 
                 if (constructor != null) {
@@ -72,11 +75,10 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
 
                 try {
                     if (scope != null) {
-                        val mapType = ClassName("me.tatarka.inject.internal", "LazyMap")
                         addProperty(
-                            PropertySpec.builder("_scoped", mapType)
+                            PropertySpec.builder("_scoped", LAZY_MAP)
                                 .addModifiers(KModifier.OVERRIDE)
-                                .initializer("%T()", mapType)
+                                .initializer("%T()", LAZY_MAP)
                                 .build()
                         )
                     }
@@ -164,14 +166,12 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
     }
 
     private fun collectTypes(
-        astClass: AstClass,
-        isComponent: Boolean
+        astClass: AstClass
     ): Context {
         val typeCollector = TypeCollector(
             provider = this,
             options = options,
             astClass = astClass,
-            isComponent = isComponent
         )
         val cycleDetector = CycleDetector()
         val elementScopeClass = typeCollector.scopeClass
@@ -315,7 +315,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                 add(
                     "(%L as %T).",
                     result.name,
-                    ClassName("me.tatarka.inject.internal", "ScopedComponent")
+                    SCOPED_COMPONENT
                 )
             }
             add("_scoped.get(%S)", key.type).beginControlFlow("{")
