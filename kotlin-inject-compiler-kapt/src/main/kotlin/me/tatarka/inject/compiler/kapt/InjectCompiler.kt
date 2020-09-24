@@ -5,7 +5,7 @@ import me.tatarka.inject.compiler.*
 import javax.annotation.processing.RoundEnvironment
 import javax.lang.model.element.TypeElement
 
-class InjectCompiler(profiler: Profiler? = null) : BaseInjectCompiler(profiler) {
+class InjectCompiler(private val profiler: Profiler? = null) : BaseInjectCompiler() {
 
     private val annotationNames = mutableSetOf<String>()
 
@@ -14,6 +14,12 @@ class InjectCompiler(profiler: Profiler? = null) : BaseInjectCompiler(profiler) 
     }
 
     override fun process(elements: Set<TypeElement>, env: RoundEnvironment): Boolean {
+        if (elements.isEmpty()) {
+            return false
+        }
+
+        profiler?.onStart()
+
         val generator = InjectGenerator(this, options)
 
         for (element in env.getElementsAnnotatedWith(Component::class.java)) {
@@ -33,6 +39,9 @@ class InjectCompiler(profiler: Profiler? = null) : BaseInjectCompiler(profiler) 
                 continue
             }
         }
+
+        profiler?.onStop()
+
         return false
     }
 

@@ -3,7 +3,10 @@ package me.tatarka.inject.compiler.kapt
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ClassName
 import kotlinx.metadata.*
+import kotlinx.metadata.jvm.JvmMethodSignature
 import kotlinx.metadata.jvm.annotations
+import kotlinx.metadata.jvm.getterSignature
+import kotlinx.metadata.jvm.signature
 import me.tatarka.inject.compiler.*
 import java.util.*
 import javax.annotation.processing.Messager
@@ -242,32 +245,38 @@ private class ModelAstClass(
 
     override val methods: List<AstMethod>
         get() {
-            return ElementFilter.methodsIn(element.enclosedElements)
-                .mapNotNull<ExecutableElement, AstMethod> { method ->
-                    if (kmClass != null) {
-                        for (property in kmClass.properties) {
-                            if (method.matches(property)) {
-                                return@mapNotNull ModelAstProperty(
-                                    this,
-                                    this,
-                                    method,
-                                    property
-                                )
-                            }
-                        }
-                        for (function in kmClass.functions) {
-                            if (method.matches(function)) {
-                                return@mapNotNull ModelAstFunction(
-                                    this,
-                                    this,
-                                    method,
-                                    function
-                                )
-                            }
-                        }
-                    }
-                    null
-                }
+            val kmClass = kmClass ?: return emptyList()
+            val methods = mutableMapOf<String, ExecutableElement>()
+
+            for (method in ElementFilter.methodsIn(element.enclosedElements)) {
+                methods[method.simpleSig] = method
+            }
+
+            val result = mutableListOf<AstMethod>()
+            for (property in kmClass.properties) {
+                val method = methods[property.getterSignature?.simpleSig] ?: continue
+                result.add(
+                    ModelAstProperty(
+                        this,
+                        this,
+                        method,
+                        property
+                    )
+                )
+            }
+            for (function in kmClass.functions) {
+                val method = methods[function.signature?.simpleSig] ?: continue
+                result.add(
+                    ModelAstFunction(
+                        this,
+                        this,
+                        method,
+                        function
+                    )
+                )
+            }
+
+            return result
         }
 
     override val type: AstType

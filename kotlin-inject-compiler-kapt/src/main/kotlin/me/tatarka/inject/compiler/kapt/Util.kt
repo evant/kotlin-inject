@@ -11,11 +11,8 @@ import me.tatarka.inject.compiler.HashCollector
 import me.tatarka.inject.compiler.collectHash
 import me.tatarka.inject.compiler.eqv
 import me.tatarka.inject.compiler.eqvItr
-import java.util.*
-import java.util.function.BinaryOperator
 import javax.lang.model.element.*
 import javax.lang.model.type.*
-import javax.lang.model.util.SimpleTypeVisitor7
 
 fun Element.hasAnnotation(className: String): Boolean {
     return annotationMirrors.any { it.annotationType.toString() == className }
@@ -53,97 +50,70 @@ fun KotlinClassMetadata.toKmPackage() = when (this) {
     else -> null
 }
 
-fun ExecutableElement.matches(property: KmProperty): Boolean {
-    val sig = property.getterSignature
-    return sig != null && matches(sig)
-}
+// jvm signature without the return type. Since you can't have overloads that only differ by return type we don't need
+// to check it when comparing methods.
+val ExecutableElement.simpleSig: String
+    get() {
+        val name = simpleName.toString()
 
-fun ExecutableElement.matches(function: KmFunction): Boolean {
-    val sig = function.signature
-    return sig != null && matches(sig)
-}
-
-fun ExecutableElement.matches(signature: JvmMethodSignature): Boolean {
-    if (!nameMatches(signature)) {
-        return false
-    }
-    //ex: (Lme/tatarka/inject/test/Bar;)V
-    var index = 1 // skip initial (
-    val desc = signature.desc
-
-    fun match(param: TypeMirror): Boolean {
-        if (index == -1) {
-            return false
-        }
-        val c = desc[index]
-        index++
-        return when (c) {
-            'L' -> {
-                val className = desc.substring(index, desc.indexOf(';', index))
-                    .replace('/', '.')
-                index += className.length + 1 // ;
-                if (param is DeclaredType) {
-                    param.asElement().toString() == className
-                } else {
-                    false
+        fun convert(type: TypeMirror, out: StringBuilder) {
+            with(out) {
+                when (type.kind) {
+                    TypeKind.BOOLEAN -> append('Z')
+                    TypeKind.BYTE -> append('B')
+                    TypeKind.CHAR -> append('C')
+                    TypeKind.SHORT -> append('S')
+                    TypeKind.INT -> append('I')
+                    TypeKind.LONG -> append('J')
+                    TypeKind.FLOAT -> append('F')
+                    TypeKind.DOUBLE -> append('D')
+                    TypeKind.VOID -> append('V')
+                    else -> {
+                        when (type) {
+                            is ArrayType -> {
+                                append('[')
+                                convert(type.componentType, out)
+                            }
+                            is DeclaredType -> {
+                                append('L')
+                                val element = type.asElement()
+                                val parts = mutableListOf<String>()
+                                var parent = element
+                                while (parent !is PackageElement) {
+                                    parts.add(parent.simpleName.toString())
+                                    parent = parent.enclosingElement
+                                }
+                                parts.reverse()
+                                val packageName = parent.qualifiedName.toString()
+                                if (packageName.isNotEmpty()) {
+                                    append(packageName.replace('.', '/'))
+                                    append('/')
+                                }
+                                append(parts.joinToString("$"))
+                                append(';')
+                            }
+                            else -> {
+                                // Generic type, erase to object
+                                append("Ljava/lang/Object;")
+                            }
+                        }
+                    }
                 }
             }
-            'Z' -> {
-                param.kind == TypeKind.BOOLEAN
-            }
-            'B' -> {
-                param.kind == TypeKind.BYTE
-            }
-            'C' -> {
-                param.kind == TypeKind.CHAR
-            }
-            'S' -> {
-                param.kind == TypeKind.SHORT
-            }
-            'I' -> {
-                param.kind == TypeKind.INT
-            }
-            'J' -> {
-                param.kind == TypeKind.LONG
-            }
-            'F' -> {
-                param.kind == TypeKind.FLOAT
-            }
-            'D' -> {
-                param.kind == TypeKind.DOUBLE
-            }
-            '[' -> {
-                if (param is ArrayType) {
-                    match(param.componentType)
-                } else {
-                    false
-                }
-            }
-            ')' -> {
-                index = -1 // mark end
-                false
-            }
-            else -> throw IllegalStateException("Unknown descriptor: $c in {$desc}")
         }
+
+        return StringBuilder().apply {
+            append(name)
+            append('(')
+            for (parm in parameters) {
+                convert(parm.asType(), this)
+            }
+            append(')')
+        }.toString()
     }
 
-    for (param in parameters) {
-        if (!match(param.asType())) {
-            return false
-        }
-    }
-    // ensure we consumed all params
-    if (desc[index] != ')') {
-        return false
-    }
-
-    return true
-}
-
-private fun ExecutableElement.nameMatches(signature: JvmMemberSignature?): Boolean {
-    if (signature == null) return false
-    return simpleName.contentEquals(signature.name)
-}
+val JvmMethodSignature.simpleSig: String
+    get() = name + desc.substring(0, desc.lastIndexOf(')') + 1)
 
 fun KmClassifier.asClassName() = when (this) {
     is KmClassifier.Class -> name.asClassName()

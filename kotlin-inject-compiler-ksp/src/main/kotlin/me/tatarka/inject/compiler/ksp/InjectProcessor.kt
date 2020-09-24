@@ -25,13 +25,15 @@ class InjectProcessor(private val profiler: Profiler? = null) : SymbolProcessor,
         codeGenerator: CodeGenerator,
         logger: KSPLogger
     ) {
-        this.options = Options.from(options, profiler)
+        this.options = Options.from(options)
         this.codeGenerator = codeGenerator
         this.logger = logger
     }
 
     override fun process(resolver: Resolver) {
         this.resolver = resolver
+
+        profiler?.onStart()
 
         val generator = InjectGenerator(this, options)
 
@@ -48,6 +50,8 @@ class InjectProcessor(private val profiler: Profiler? = null) : SymbolProcessor,
                 continue
             }
         }
+
+        profiler?.onStop()
     }
 
     override fun finish() {
