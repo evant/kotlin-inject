@@ -1,0 +1,36 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+    id("org.jetbrains.kotlin.ksp") version "1.4.0-dev-experimental-20200914"
+}
+
+dependencies {
+    ksp project(':kotlin-inject-compiler-ksp')
+    implementation project(':kotlin-inject-runtime')
+    implementation project(':integration-tests:module')
+
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib'
+
+    testImplementation "org.jetbrains.kotlin:kotlin-test"
+    testImplementation "org.jetbrains.kotlin:kotlin-test-junit"
+    testImplementation 'org.jetbrains.kotlin:kotlin-reflect'
+    testImplementation 'javax.inject:javax.inject:1'
+
+    testImplementation 'com.willowtreeapps.assertk:assertk-jvm:0.22'
+}
+
+sourceSets {
+    test {
+        kotlin.srcDir '../common-companion/src/test/kotlin'
+    }
+}
+
+ksp {
+    arg("me.tatarka.inject.generateCompanionExtensions", "true")
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    kotlinOptions.jvmTarget = "1.8"
+}

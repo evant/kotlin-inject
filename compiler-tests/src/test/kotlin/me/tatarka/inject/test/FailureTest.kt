@@ -5,12 +5,14 @@ import assertk.assertions.contains
 import assertk.assertions.isFailure
 import me.tatarka.inject.ProjectCompiler
 import me.tatarka.inject.Target
+import me.tatarka.inject.compiler.Options
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
+import kotlin.test.Ignore
 
 @RunWith(Parameterized::class)
 class FailureTest(val target: Target) {
@@ -246,24 +248,26 @@ class FailureTest(val target: Target) {
 
     @Test
     fun fails_if_parent_component_is_missing_val() {
-       assertThat {
-           projectCompiler.source("MyComponent.kt", """
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt", """
                import me.tatarka.inject.annotations.Component
                
                @Component abstract class ParentComponent()
                
                @Component abstract class MyComponent(@Component parent: ParentComponent)
            """.trimIndent()
-           ).compile()
-       }.isFailure().output().contains(
-           "@Component parameter: parent must be val"
-       )
+            ).compile()
+        }.isFailure().output().contains(
+            "@Component parameter: parent must be val"
+        )
     }
 
     @Test
     fun fails_if_parent_component_is_private() {
         assertThat {
-            projectCompiler.source("MyComponent.kt", """
+            projectCompiler.source(
+                "MyComponent.kt", """
                import me.tatarka.inject.annotations.Component
                
                @Component abstract class ParentComponent()
@@ -273,6 +277,22 @@ class FailureTest(val target: Target) {
             ).compile()
         }.isFailure().output().contains(
             "@Component parameter: parent must not be private"
+        )
+    }
+
+    @Test
+    @Ignore("waiting on https://github.com/tschuchortdev/kotlin-compile-testing/pull/66")
+    fun fails_if_companion_option_is_enabled_but_companion_is_missing() {
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt", """
+               import me.tatarka.inject.annotations.Component
+                
+               @Component abstract class MyComponent()
+            """.trimIndent()
+            ).options(Options(generateCompanionExtensions = true)).compile()
+        }.isFailure().output().contains(
+            "Missing companion for class: MyComponent"
         )
     }
 }

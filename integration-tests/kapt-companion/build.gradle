@@ -1,14 +1,17 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm'
-    id("org.jetbrains.kotlin.ksp") version "1.4.0-dev-experimental-20200914"
+    id 'org.jetbrains.kotlin.kapt'
+    id "me.champeau.gradle.jmh" version "0.5.1"
 }
 
 dependencies {
-    ksp project(':kotlin-inject-compiler-ksp')
+    kapt project(':kotlin-inject-compiler-kapt')
     implementation project(':kotlin-inject-runtime')
-    implementation project(':integration-tests-module')
+    implementation project(':integration-tests:module')
 
     implementation 'org.jetbrains.kotlin:kotlin-stdlib'
+
+    kaptTest project(':kotlin-inject-compiler-kapt')
 
     testImplementation "org.jetbrains.kotlin:kotlin-test"
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit"
@@ -20,12 +23,14 @@ dependencies {
 
 sourceSets {
     test {
-        kotlin.srcDir '../integration-tests/src/test/kotlin'
+        kotlin.srcDir '../common-companion/src/test/kotlin'
     }
 }
 
-ksp {
-    arg("me.tatarka.inject.enableJavaxAnnotations", "true")
+kapt {
+    arguments {
+        arg("me.tatarka.inject.generateCompanionExtensions", "true")
+    }
 }
 
 sourceCompatibility = 1.8
@@ -33,4 +38,9 @@ targetCompatibility = 1.8
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
     kotlinOptions.jvmTarget = "1.8"
+}
+
+jmh {
+    // https://github.com/melix/jmh-gradle-plugin/issues/159
+    duplicateClassesStrategy = DuplicatesStrategy.EXCLUDE
 }

@@ -7,7 +7,7 @@ plugins {
 dependencies {
     kapt project(':kotlin-inject-compiler-kapt')
     implementation project(':kotlin-inject-runtime')
-    implementation project(':integration-tests-module')
+    implementation project(':integration-tests:module')
 
     implementation 'org.jetbrains.kotlin:kotlin-stdlib'
 
@@ -23,7 +23,7 @@ dependencies {
 
 sourceSets {
     test {
-        kotlin.srcDir '../integration-tests/src/test/kotlin'
+        kotlin.srcDir '../common/src/test/kotlin'
     }
 }
 
