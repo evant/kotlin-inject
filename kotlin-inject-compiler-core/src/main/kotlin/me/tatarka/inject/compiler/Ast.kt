@@ -189,6 +189,10 @@ abstract class AstParam : AstElement() {
 
     abstract val type: AstType
 
+    abstract val isVal: Boolean
+
+    abstract val isPrivate: Boolean
+
     abstract fun asParameterSpec(): ParameterSpec
 
     override fun toString(): String {

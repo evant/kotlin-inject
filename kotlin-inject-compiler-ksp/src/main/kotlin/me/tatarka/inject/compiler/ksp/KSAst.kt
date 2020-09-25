@@ -217,13 +217,13 @@ private class KSAstClass(provider: KSAstProvider, override val declaration: KSCl
 
 private class KSAstConstructor(
     provider: KSAstProvider,
-    parent: AstClass,
+    private val parent: KSAstClass,
     override val declaration: KSFunctionDeclaration
 ) : AstConstructor(parent), KSAstAnnotated, KSAstProvider by provider {
 
     override val parameters: List<AstParam>
         get() {
-            return declaration.parameters.map { param -> KSAstParam(this, declaration, param) }
+            return declaration.parameters.map { param -> KSAstParam(this, parent.declaration, declaration, param) }
         }
 
     override fun equals(other: Any?): Boolean {
@@ -240,7 +240,7 @@ private class KSAstFunction(provider: KSAstProvider, override val declaration: K
 
     override val parameters: List<AstParam>
         get() = declaration.parameters.map { param ->
-            KSAstParam(this, declaration, param)
+            KSAstParam(this, null, declaration, param)
         }
 
     override val name: String
@@ -428,6 +428,7 @@ private class KSAstType(provider: KSAstProvider) : AstType(), KSAstAnnotated, KS
 
 private class KSAstParam(
     provider: KSAstProvider,
+    val parentClass: KSClassDeclaration?,
     val parent: KSDeclaration,
     override val declaration: KSVariableParameter
 ) : AstParam(),
@@ -438,6 +439,12 @@ private class KSAstParam(
 
     override val type: AstType
         get() = KSAstType(this, declaration.type!!.resolve()!!)
+
+    override val isVal: Boolean
+        get() = declaration.isVal
+
+    override val isPrivate: Boolean
+        get() = parentClass?.getDeclaredProperties()?.find { it.simpleName == declaration.name }?.isPrivate() ?: false
 
     override fun asParameterSpec(): ParameterSpec {
         return ParameterSpec.builder(name, type.asTypeName())

@@ -66,6 +66,14 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                 if (constructor != null) {
                     val funSpec = FunSpec.constructorBuilder()
                     for (parameter in constructor.parameters) {
+                        if (parameter.isComponent()) {
+                            if (!parameter.isVal) {
+                                error("@Component parameter: ${parameter.name} must be val", parameter)
+                            } else if (parameter.isPrivate) {
+                                error("@Component parameter: ${parameter.name} must not be private", parameter)
+                            }
+                        }
+
                         val p = parameter.asParameterSpec()
                         funSpec.addParameter(p)
                         addSuperclassConstructorParameter("%N", p)
