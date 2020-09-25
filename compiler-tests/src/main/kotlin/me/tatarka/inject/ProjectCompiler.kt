@@ -1,8 +1,7 @@
 package me.tatarka.inject
 
-import com.tschuchort.compiletesting.KotlinCompilation
-import com.tschuchort.compiletesting.SourceFile
-import com.tschuchort.compiletesting.symbolProcessors
+import com.tschuchort.compiletesting.*
+import me.tatarka.inject.compiler.Options
 import me.tatarka.inject.compiler.Profiler
 import me.tatarka.inject.compiler.kapt.InjectCompiler
 import me.tatarka.inject.compiler.ksp.InjectProcessor
@@ -10,12 +9,22 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.PrintStream
 
-class ProjectCompiler(private val target: Target, private val root: File? = null, private val profiler: Profiler? = null) {
+class ProjectCompiler(
+    private val target: Target,
+    private val root: File? = null,
+    private val profiler: Profiler? = null
+) {
 
     private val sourceFiles = mutableListOf<SourceFile>()
+    private var options: Options? = null
 
     fun source(fileName: String, source: String): ProjectCompiler {
         sourceFiles.add(SourceFile.kotlin(fileName, source))
+        return this
+    }
+
+    fun options(options: Options): ProjectCompiler {
+        this.options = options
         return this
     }
 
@@ -31,9 +40,16 @@ class ProjectCompiler(private val target: Target, private val root: File? = null
             inheritClassPath = true
             when (target) {
                 Target.kapt -> {
+                    options?.let {
+                        kaptArgs.putAll(it.toMap())
+                    }
                     annotationProcessors = listOf(InjectCompiler(profiler))
                 }
                 Target.ksp -> {
+                    options?.let {
+                        //TODO: wait on https://github.com/tschuchortdev/kotlin-compile-testing/pull/66
+//                        kspArgs.putAll(it.toMap())
+                    }
                     symbolProcessors = listOf(InjectProcessor(profiler))
                 }
             }

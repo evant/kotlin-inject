@@ -173,7 +173,10 @@ private class KSAstClass(provider: KSAstProvider, override val declaration: KSCl
         get() = declaration.classKind == ClassKind.INTERFACE
 
     override val companion: AstClass?
-        get() = TODO("Not yet implemented")
+        get() = declaration.declarations
+            .find { it is KSClassDeclaration && it.isCompanionObject }?.let {
+            KSAstClass(this, it as KSClassDeclaration)
+        }
 
     override val superTypes: List<AstClass>
         get() {
