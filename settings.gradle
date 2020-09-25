@@ -7,10 +7,8 @@ pluginManagement {
     resolutionStrategy {
         eachPlugin {
             switch (requested.id.id) {
-                case "kotlin-ksp":
-                case "org.jetbrains.kotlin.kotlin-ksp":
-                case "org.jetbrains.kotlin.ksp":
-                    useModule("org.jetbrains.kotlin:kotlin-ksp:${requested.version}")
+                case "symbol-processing":
+                    useModule("com.google.devtools.ksp:symbol-processing:${requested.version}")
             }
         }
     }

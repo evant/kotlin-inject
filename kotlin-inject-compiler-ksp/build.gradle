@@ -6,7 +6,7 @@ dependencies {
     implementation project(':kotlin-inject-runtime')
     implementation project(':kotlin-inject-compiler-core')
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
-    implementation 'org.jetbrains.kotlin:kotlin-symbol-processing-api:1.4.0-dev-experimental-20200914'
+    implementation 'com.google.devtools.ksp:symbol-processing-api:1.4.10-dev-experimental-20200924'
 }
 
 sourceCompatibility = 1.8

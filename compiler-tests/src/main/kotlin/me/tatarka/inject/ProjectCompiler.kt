@@ -47,8 +47,7 @@ class ProjectCompiler(
                 }
                 Target.ksp -> {
                     options?.let {
-                        //TODO: wait on https://github.com/tschuchortdev/kotlin-compile-testing/pull/66
-//                        kspArgs.putAll(it.toMap())
+                        kspArgs.putAll(it.toMap())
                     }
                     symbolProcessors = listOf(InjectProcessor(profiler))
                 }
