@@ -243,6 +243,38 @@ class FailureTest(val target: Target) {
             "Cannot find an @Inject constructor or provider for: String", "foo", "Foo"
         )
     }
+
+    @Test
+    fun fails_if_parent_component_is_missing_val() {
+       assertThat {
+           projectCompiler.source("MyComponent.kt", """
+               import me.tatarka.inject.annotations.Component
+               
+               @Component abstract class ParentComponent()
+               
+               @Component abstract class MyComponent(@Component parent: ParentComponent)
+           """.trimIndent()
+           ).compile()
+       }.isFailure().output().contains(
+           "@Component parameter: parent must be val"
+       )
+    }
+
+    @Test
+    fun fails_if_parent_component_is_private() {
+        assertThat {
+            projectCompiler.source("MyComponent.kt", """
+               import me.tatarka.inject.annotations.Component
+               
+               @Component abstract class ParentComponent()
+               
+               @Component abstract class MyComponent(@Component private val parent: ParentComponent)
+           """.trimIndent()
+            ).compile()
+        }.isFailure().output().contains(
+            "@Component parameter: parent must not be private"
+        )
+    }
 }
 
 private fun Target.sourceExt() = when (this) {

@@ -47,7 +47,7 @@ interface ModelAstProvider :
                 ) {
                     val metadata = element.metadata?.toKmPackage() ?: continue
                     val kmFunction = metadata.functions.find { it.name == functionName } ?: continue
-                    results.add(ModelAstFunction(this, element.toAstClass(), function, kmFunction))
+                    results.add(ModelAstFunction(this, element.toAstClass() as ModelAstClass, function, kmFunction))
                 }
             }
         }
@@ -293,7 +293,7 @@ private class ModelAstClass(
 
 private class ModelAstConstructor(
     provider: ModelAstProvider,
-    parent: AstClass,
+    private val parent: ModelAstClass,
     override val element: ExecutableElement,
     private val kmConstructor: KmConstructor?
 ) : AstConstructor(parent),
@@ -308,6 +308,7 @@ private class ModelAstConstructor(
                 ModelAstParam(
                     this,
                     param,
+                    parent.kmClass,
                     kmParam
                 )
             }
@@ -375,6 +376,7 @@ private class ModelAstFunction(
                 ModelAstParam(
                     this,
                     param,
+                    null,
                     kmParam
                 )
             }
@@ -599,6 +601,7 @@ private class ModelAstAnnotation(
 private class ModelAstParam(
     provider: ModelAstProvider,
     override val element: VariableElement,
+    val kmParent: KmClass?,
     val kmValueParameter: KmValueParameter?
 ) : AstParam(),
     ModelAstElement, ModelAstProvider by provider {
@@ -610,6 +613,18 @@ private class ModelAstParam(
 
     override val type: AstType
         get() = ModelAstType(this, element.asType(), kmValueParameter?.type)
+
+    override val isVal: Boolean get() {
+        val param = kmValueParameter ?: return false
+        val parent = kmParent ?: return false
+        return parent.properties.any { it.name == param.name }
+    }
+
+    override val isPrivate: Boolean get() {
+        val param = kmValueParameter ?: return false
+        val parent = kmParent ?: return false
+        return parent.properties.find { it.name == param.name }?.isPrivate() ?: false
+    }
 
     override fun asParameterSpec(): ParameterSpec {
         return ParameterSpec(name, type.asTypeName())
