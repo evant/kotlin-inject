@@ -281,7 +281,6 @@ class FailureTest(val target: Target) {
     }
 
     @Test
-    @Ignore("waiting on https://github.com/tschuchortdev/kotlin-compile-testing/pull/66")
     fun fails_if_companion_option_is_enabled_but_companion_is_missing() {
         assertThat {
             projectCompiler.source(

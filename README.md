@@ -39,7 +39,7 @@ dependencies {
 
 ### Experimental KSP Support 
 
-You can use [ksp](https://github.com/android/kotlin/tree/ksp/libraries/tools/kotlin-symbol-processing-api) instead of 
+You can use [ksp](https://github.com/google/ksp) instead of 
 kapt.
 
 `settings.gradle`
@@ -48,10 +48,8 @@ pluginManagement {
     resolutionStrategy {
         eachPlugin {
             switch (requested.id.id) {
-                case "kotlin-ksp":
-                case "org.jetbrains.kotlin.kotlin-ksp":
-                case "org.jetbrains.kotlin.ksp":
-                    useModule("org.jetbrains.kotlin:kotlin-ksp:${requested.version}")
+                case "symbol-processing":
+                    useModule("com.google.devtools.ksp:symbol-processing:${requested.version}")
             }
         }
     }
@@ -67,7 +65,7 @@ pluginManagement {
 ```groovy
 plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.4.0'
-    id 'org.jetbrains.kotlin.ksp' version '1.4.0-dev-experimental-20200914'
+    id 'org.jetbrains.kotlin.ksp' version '1.4.10-dev-experimental-20200924'
 }
 
 repositories {

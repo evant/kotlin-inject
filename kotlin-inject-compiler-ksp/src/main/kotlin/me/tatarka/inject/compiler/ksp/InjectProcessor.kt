@@ -6,11 +6,11 @@ import me.tatarka.inject.compiler.FailedToGenerateException
 import me.tatarka.inject.compiler.InjectGenerator
 import me.tatarka.inject.compiler.Options
 import me.tatarka.inject.compiler.Profiler
-import org.jetbrains.kotlin.ksp.processing.CodeGenerator
-import org.jetbrains.kotlin.ksp.processing.KSPLogger
-import org.jetbrains.kotlin.ksp.processing.Resolver
-import org.jetbrains.kotlin.ksp.processing.SymbolProcessor
-import org.jetbrains.kotlin.ksp.symbol.KSClassDeclaration
+import com.google.devtools.ksp.processing.CodeGenerator
+import com.google.devtools.ksp.processing.KSPLogger
+import com.google.devtools.ksp.processing.Resolver
+import com.google.devtools.ksp.processing.SymbolProcessor
+import com.google.devtools.ksp.symbol.KSClassDeclaration
 
 class InjectProcessor(private val profiler: Profiler? = null) : SymbolProcessor, KSAstProvider {
 
