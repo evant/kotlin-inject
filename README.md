@@ -1,5 +1,7 @@
 # kotlin-inject
-[![CircleCI](https://circleci.com/gh/evant/kotlin-inject.svg?style=svg&circle-token=8792fa19911be92d6a1d66dd45ece3bf6712f778)](https://circleci.com/gh/evant/kotlin-inject)
+[![CircleCI](https://circleci.com/gh/evant/kotlin-inject.svg?style=svg&circle-token=8792fa19911be92d6a1d66dd45ece3bf6712f778)](https://circleci.com/gh/evant/kotlin-inject)[![Maven Central](https://img.shields.io/maven-central/v/me.tatarka.inject/kotlin-inject-runtime.svg)](https://search.maven.org/search?q=g:me.tatarka.inject)
+[![Sonatype Snapshot](https://img.shields.io/nexus/s/https/oss.sonatype.org/me.tatarka.inject/kotlin-inject-runtime.svg)](https://oss.sonatype.org/content/repositories/snapshots/me/tatarka/inject/)
+
 
 A compile-time dependency injection library for kotlin.
 
