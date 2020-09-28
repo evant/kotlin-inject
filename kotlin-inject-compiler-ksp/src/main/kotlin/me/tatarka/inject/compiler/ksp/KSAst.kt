@@ -39,6 +39,7 @@ import com.google.devtools.ksp.symbol.KSTypeAlias
 import com.google.devtools.ksp.symbol.KSTypeReference
 import com.google.devtools.ksp.symbol.KSVariableParameter
 import com.google.devtools.ksp.symbol.Variance
+import org.jetbrains.kotlin.analyzer.AnalysisResult
 import kotlin.reflect.KClass
 
 interface KSAstProvider : AstProvider {
@@ -104,7 +105,7 @@ object KSAstMessenger : Messenger {
     fun finalize() {
         // ksp won't error out if no exception is thrown
         if (errorMessages.isNotEmpty()) {
-            throw IllegalStateException()
+            throw AnalysisResult.CompilationErrorException()
         }
     }
 
