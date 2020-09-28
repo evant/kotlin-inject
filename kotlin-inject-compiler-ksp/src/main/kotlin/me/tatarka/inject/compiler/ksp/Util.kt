@@ -9,15 +9,12 @@ import me.tatarka.inject.compiler.HashCollector
 import me.tatarka.inject.compiler.collectHash
 import me.tatarka.inject.compiler.eqv
 import me.tatarka.inject.compiler.eqvItr
-import com.google.devtools.ksp.isAbstract
 import com.google.devtools.ksp.symbol.AnnotationUseSiteTarget
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSDeclaration
-import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSNode
-import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.KSTypeAlias
 import com.google.devtools.ksp.symbol.KSTypeParameter
@@ -33,7 +30,7 @@ fun KSAnnotated.annotationAnnotatedWith(
     for (annotation in annotations) {
         if (annotation.useSiteTarget == useSiteTarget) {
             val t = annotation.annotationType.resolve()
-            if (t?.declaration?.hasAnnotation(className) == true) {
+            if (t.declaration.hasAnnotation(className)) {
                 return annotation
             }
         }
@@ -43,7 +40,7 @@ fun KSAnnotated.annotationAnnotatedWith(
 
 fun KSAnnotated.hasAnnotation(className: String, useSiteTarget: AnnotationUseSiteTarget? = null): Boolean {
     return annotations.any {
-        it.annotationType.resolve()?.declaration?.qualifiedName?.asString() == className &&
+        it.annotationType.resolve().declaration.qualifiedName?.asString() == className &&
                 useSiteTarget == it.useSiteTarget
     }
 }
@@ -56,12 +53,12 @@ fun KSDeclaration.asClassName(): ClassName {
 }
 
 fun KSTypeReference.memberOf(enclosingClass: KSClassDeclaration): KSTypeReference {
-    val declaration = resolve()!!.declaration
+    val declaration = resolve().declaration
     return if (declaration is KSTypeParameter) {
         val parent = declaration.parentDeclaration!!
         val resolvedParent =
-            enclosingClass.superTypes.first { it.resolve()!!.declaration.qualifiedName == parent.qualifiedName }
-                .resolve()!!
+            enclosingClass.superTypes.first { it.resolve().declaration.qualifiedName == parent.qualifiedName }
+                .resolve()
         val typePosition = parent.typeParameters.indexOfFirst { it.name == declaration.name }
         resolvedParent.arguments[typePosition].type!!
     } else {
@@ -84,7 +81,7 @@ fun KSType.asTypeName(): TypeName {
         override fun visitTypeParameter(typeParameter: KSTypeParameter, data: Unit): TypeName {
             return TypeVariableName(
                 name = typeParameter.name.asString(),
-                bounds = typeParameter.bounds.map { it.resolve()!!.asTypeName() },
+                bounds = typeParameter.bounds.map { it.resolve().asTypeName() },
                 variance = when (typeParameter.variance) {
                     Variance.COVARIANT -> KModifier.IN
                     Variance.CONTRAVARIANT -> KModifier.OUT
@@ -100,7 +97,7 @@ fun KSType.asTypeName(): TypeName {
             }
             val typeArgumentNames = mutableListOf<TypeName>()
             for (typeArgument in arguments) {
-                typeArgumentNames += typeArgument.type!!.resolve()!!.asTypeName()
+                typeArgumentNames += typeArgument.type!!.resolve().asTypeName()
             }
             return rawType.parameterizedBy(typeArgumentNames)
         }
@@ -117,13 +114,7 @@ fun KSAnnotation.eqv(other: KSAnnotation): Boolean {
 }
 
 fun KSTypeReference.eqv(other: KSTypeReference): Boolean {
-    val t1 = resolve()
-    val t2 = other.resolve()
-    return if (t1 != null && t2 != null) {
-        t1.eqv(t2)
-    } else {
-        t1 == null && t2 == null
-    }
+    return resolve().eqv(other.resolve())
 }
 
 fun KSType.eqv(other: KSType): Boolean {
@@ -147,5 +138,5 @@ fun KSType.eqvHashCode(collector: HashCollector = HashCollector()): Int = collec
 }
 
 fun KSTypeReference.eqvHashCode(collector: HashCollector): Int = collectHash(collector) {
-    resolve()?.eqvHashCode(collector)
+    resolve().eqvHashCode(collector)
 }

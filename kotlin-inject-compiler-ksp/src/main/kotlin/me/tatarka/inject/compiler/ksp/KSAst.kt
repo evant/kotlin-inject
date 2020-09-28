@@ -180,7 +180,7 @@ private class KSAstClass(provider: KSAstProvider, override val declaration: KSCl
 
     override val superTypes: List<AstClass>
         get() {
-            return declaration.superTypes.mapNotNull { type -> (type.resolve()?.declaration as? KSClassDeclaration)?.toAstClass() }
+            return declaration.superTypes.mapNotNull { type -> (type.resolve().declaration as? KSClassDeclaration)?.toAstClass() }
         }
 
     override val primaryConstructor: AstConstructor?
@@ -304,11 +304,11 @@ private class KSAstProperty(provider: KSAstProvider, override val declaration: K
     }
 
     override val returnType: AstType
-        get() = KSAstType(this, declaration.type!!)
+        get() = KSAstType(this, declaration.type)
 
     override fun returnTypeFor(enclosingClass: AstClass): AstType {
         require(enclosingClass is KSAstClass)
-        return KSAstType(this, declaration.type!!.memberOf(enclosingClass.declaration))
+        return KSAstType(this, declaration.type.memberOf(enclosingClass.declaration))
     }
 
     override fun asMemberName(): MemberName {
@@ -346,7 +346,7 @@ private class KSAstType(provider: KSAstProvider) : AstType(), KSAstAnnotated, KS
         private set
 
     constructor(provider: KSAstProvider, typeRef: KSTypeReference) : this(provider) {
-        this.type = typeRef.resolve()!!
+        this.type = typeRef.resolve()
         this.typeRef = typeRef
     }
 
@@ -424,7 +424,7 @@ private class KSAstType(provider: KSAstProvider) : AstType(), KSAstAnnotated, KS
     }
 
     private fun KSType.actualType(): KSType = when (val declaration = declaration) {
-        is KSTypeAlias -> declaration.type.resolve()!!.actualType()
+        is KSTypeAlias -> declaration.type.resolve().actualType()
         else -> this
     }
 }
@@ -441,7 +441,7 @@ private class KSAstParam(
         get() = declaration.name!!.asString()
 
     override val type: AstType
-        get() = KSAstType(this, declaration.type!!.resolve()!!)
+        get() = KSAstType(this, declaration.type!!.resolve())
 
     override val isVal: Boolean
         get() = declaration.isVal
