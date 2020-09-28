@@ -32,8 +32,8 @@ plugins {
 }
 
 dependencies {
-    kapt "me.tatarka.inject:kotlin-inject-compiler-kapt:0.1.0"
-    implementation "me.tatarka.inject:kotlin-inject-runtime:0.1.0"
+    kapt "me.tatarka.inject:kotlin-inject-compiler-kapt:0.2.0"
+    implementation "me.tatarka.inject:kotlin-inject-runtime:0.2.0"
 }
 ```
 
@@ -64,8 +64,8 @@ pluginManagement {
 `build.gradle`
 ```groovy
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '1.4.0'
-    id 'org.jetbrains.kotlin.ksp' version '1.4.10-dev-experimental-20200924'
+    id 'org.jetbrains.kotlin.jvm' version '1.4.10'
+    id 'symbol-processing' version '1.4.10-dev-experimental-20200924'
 }
 
 repositories {
@@ -74,8 +74,8 @@ repositories {
 }
 
 dependencies {
-    ksp "me.tatarka.inject:kotlin-inject-compiler-ksp:0.1.0"
-    implementation "me.tatarka.inject:kotlin-inject-runtime:0.1.0"
+    ksp "me.tatarka.inject:kotlin-inject-compiler-ksp:0.2.0"
+    implementation "me.tatarka.inject:kotlin-inject-runtime:0.2.0"
 }
 ```
 
@@ -354,7 +354,7 @@ You can provide some additional options to the processor.
 
 - `me.tatarka.inject.enableJavaxAnnotations=true`
 
-  `@javax.inject.Inject` and `@javax.inject.Scope` can be used in addition to the provided annotations. This can be useful
+  `@javax.inject.*` annotations can be used in in addition to the provided annotations. This can be useful
   if you are migrating existing code or want to be abstracted from the injection lib you are using on the jvm.
 
 - `me.tatarka.inject.generateCompanionExtensions=true`
