@@ -1,8 +1,10 @@
 package me.tatarka.inject.compiler
 
-import com.squareup.kotlinpoet.*
-import kotlin.contracts.InvocationKind
-import kotlin.contracts.contract
+import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.MemberName
+import com.squareup.kotlinpoet.ParameterSpec
+import com.squareup.kotlinpoet.TypeName
+import com.squareup.kotlinpoet.TypeSpec
 import kotlin.reflect.KClass
 
 interface AstProvider {
@@ -31,7 +33,8 @@ interface Messenger {
 sealed class AstElement : AstAnnotated {
     inline fun <reified T : Annotation> hasAnnotation() = hasAnnotation(T::class.qualifiedName!!)
 
-    inline fun <reified T : Annotation> annotationAnnotatedWith(): AstAnnotation? = annotationAnnotatedWith(T::class.qualifiedName!!)
+    inline fun <reified T : Annotation> annotationAnnotatedWith(): AstAnnotation? =
+        annotationAnnotatedWith(T::class.qualifiedName!!)
 }
 
 interface AstAnnotated {
@@ -86,6 +89,8 @@ sealed class AstMethod : AstElement(), AstHasModifiers {
     abstract fun overrides(other: AstMethod): Boolean
 
     abstract val returnType: AstType
+
+    abstract val typeParameters: List<AstTypeParam>
 
     abstract fun returnTypeFor(enclosingClass: AstClass): AstType
 
@@ -152,7 +157,13 @@ abstract class AstType : AstElement() {
 
     abstract fun isUnit(): Boolean
 
+    abstract fun isAny(): Boolean
+
     abstract fun isFunction(): Boolean
+
+    abstract val isTypeParam: Boolean
+
+    abstract val isGeneric: Boolean
 
     abstract fun isTypeAlis(): Boolean
 
@@ -198,6 +209,16 @@ abstract class AstParam : AstElement() {
     override fun toString(): String {
         return "$name: $type"
     }
+}
+
+abstract class AstTypeParam : AstElement() {
+    abstract val name: String
+
+    abstract val bounds: List<AstType>
+
+    abstract override fun equals(other: Any?): Boolean
+
+    abstract override fun hashCode(): Int
 }
 
 interface AstHasModifiers {

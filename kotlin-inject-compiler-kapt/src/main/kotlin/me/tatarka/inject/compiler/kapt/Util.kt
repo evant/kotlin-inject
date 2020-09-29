@@ -30,6 +30,8 @@ import javax.lang.model.type.ArrayType
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeKind
 import javax.lang.model.type.TypeMirror
+import javax.lang.model.type.TypeVariable
+import javax.lang.model.type.WildcardType
 
 fun Element.hasAnnotation(className: String): Boolean {
     return annotationMirrors.any { it.annotationType.toString() == className }
@@ -248,6 +250,11 @@ private fun KmType.isSuspendFunction(): Boolean {
             arguments[arguments.size - 2].type?.classifier?.name == "kotlin/coroutines/Continuation"
 }
 
+fun KmType.isGeneric(): Boolean {
+    return classifier is KmClassifier.TypeParameter
+            || arguments.any { it.type?.isGeneric() == true }
+}
+
 fun AnnotationMirror.eqv(other: AnnotationMirror): Boolean {
     if (annotationType != other.annotationType) {
         return false
@@ -321,3 +328,8 @@ inline fun KmProperty.isAbstract() = Flag.Common.IS_ABSTRACT(flags)
 inline fun KmProperty.isPrivate() = Flag.Common.IS_PRIVATE(flags)
 
 inline fun KmConstructor.isVal() = Flag.Constructor.IS_PRIMARY
+
+fun TypeMirror.isGeneric(): Boolean =
+    this is TypeVariable ||
+            this is WildcardType ||
+            (this is DeclaredType && this.typeArguments.any { it.isGeneric() })

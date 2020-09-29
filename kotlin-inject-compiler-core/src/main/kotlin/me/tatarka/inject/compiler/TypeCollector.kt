@@ -33,6 +33,9 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
     // Map of scoped components and the accessors to obtain them
     private val scopedAccessors = mutableMapOf<AstType, ScopedComponent>()
 
+    // Map of bounded generic types
+    private val genericTypes = mutableMapOf<GenericKey, TypeCreator>()
+
     var scopeClass: AstClass? = null
         private set
 
@@ -59,7 +62,11 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
                 val type = method.returnTypeFor(astClass)
                 if (type.packageName == "kotlin" && type.simpleName == "Pair") {
                     val typeArgs = method.returnTypeFor(astClass).arguments
-                    val mapType = TypeKey(declaredTypeOf(Map::class, typeArgs[0], typeArgs[1]), method.qualifier(options))
+                    val mapType =
+                        TypeKey(
+                            declaredTypeOf(Map::class, typeArgs[0], typeArgs[1]),
+                            method.qualifier(options)
+                        )
                     addContainerType(mapType, mapOf, method, accessor, scopedComponent)
                 } else {
                     error("@IntoMap must have return type of type Pair", method)
@@ -70,8 +77,23 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
                 addContainerType(setType, setOf, method, accessor, scopedComponent)
             } else {
                 val returnType = method.returnTypeFor(astClass)
-                val key = TypeKey(returnType, method.qualifier(options))
-                addMethod(key, method, accessor, scopedComponent)
+                if (returnType.isGeneric) {
+                    val params = method.typeParameters
+                    if (isUnbounded(returnType, params)) {
+                        val typeName = returnType.toString()
+                        error(
+                            """Unbounded generic return types are not supported.
+                            |You can either specify a type bound: <${typeName}: Foo> or wrap in a concrete class Foo<${typeName}>.
+                        """.trimMargin(), method
+                        )
+                    } else {
+                        val key = GenericKey(returnType, params, method.qualifier(options))
+                        addGenericMethod(key, method, accessor, scopedComponent)
+                    }
+                } else {
+                    val key = TypeKey(returnType, method.qualifier(options))
+                    addMethod(key, method, accessor, scopedComponent)
+                }
             }
         }
 
@@ -188,7 +210,7 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
         } else if (current is TypeCreator.Container && current.creator == creator) {
             current.args.add(method(method, accessor, scopedComponent))
         } else {
-            duplicate(key, newValue = method, oldValue = current.source)
+            duplicate(key.toString(), newValue = method, oldValue = current.source)
         }
     }
 
@@ -197,7 +219,16 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
         if (oldValue == null) {
             types[key] = method(method, accessor, scopedComponent)
         } else {
-            duplicate(key, newValue = method, oldValue = oldValue.source)
+            duplicate(key.toString(), newValue = method, oldValue = oldValue.source)
+        }
+    }
+
+    private fun addGenericMethod(key: GenericKey, method: AstMethod, accessor: String?, scopedComponent: AstClass?) {
+        val oldValue = genericTypes[key]
+        if (oldValue == null) {
+            genericTypes[key] = method(method, accessor, scopedComponent)
+        } else {
+            duplicate(key.genericType.toString(), newValue = method, oldValue = oldValue.source)
         }
     }
 
@@ -213,8 +244,8 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
         scopedComponent = scopedComponent
     )
 
-    private fun duplicate(key: TypeKey, newValue: AstElement, oldValue: AstElement) {
-        error("Cannot provide: $key", newValue)
+    private fun duplicate(keyName: String, newValue: AstElement, oldValue: AstElement) {
+        error("Cannot provide: $keyName", newValue)
         error("as it is already provided", oldValue)
     }
 
@@ -229,6 +260,12 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
         if (result != null) {
             return result
         }
+        for ((genericType, creator) in genericTypes) {
+            if (genericType.isAssignableFrom(key.type)) {
+                return creator
+            }
+        }
+
         val astClass = key.type.toAstClass()
         if (astClass.isInject(options)) {
             val scope = astClass.scopeType(options)
@@ -282,3 +319,47 @@ data class ScopedComponent(
     val type: AstClass,
     val accessor: String?
 )
+
+data class GenericKey(
+    val genericType: AstType,
+    val typeParams: List<AstTypeParam>,
+    val qualifier: AstAnnotation?
+) {
+    fun isAssignableFrom(type: AstType): Boolean {
+        return genericType.isAssignableFrom(type, typeParams)
+    }
+
+    private fun AstType.isAssignableFrom(type: AstType, typeParams: List<AstTypeParam>): Boolean {
+        return if (arguments.isEmpty()) {
+            val param = typeParams.find { it.name == this.simpleName } ?: return false
+            return param.bounds.isEmpty() || param.bounds.all { it.isAssignableFrom(type) }
+        } else {
+            packageName == type.packageName &&
+                    simpleName == type.simpleName &&
+                    arguments.isAssignableFrom(type.arguments, typeParams)
+        }
+    }
+
+    private fun List<AstType>.isAssignableFrom(args: List<AstType>, typeParams: List<AstTypeParam>): Boolean {
+        if (size != args.size) {
+            return false
+        }
+        for (i in 0 until args.size) {
+            val arg1 = get(i)
+            val arg2 = args[i]
+            if (!arg1.isAssignableFrom(arg2, typeParams)) {
+                return false
+            }
+        }
+        return true
+    }
+}
+
+
+private fun isUnbounded(type: AstType, typeParams: List<AstTypeParam>): Boolean {
+    if (!type.isTypeParam) {
+        return false
+    }
+    val param = typeParams.find { it.name == type.simpleName }
+    return param == null || param.bounds.isEmpty() || param.bounds.all { it.isAny() }
+}

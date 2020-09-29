@@ -1,23 +1,5 @@
 package me.tatarka.inject.compiler.ksp
 
-import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.MemberName
-import com.squareup.kotlinpoet.ParameterSpec
-import com.squareup.kotlinpoet.TypeName
-import com.squareup.kotlinpoet.TypeSpec
-import me.tatarka.inject.compiler.AstAnnotated
-import me.tatarka.inject.compiler.AstAnnotation
-import me.tatarka.inject.compiler.AstBasicElement
-import me.tatarka.inject.compiler.AstClass
-import me.tatarka.inject.compiler.AstConstructor
-import me.tatarka.inject.compiler.AstElement
-import me.tatarka.inject.compiler.AstFunction
-import me.tatarka.inject.compiler.AstMethod
-import me.tatarka.inject.compiler.AstParam
-import me.tatarka.inject.compiler.AstProperty
-import me.tatarka.inject.compiler.AstProvider
-import me.tatarka.inject.compiler.AstType
-import me.tatarka.inject.compiler.Messenger
 import com.google.devtools.ksp.findActualType
 import com.google.devtools.ksp.getDeclaredFunctions
 import com.google.devtools.ksp.getDeclaredProperties
@@ -36,9 +18,29 @@ import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.KSTypeAlias
+import com.google.devtools.ksp.symbol.KSTypeParameter
 import com.google.devtools.ksp.symbol.KSTypeReference
 import com.google.devtools.ksp.symbol.KSValueParameter
 import com.google.devtools.ksp.symbol.Variance
+import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.MemberName
+import com.squareup.kotlinpoet.ParameterSpec
+import com.squareup.kotlinpoet.TypeName
+import com.squareup.kotlinpoet.TypeSpec
+import me.tatarka.inject.compiler.AstAnnotated
+import me.tatarka.inject.compiler.AstAnnotation
+import me.tatarka.inject.compiler.AstBasicElement
+import me.tatarka.inject.compiler.AstClass
+import me.tatarka.inject.compiler.AstConstructor
+import me.tatarka.inject.compiler.AstElement
+import me.tatarka.inject.compiler.AstFunction
+import me.tatarka.inject.compiler.AstMethod
+import me.tatarka.inject.compiler.AstParam
+import me.tatarka.inject.compiler.AstProperty
+import me.tatarka.inject.compiler.AstProvider
+import me.tatarka.inject.compiler.AstType
+import me.tatarka.inject.compiler.AstTypeParam
+import me.tatarka.inject.compiler.Messenger
 import org.jetbrains.kotlin.analyzer.AnalysisResult
 import kotlin.reflect.KClass
 
@@ -176,8 +178,8 @@ private class KSAstClass(provider: KSAstProvider, override val declaration: KSCl
     override val companion: AstClass?
         get() = declaration.declarations
             .find { it is KSClassDeclaration && it.isCompanionObject }?.let {
-            KSAstClass(this, it as KSClassDeclaration)
-        }
+                KSAstClass(this, it as KSClassDeclaration)
+            }
 
     override val superTypes: List<AstClass>
         get() {
@@ -267,6 +269,11 @@ private class KSAstFunction(provider: KSAstProvider, override val declaration: K
     override val returnType: AstType
         get() = KSAstType(this, declaration.returnType!!)
 
+    override val typeParameters: List<AstTypeParam>
+        get() = declaration.typeParameters.map {
+            KSAstTypeParam(this, it)
+        }
+
     override fun returnTypeFor(enclosingClass: AstClass): AstType {
         return KSAstType(this, declaration.returnType!!)
     }
@@ -306,6 +313,9 @@ private class KSAstProperty(provider: KSAstProvider, override val declaration: K
 
     override val returnType: AstType
         get() = KSAstType(this, declaration.type)
+
+    override val typeParameters: List<AstTypeParam>
+        get() = emptyList()
 
     override fun returnTypeFor(enclosingClass: AstClass): AstType {
         require(enclosingClass is KSAstClass)
@@ -376,10 +386,21 @@ private class KSAstType(provider: KSAstProvider) : AstType(), KSAstAnnotated, KS
         return type == resolver.builtIns.unitType
     }
 
+    override fun isAny(): Boolean {
+        // true for Any or Any?
+        return type.makeNotNullable() == resolver.builtIns.anyType
+    }
+
     override fun isFunction(): Boolean {
         val actualType = type.actualType()
         return actualType.isFunction() || actualType.isSuspendingFunction()
     }
+
+    override val isTypeParam: Boolean
+        get() = declaration is KSTypeParameter
+
+    override val isGeneric: Boolean
+        get() = type.isGeneric()
 
     override fun isTypeAlis(): Boolean {
         return declaration is KSTypeAlias
@@ -482,5 +503,30 @@ private class KSAstAnnotation(provider: KSAstProvider, val annotation: KSAnnotat
 
     override fun toString(): String {
         return "${annotation}(${annotation.arguments.joinToString(", ") { arg -> "${arg.name?.asString()}=${arg.value}" }})"
+    }
+}
+
+private class KSAstTypeParam(provider: KSAstProvider, val param: KSTypeParameter) : AstTypeParam(),
+    KSAstProvider by provider {
+    override val name: String
+        get() = param.name.asString()
+
+    override val bounds: List<AstType>
+        get() = param.bounds.map { KSAstType(this, it) }
+
+    override fun hasAnnotation(className: String): Boolean {
+        TODO("Not yet implemented")
+    }
+
+    override fun annotationAnnotatedWith(className: String): AstAnnotation? {
+        TODO("Not yet implemented")
+    }
+
+    override fun equals(other: Any?): Boolean {
+        return other is KSAstTypeParam && name == other.name
+    }
+
+    override fun hashCode(): Int {
+        return name.hashCode()
     }
 }

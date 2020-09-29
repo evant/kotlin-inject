@@ -171,3 +171,6 @@ fun KSType.isSuspendingFunction(): Boolean {
     val name = declaration.qualifiedName ?: return false
     return name.getQualifier() == "kotlin.coroutines" && name.getShortName().matches(SUSPEND_FUNCTION)
 }
+
+fun KSType.isGeneric(): Boolean =
+    declaration is KSTypeParameter || arguments.any { it.type?.resolve()?.isGeneric() == true }

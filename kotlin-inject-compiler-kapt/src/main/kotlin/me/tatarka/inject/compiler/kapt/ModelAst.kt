@@ -1,18 +1,58 @@
 package me.tatarka.inject.compiler.kapt
 
-import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ClassName
-import kotlinx.metadata.*
-import kotlinx.metadata.jvm.JvmMethodSignature
+import com.squareup.kotlinpoet.MemberName
+import com.squareup.kotlinpoet.ParameterSpec
+import com.squareup.kotlinpoet.TypeName
+import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.asClassName
+import com.sun.tools.javac.code.Flags
+import kotlinx.metadata.Flag
+import kotlinx.metadata.KmAnnotation
+import kotlinx.metadata.KmClass
+import kotlinx.metadata.KmClassifier
+import kotlinx.metadata.KmConstructor
+import kotlinx.metadata.KmFunction
+import kotlinx.metadata.KmProperty
+import kotlinx.metadata.KmType
+import kotlinx.metadata.KmTypeParameter
+import kotlinx.metadata.KmTypeProjection
+import kotlinx.metadata.KmValueParameter
+import kotlinx.metadata.KmVariance
+import kotlinx.metadata.flagsOf
 import kotlinx.metadata.jvm.annotations
 import kotlinx.metadata.jvm.getterSignature
 import kotlinx.metadata.jvm.signature
-import me.tatarka.inject.compiler.*
-import java.util.*
+import me.tatarka.inject.compiler.AstAnnotated
+import me.tatarka.inject.compiler.AstAnnotation
+import me.tatarka.inject.compiler.AstBasicElement
+import me.tatarka.inject.compiler.AstClass
+import me.tatarka.inject.compiler.AstConstructor
+import me.tatarka.inject.compiler.AstElement
+import me.tatarka.inject.compiler.AstFunction
+import me.tatarka.inject.compiler.AstMethod
+import me.tatarka.inject.compiler.AstParam
+import me.tatarka.inject.compiler.AstProperty
+import me.tatarka.inject.compiler.AstProvider
+import me.tatarka.inject.compiler.AstType
+import me.tatarka.inject.compiler.AstTypeParam
+import me.tatarka.inject.compiler.Messenger
 import javax.annotation.processing.Messager
 import javax.annotation.processing.ProcessingEnvironment
-import javax.lang.model.element.*
-import javax.lang.model.type.*
+import javax.lang.model.element.AnnotationMirror
+import javax.lang.model.element.Element
+import javax.lang.model.element.ExecutableElement
+import javax.lang.model.element.Modifier
+import javax.lang.model.element.TypeElement
+import javax.lang.model.element.TypeParameterElement
+import javax.lang.model.element.VariableElement
+import javax.lang.model.type.ArrayType
+import javax.lang.model.type.DeclaredType
+import javax.lang.model.type.ExecutableType
+import javax.lang.model.type.NoType
+import javax.lang.model.type.PrimitiveType
+import javax.lang.model.type.TypeMirror
+import javax.lang.model.type.TypeVariable
 import javax.lang.model.util.ElementFilter
 import javax.lang.model.util.Elements
 import javax.lang.model.util.Types
@@ -346,6 +386,17 @@ private class ModelAstFunction(
             kmFunction.returnType
         )
 
+    override val typeParameters: List<AstTypeParam>
+        get() {
+            val result = mutableListOf<AstTypeParam>()
+            for (i in 0 until kmFunction.typeParameters.size) {
+                val elementTypeParam = element.typeParameters[i]
+                val kmTypeParam = kmFunction.typeParameters[i]
+                result.add(ModelAstTypeParam(this, elementTypeParam, kmTypeParam))
+            }
+            return result
+        }
+
     override fun returnTypeFor(enclosingClass: AstClass): AstType {
         require(enclosingClass is ModelAstClass)
         val declaredType = enclosingClass.element.asType() as DeclaredType
@@ -423,6 +474,9 @@ private class ModelAstProperty(
             kmProperty.returnType
         )
 
+    override val typeParameters: List<AstTypeParam>
+        get() = emptyList()
+
     override fun returnTypeFor(enclosingClass: AstClass): AstType {
         require(enclosingClass is ModelAstClass)
         val declaredType = enclosingClass.element.asType() as DeclaredType
@@ -499,7 +553,7 @@ private class ModelAstType(
     override val arguments: List<AstType>
         get() {
             val kmArgs: List<KmType?> = kmType?.arguments?.map { it.type } ?: emptyList()
-            val args: List<TypeMirror> = (type as DeclaredType).typeArguments
+            val args: List<TypeMirror> = (type as? DeclaredType)?.typeArguments ?: emptyList()
             return if (args.size == kmArgs.size) {
                 args.zip(kmArgs) { a1, a2 -> ModelAstType(this, a1, a2) }
             } else {
@@ -512,6 +566,16 @@ private class ModelAstType(
     override fun isFunction(): Boolean {
         return kmType?.isFunction() == true
     }
+
+    override fun isAny(): Boolean {
+        return element.toString() == "java.lang.Object"
+    }
+
+    override val isGeneric: Boolean
+        get() = kmType?.isGeneric() ?: type.isGeneric()
+
+    override val isTypeParam: Boolean
+        get() = element is TypeParameterElement
 
     override fun isTypeAlis(): Boolean {
         return kmType?.abbreviatedType != null
@@ -614,20 +678,50 @@ private class ModelAstParam(
     override val type: AstType
         get() = ModelAstType(this, element.asType(), kmValueParameter?.type)
 
-    override val isVal: Boolean get() {
-        val param = kmValueParameter ?: return false
-        val parent = kmParent ?: return false
-        return parent.properties.any { it.name == param.name }
-    }
+    override val isVal: Boolean
+        get() {
+            val param = kmValueParameter ?: return false
+            val parent = kmParent ?: return false
+            return parent.properties.any { it.name == param.name }
+        }
 
-    override val isPrivate: Boolean get() {
-        val param = kmValueParameter ?: return false
-        val parent = kmParent ?: return false
-        return parent.properties.find { it.name == param.name }?.isPrivate() ?: false
-    }
+    override val isPrivate: Boolean
+        get() {
+            val param = kmValueParameter ?: return false
+            val parent = kmParent ?: return false
+            return parent.properties.find { it.name == param.name }?.isPrivate() ?: false
+        }
 
     override fun asParameterSpec(): ParameterSpec {
         return ParameterSpec(name, type.asTypeName())
+    }
+}
+
+private class ModelAstTypeParam(
+    provider: ModelAstProvider,
+    override val element: TypeParameterElement,
+    val kmTypeParam: KmTypeParameter
+) : AstTypeParam(), ModelAstElement, ModelAstProvider by provider {
+
+    override val name: String
+        get() = kmTypeParam.name
+    override val bounds: List<AstType>
+        get() {
+            val result = mutableListOf<AstType>()
+            for (i in 0 until kmTypeParam.upperBounds.size) {
+                val elementType = element.bounds[i]
+                val kmType = kmTypeParam.upperBounds[i]
+                result.add(ModelAstType(this, elementType, kmType))
+            }
+            return result
+        }
+
+    override fun equals(other: Any?): Boolean {
+        return other is ModelAstTypeParam && name == other.name
+    }
+
+    override fun hashCode(): Int {
+        return name.hashCode()
     }
 }
 
