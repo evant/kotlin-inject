@@ -1,14 +1,5 @@
 package me.tatarka.inject.compiler.ksp
 
-import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.KModifier
-import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import com.squareup.kotlinpoet.TypeName
-import com.squareup.kotlinpoet.TypeVariableName
-import me.tatarka.inject.compiler.HashCollector
-import me.tatarka.inject.compiler.collectHash
-import me.tatarka.inject.compiler.eqv
-import me.tatarka.inject.compiler.eqvItr
 import com.google.devtools.ksp.symbol.AnnotationUseSiteTarget
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSAnnotation
@@ -19,9 +10,20 @@ import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.KSTypeAlias
 import com.google.devtools.ksp.symbol.KSTypeParameter
 import com.google.devtools.ksp.symbol.KSTypeReference
+import com.google.devtools.ksp.symbol.Modifier
 import com.google.devtools.ksp.symbol.Nullability
 import com.google.devtools.ksp.symbol.Variance
 import com.google.devtools.ksp.visitor.KSDefaultVisitor
+import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.LambdaTypeName
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+import com.squareup.kotlinpoet.TypeName
+import com.squareup.kotlinpoet.TypeVariableName
+import me.tatarka.inject.compiler.HashCollector
+import me.tatarka.inject.compiler.collectHash
+import me.tatarka.inject.compiler.eqv
+import me.tatarka.inject.compiler.eqvItr
 
 fun KSAnnotated.annotationAnnotatedWith(
     className: String,
@@ -67,6 +69,22 @@ fun KSTypeReference.memberOf(enclosingClass: KSClassDeclaration): KSTypeReferenc
 }
 
 fun KSType.asTypeName(): TypeName {
+    val isFunction = isFunction()
+    val isSuspending = isSuspendingFunction()
+    if (isFunction || isSuspending) {
+        val returnType = arguments.last()
+        val parameters = arguments.dropLast(1)
+        return LambdaTypeName.get(
+            parameters = parameters.map { it.type!!.resolve().asTypeName() }.toTypedArray(),
+            returnType = returnType.type!!.resolve().asTypeName()
+        ).let {
+            if (isSuspending) {
+                it.copy(suspending = true)
+            } else {
+                it
+            }
+        }
+    }
 
     return declaration.accept(object : KSDefaultVisitor<Unit, TypeName>() {
 
@@ -139,4 +157,15 @@ fun KSType.eqvHashCode(collector: HashCollector = HashCollector()): Int = collec
 
 fun KSTypeReference.eqvHashCode(collector: HashCollector): Int = collectHash(collector) {
     resolve().eqvHashCode(collector)
+}
+
+
+fun KSType.isFunction(): Boolean {
+    val name = declaration.qualifiedName ?: return false
+    return name.getQualifier() == "kotlin" && name.getShortName().matches(Regex("Function[0-9]+"))
+}
+
+fun KSType.isSuspendingFunction(): Boolean {
+    val name = declaration.qualifiedName ?: return false
+    return name.getQualifier() == "kotlin.coroutines" && name.getShortName().matches(Regex("SuspendFunction[0-9]+"))
 }

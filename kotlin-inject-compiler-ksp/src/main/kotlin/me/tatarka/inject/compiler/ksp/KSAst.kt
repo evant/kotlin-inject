@@ -377,8 +377,8 @@ private class KSAstType(provider: KSAstProvider) : AstType(), KSAstAnnotated, KS
     }
 
     override fun isFunction(): Boolean {
-        val name = type.actualType().declaration.qualifiedName ?: return false
-        return name.getQualifier() == "kotlin" && name.getShortName().matches(Regex("Function[0-9]+"))
+        val actualType = type.actualType()
+        return actualType.isFunction() || actualType.isSuspendingFunction()
     }
 
     override fun isTypeAlis(): Boolean {
