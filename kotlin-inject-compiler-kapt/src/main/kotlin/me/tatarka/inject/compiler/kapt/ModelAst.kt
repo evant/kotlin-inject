@@ -510,7 +510,7 @@ private class ModelAstType(
     override fun isUnit(): Boolean = type is NoType
 
     override fun isFunction(): Boolean {
-        return element.toString().matches(Regex("kotlin\\.jvm\\.functions\\.Function[0-9]+.*"))
+        return kmType?.isFunction() == true
     }
 
     override fun isTypeAlis(): Boolean {

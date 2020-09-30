@@ -2,17 +2,34 @@
 
 package me.tatarka.inject.compiler.kapt
 
-import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.LambdaTypeName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import kotlinx.metadata.*
-import kotlinx.metadata.jvm.*
+import com.squareup.kotlinpoet.TypeName
+import com.squareup.kotlinpoet.asTypeName
+import kotlinx.metadata.Flag
+import kotlinx.metadata.KmClass
+import kotlinx.metadata.KmClassifier
+import kotlinx.metadata.KmConstructor
+import kotlinx.metadata.KmFunction
+import kotlinx.metadata.KmProperty
+import kotlinx.metadata.KmType
+import kotlinx.metadata.jvm.JvmMethodSignature
+import kotlinx.metadata.jvm.KotlinClassHeader
+import kotlinx.metadata.jvm.KotlinClassMetadata
 import me.tatarka.inject.compiler.HashCollector
 import me.tatarka.inject.compiler.collectHash
 import me.tatarka.inject.compiler.eqv
 import me.tatarka.inject.compiler.eqvItr
-import javax.lang.model.element.*
-import javax.lang.model.type.*
+import javax.lang.model.element.AnnotationMirror
+import javax.lang.model.element.Element
+import javax.lang.model.element.ExecutableElement
+import javax.lang.model.element.PackageElement
+import javax.lang.model.element.TypeElement
+import javax.lang.model.type.ArrayType
+import javax.lang.model.type.DeclaredType
+import javax.lang.model.type.TypeKind
+import javax.lang.model.type.TypeMirror
 
 fun Element.hasAnnotation(className: String): Boolean {
     return annotationMirrors.any { it.annotationType.toString() == className }
@@ -115,11 +132,14 @@ val ExecutableElement.simpleSig: String
 val JvmMethodSignature.simpleSig: String
     get() = name + desc.substring(0, desc.lastIndexOf(')') + 1)
 
-fun KmClassifier.asClassName() = when (this) {
-    is KmClassifier.Class -> name.asClassName()
-    is KmClassifier.TypeAlias -> name.asClassName()
-    is KmClassifier.TypeParameter -> null
-}
+private fun KmClassifier.asClassName() = name?.asClassName()
+
+private val KmClassifier.name: String?
+    get() = when (this) {
+        is KmClassifier.Class -> name
+        is KmClassifier.TypeAlias -> name
+        is KmClassifier.TypeParameter -> null
+    }
 
 fun kotlinx.metadata.ClassName.asClassName(): ClassName {
     val split = lastIndexOf('/')
@@ -190,12 +210,40 @@ fun KmType.asTypeName(): TypeName? {
         return abbreviatedType.asTypeName()
     }
     val isNullable = Flag.Type.IS_NULLABLE(flags)
-    val className = classifier.asClassName() ?: return null
-    return if (arguments.isEmpty()) {
-        className
+    return if (isFunction()) {
+        if (isSuspendFunction()) {
+            val returnType = arguments[arguments.size -2].type!!.arguments[0]
+            val parameters = arguments.dropLast(2)
+            LambdaTypeName.get(
+                parameters = parameters.map { it.type!!.asTypeName()!! }.toTypedArray(),
+                returnType = returnType.type!!.asTypeName()!!
+            ).copy(suspending = true)
+        } else {
+            val returnType = arguments.last()
+            val parameters = arguments.dropLast(1)
+            LambdaTypeName.get(
+                parameters = parameters.map { it.type!!.asTypeName()!! }.toTypedArray(),
+                returnType = returnType.type!!.asTypeName()!!
+            )
+        }
     } else {
-        className.parameterizedBy(arguments.map { it.type!!.asTypeName()!! })
+        val className = classifier.asClassName() ?: return null
+        if (arguments.isEmpty()) {
+            className
+        } else {
+            className.parameterizedBy(arguments.map { it.type!!.asTypeName()!! })
+        }
     }.copy(nullable = isNullable)
+}
+
+fun KmType.isFunction(): Boolean {
+    return classifier.name?.matches(Regex("kotlin/Function[0-9]+")) == true
+}
+
+private fun KmType.isSuspendFunction(): Boolean {
+    return isFunction() &&
+            arguments.size >= 2 &&
+            arguments[arguments.size - 2].type?.classifier?.name == "kotlin/coroutines/Continuation"
 }
 
 fun AnnotationMirror.eqv(other: AnnotationMirror): Boolean {
@@ -270,4 +318,4 @@ inline fun KmProperty.isAbstract() = Flag.Common.IS_ABSTRACT(flags)
 
 inline fun KmProperty.isPrivate() = Flag.Common.IS_PRIVATE(flags)
 
-inline fun KmConstructor.isVal() =Flag.Constructor.IS_PRIMARY
+inline fun KmConstructor.isVal() = Flag.Constructor.IS_PRIMARY
