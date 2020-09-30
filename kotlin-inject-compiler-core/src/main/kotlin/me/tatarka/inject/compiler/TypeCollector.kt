@@ -4,6 +4,7 @@ import me.tatarka.inject.annotations.IntoMap
 import me.tatarka.inject.annotations.IntoSet
 import me.tatarka.inject.compiler.ContainerCreator.mapOf
 import me.tatarka.inject.compiler.ContainerCreator.setOf
+import java.lang.reflect.GenericArrayType
 
 private val TYPE_INFO_CACHE = mutableMapOf<AstClass, TypeInfo>()
 
@@ -260,10 +261,16 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
         if (result != null) {
             return result
         }
-        for ((genericType, creator) in genericTypes) {
-            if (genericType.isAssignableFrom(key.type)) {
-                return creator
+
+        val results = genericTypes.filter { (genericKey, _) -> genericKey.isAssignableFrom(key.type) }
+        if (results.size == 1) {
+            return results.values.first()
+        } else if (results.size > 1) {
+            error("Multiple generic provides match $key")
+            for ((genericKey, creator) in results) {
+                error(genericKey.toString(), creator.source)
             }
+            return null
         }
 
         val astClass = key.type.toAstClass()
@@ -352,6 +359,34 @@ data class GenericKey(
             }
         }
         return true
+    }
+
+    override fun toString(): String = StringBuilder().apply {
+        if (qualifier != null) {
+            append(qualifier)
+            append(" ")
+        }
+        genericType.toString(typeParams, this)
+    }.toString()
+
+    private fun AstType.toString(typeParams: List<AstTypeParam>, builder: StringBuilder) {
+        if (arguments.isEmpty()) {
+            builder.append(this)
+            val param = typeParams.find { it.name == this.simpleName }
+            if (param != null) {
+                builder.append(": ")
+                param.bounds.joinTo(builder, ", ")
+            }
+        } else {
+            builder.append("$packageName.$simpleName<")
+            arguments.forEachIndexed { index, argument ->
+                argument.toString(typeParams, builder)
+                if (index < arguments.size - 1) {
+                    builder.append(", ")
+                }
+            }
+            builder.append(">")
+        }
     }
 }
 

@@ -12,7 +12,6 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
-import kotlin.test.Ignore
 
 @RunWith(Parameterized::class)
 class FailureTest(val target: Target) {
@@ -292,6 +291,63 @@ class FailureTest(val target: Target) {
             ).options(Options(generateCompanionExtensions = true)).compile()
         }.isFailure().output().contains(
             "Missing companion for class: MyComponent"
+        )
+    }
+
+    @Test
+    fun fails_if_generic_provides_has_no_bounds() {
+        // only ksp is supported
+        if (target != Target.ksp) {
+            return
+        }
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt", """
+               import me.tatarka.inject.annotations.Component
+               import me.tatarka.inject.annotations.Provides
+               
+               @Component abstract class MyComponent {
+                   @Provides
+                   inline fun <reified T> provideGeneric(): T = TODO()
+               }
+            """.trimIndent()
+            ).compile()
+        }.isFailure().output().contains(
+            "Unbounded generic return types are not supported."
+        )
+    }
+
+    @Test
+    fun fails_if_generic_provides_are_ambigous() {
+        // only ksp is supported
+        if (target != Target.ksp) {
+            return
+        }
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt", """
+               import me.tatarka.inject.annotations.Component
+               import me.tatarka.inject.annotations.Provides
+               
+               interface A
+               interface B
+               class C : A, B
+               
+               @Component abstract class MyComponent {
+                   abstract val foo: C
+               
+                   @Provides
+                   inline fun <reified T: A> a(): T = TODO()
+                   
+                   @Provides
+                   inline fun <reified T: B> b(): T = TODO()
+               }
+            """.trimIndent()
+            ).compile()
+        }.isFailure().output().contains(
+            "Multiple generic provides match C",
+            "T: A",
+            "T: B",
         )
     }
 }
