@@ -8,7 +8,7 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
     // for access to CompilationErrorException until ksp properly fails on errors
     implementation 'org.jetbrains.kotlin:kotlin-compiler-embeddable:1.4.0'
-    implementation 'com.google.devtools.ksp:symbol-processing-api:1.4.10-dev-experimental-20200924'
+    implementation "com.google.devtools.ksp:symbol-processing-api:$ksp_version"
 }
 
 sourceCompatibility = 1.8

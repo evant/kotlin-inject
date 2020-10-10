@@ -1,6 +1,6 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.4.0' apply false
-    id 'symbol-processing' version "1.4.10-dev-experimental-20200924" apply false
+    id 'symbol-processing' version "$ksp_version" apply false
 }
 
 subprojects {

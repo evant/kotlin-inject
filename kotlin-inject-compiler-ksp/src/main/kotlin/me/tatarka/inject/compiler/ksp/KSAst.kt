@@ -37,7 +37,7 @@ import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.KSTypeAlias
 import com.google.devtools.ksp.symbol.KSTypeReference
-import com.google.devtools.ksp.symbol.KSVariableParameter
+import com.google.devtools.ksp.symbol.KSValueParameter
 import com.google.devtools.ksp.symbol.Variance
 import org.jetbrains.kotlin.analyzer.AnalysisResult
 import kotlin.reflect.KClass
@@ -261,7 +261,7 @@ private class KSAstFunction(provider: KSAstProvider, override val declaration: K
 
     override fun overrides(other: AstMethod): Boolean {
         if (other !is KSAstFunction) return false
-        return declaration.overrides(other.declaration)
+        return resolver.overrides(declaration, other.declaration)
     }
 
     override val returnType: AstType
@@ -301,7 +301,7 @@ private class KSAstProperty(provider: KSAstProvider, override val declaration: K
 
     override fun overrides(other: AstMethod): Boolean {
         if (other !is KSAstProperty) return false
-        return declaration.overrides(other.declaration)
+        return resolver.overrides(declaration, other.declaration)
     }
 
     override val returnType: AstType
@@ -434,7 +434,7 @@ private class KSAstParam(
     provider: KSAstProvider,
     val parentClass: KSClassDeclaration?,
     val parent: KSDeclaration,
-    override val declaration: KSVariableParameter
+    override val declaration: KSValueParameter
 ) : AstParam(),
     KSAstAnnotated, KSAstProvider by provider {
 
