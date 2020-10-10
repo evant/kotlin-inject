@@ -159,13 +159,15 @@ fun KSTypeReference.eqvHashCode(collector: HashCollector): Int = collectHash(col
     resolve().eqvHashCode(collector)
 }
 
+private val FUNCTION = Regex("Function[0-9]+")
+private val SUSPEND_FUNCTION = Regex("SuspendFunction[0-9]+")
 
 fun KSType.isFunction(): Boolean {
     val name = declaration.qualifiedName ?: return false
-    return name.getQualifier() == "kotlin" && name.getShortName().matches(Regex("Function[0-9]+"))
+    return name.getQualifier() == "kotlin" && name.getShortName().matches(FUNCTION)
 }
 
 fun KSType.isSuspendingFunction(): Boolean {
     val name = declaration.qualifiedName ?: return false
-    return name.getQualifier() == "kotlin.coroutines" && name.getShortName().matches(Regex("SuspendFunction[0-9]+"))
+    return name.getQualifier() == "kotlin.coroutines" && name.getShortName().matches(SUSPEND_FUNCTION)
 }

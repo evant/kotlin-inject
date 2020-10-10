@@ -236,8 +236,10 @@ fun KmType.asTypeName(): TypeName? {
     }.copy(nullable = isNullable)
 }
 
+private val FUNCTION = Regex("kotlin/Function[0-9]+")
+
 fun KmType.isFunction(): Boolean {
-    return classifier.name?.matches(Regex("kotlin/Function[0-9]+")) == true
+    return classifier.name?.matches(FUNCTION) == true
 }
 
 private fun KmType.isSuspendFunction(): Boolean {
