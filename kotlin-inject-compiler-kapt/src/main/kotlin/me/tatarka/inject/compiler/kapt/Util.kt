@@ -316,6 +316,8 @@ inline fun KmFunction.isAbstract() = Flag.Common.IS_ABSTRACT(flags)
 
 inline fun KmFunction.isPrivate() = Flag.Common.IS_PRIVATE(flags)
 
+inline fun KmFunction.isSuspend() = Flag.Function.IS_SUSPEND(flags)
+
 inline fun KmProperty.isAbstract() = Flag.Common.IS_ABSTRACT(flags)
 
 inline fun KmProperty.isPrivate() = Flag.Common.IS_PRIVATE(flags)

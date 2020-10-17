@@ -109,6 +109,8 @@ abstract class AstConstructor(private val parent: AstClass) : AstElement() {
 abstract class AstFunction : AstMethod() {
     abstract val parameters: List<AstParam>
 
+    abstract val isSuspend: Boolean
+
     abstract override fun equals(other: Any?): Boolean
 
     abstract override fun hashCode(): Int
