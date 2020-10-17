@@ -126,6 +126,11 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                                         FunSpec.builder(method.name)
                                             .returns(returnType.asTypeName())
                                             .addModifiers(KModifier.OVERRIDE)
+                                            .apply {
+                                                if (method.isSuspend) {
+                                                    addModifiers(KModifier.SUSPEND)
+                                                }
+                                            }
                                             .addCode(codeBlock.build())
                                             .build()
                                     )

@@ -25,20 +25,7 @@ import com.google.devtools.ksp.isAbstract
 import com.google.devtools.ksp.isPrivate
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
-import com.google.devtools.ksp.symbol.AnnotationUseSiteTarget
-import com.google.devtools.ksp.symbol.ClassKind
-import com.google.devtools.ksp.symbol.FileLocation
-import com.google.devtools.ksp.symbol.KSAnnotated
-import com.google.devtools.ksp.symbol.KSAnnotation
-import com.google.devtools.ksp.symbol.KSClassDeclaration
-import com.google.devtools.ksp.symbol.KSDeclaration
-import com.google.devtools.ksp.symbol.KSFunctionDeclaration
-import com.google.devtools.ksp.symbol.KSPropertyDeclaration
-import com.google.devtools.ksp.symbol.KSType
-import com.google.devtools.ksp.symbol.KSTypeAlias
-import com.google.devtools.ksp.symbol.KSTypeReference
-import com.google.devtools.ksp.symbol.KSValueParameter
-import com.google.devtools.ksp.symbol.Variance
+import com.google.devtools.ksp.symbol.*
 import org.jetbrains.kotlin.analyzer.AnalysisResult
 import kotlin.reflect.KClass
 
@@ -255,6 +242,9 @@ private class KSAstFunction(provider: KSAstProvider, override val declaration: K
 
     override val isPrivate: Boolean
         get() = declaration.isPrivate()
+
+    override val isSuspend: Boolean
+        get() = declaration.modifiers.contains(Modifier.SUSPEND)
 
     override val receiverParameterType: AstType?
         get() = declaration.extensionReceiver?.let { KSAstType(this, it) }

@@ -19,10 +19,23 @@ import kotlin.test.Test
         @Provides get() = { Foo() }
 }
 
+@Component abstract class SuspendProviderComponent {
+    abstract suspend fun suspendFoo(): IFoo
+
+    @Provides suspend fun suspendProvides(): IFoo = Foo()
+}
+
 class SuspendTest {
     @Test
     fun generates_a_component_that_provides_a_suspend_function(): Unit = runBlocking {
         val component = SuspendFunctionComponent::class.create()
+
+        assertThat(component.suspendFoo()).isInstanceOf(Foo::class)
+    }
+
+    @Test
+    fun generates_a_component_that_has_a_suspending_provides(): Unit = runBlocking {
+        val component = SuspendProviderComponent::class.create()
 
         assertThat(component.suspendFoo()).isInstanceOf(Foo::class)
     }

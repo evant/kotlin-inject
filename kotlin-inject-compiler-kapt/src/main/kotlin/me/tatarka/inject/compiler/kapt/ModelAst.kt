@@ -339,6 +339,9 @@ private class ModelAstFunction(
     override val isPrivate: Boolean
         get() = kmFunction.isPrivate()
 
+    override val isSuspend: Boolean
+        get() = kmFunction.isSuspend()
+
     override val returnType: AstType
         get() = ModelAstType(
             this,
@@ -364,11 +367,18 @@ private class ModelAstFunction(
 
     override val parameters: List<AstParam>
         get() {
-            val params = if (kmFunction.receiverParameterType != null) {
-                // drop the extension function receiver if present
-                element.parameters.drop(1)
-            } else {
-                element.parameters
+            val params = when {
+                kmFunction.receiverParameterType != null -> {
+                    // drop the extension function receiver if present
+                    element.parameters.drop(1)
+                }
+                kmFunction.isSuspend() -> {
+                    // drop last continuation parameter
+                    element.parameters.dropLast(1)
+                }
+                else -> {
+                    element.parameters
+                }
             }
             val kmParams: List<KmValueParameter> = kmFunction.valueParameters
             return params.mapIndexed { index, param ->
