@@ -16,7 +16,7 @@ import me.tatarka.inject.annotations.Provides
 import me.tatarka.inject.annotations.Scope
 import kotlin.reflect.KClass
 
-private val SCOPED_COMPONENT =  ClassName("me.tatarka.inject.internal", "ScopedComponent")
+private val SCOPED_COMPONENT = ClassName("me.tatarka.inject.internal", "ScopedComponent")
 private val LAZY_MAP = ClassName("me.tatarka.inject.internal", "LazyMap")
 
 class InjectGenerator(provider: AstProvider, private val options: Options) :
@@ -105,19 +105,32 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                                 )
                             )
 
-                            addProperty(
-                                PropertySpec.builder(
-                                    method.name,
-                                    returnType.asTypeName(),
-                                    KModifier.OVERRIDE
-                                )
-                                    .getter(
-                                        FunSpec.getterBuilder()
+                            when (method) {
+                                is AstProperty -> {
+                                    addProperty(
+                                        PropertySpec.builder(
+                                            method.name,
+                                            returnType.asTypeName(),
+                                            KModifier.OVERRIDE
+                                        )
+                                            .getter(
+                                                FunSpec.getterBuilder()
+                                                    .addCode(codeBlock.build())
+                                                    .build()
+                                            )
+                                            .build()
+                                    )
+                                }
+                                is AstFunction -> {
+                                    addFunction(
+                                        FunSpec.builder(method.name)
+                                            .returns(returnType.asTypeName())
+                                            .addModifiers(KModifier.OVERRIDE)
                                             .addCode(codeBlock.build())
                                             .build()
                                     )
-                                    .build()
-                            )
+                                }
+                            }
                         }
                     }
                 } catch (e: FailedToGenerateException) {

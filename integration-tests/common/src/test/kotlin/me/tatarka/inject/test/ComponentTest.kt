@@ -18,6 +18,10 @@ import kotlin.test.Test
     val bar: Bar
 }
 
+@Component interface Component4 {
+    fun foo(): Foo
+}
+
 class ComponentTest {
 
     @Test
@@ -41,5 +45,12 @@ class ComponentTest {
 
         assertThat(component.bar).isNotNull()
         assertThat(component.bar.foo).isNotNull()
+    }
+
+    @Test
+    fun generates_a_component_with_a_function_provider() {
+        val component = Component4::class.create()
+
+        assertThat(component.foo()).isNotNull()
     }
 }
