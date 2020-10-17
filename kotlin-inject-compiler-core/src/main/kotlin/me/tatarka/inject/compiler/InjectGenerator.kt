@@ -1,15 +1,7 @@
 package me.tatarka.inject.compiler
 
-import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.CodeBlock
-import com.squareup.kotlinpoet.FileSpec
-import com.squareup.kotlinpoet.FunSpec
-import com.squareup.kotlinpoet.KModifier
-import com.squareup.kotlinpoet.ParameterSpec
+import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.plusParameter
-import com.squareup.kotlinpoet.PropertySpec
-import com.squareup.kotlinpoet.TypeSpec
-import com.squareup.kotlinpoet.asClassName
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Provides
@@ -39,7 +31,9 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
 
         return FileSpec.builder(astClass.packageName, "Inject${astClass.name}")
             .addType(injectComponent)
-            .addFunction(createFunction)
+            .apply {
+                createFunction.forEach { addFunction(it) }
+            }
             .build()
     }
 
@@ -65,20 +59,39 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
 
                 if (constructor != null) {
                     val funSpec = FunSpec.constructorBuilder()
-                    for (parameter in constructor.parameters) {
-                        if (parameter.isComponent()) {
-                            if (!parameter.isVal) {
-                                error("@Component parameter: ${parameter.name} must be val", parameter)
-                            } else if (parameter.isPrivate) {
-                                error("@Component parameter: ${parameter.name} must not be private", parameter)
+                    val params = constructor.parameters
+                    for (param in params) {
+                        if (param.isComponent()) {
+                            if (!param.isVal) {
+                                error("@Component parameter: ${param.name} must be val", param)
+                            } else if (param.isPrivate) {
+                                error("@Component parameter: ${param.name} must not be private", param)
                             }
                         }
-
-                        val p = parameter.asParameterSpec()
-                        funSpec.addParameter(p)
-                        addSuperclassConstructorParameter("%N", p)
                     }
-                    primaryConstructor(funSpec.build())
+                    val paramSpecs = params.map { it.asParameterSpec() }
+                    val nonDefaultParamSpecs =
+                        constructor.parameters.filter { !it.hasDefault }.map { it.asParameterSpec() }
+                    if (paramSpecs.size == nonDefaultParamSpecs.size) {
+                        for (p in paramSpecs) {
+                            funSpec.addParameter(p)
+                            addSuperclassConstructorParameter("%N", p)
+                        }
+                        primaryConstructor(funSpec.build())
+                    } else {
+                        addFunction(
+                            FunSpec.constructorBuilder()
+                                .addParameters(paramSpecs)
+                                .callSuperConstructor(paramSpecs.map { CodeBlock.of("%N", it) })
+                                .build()
+                        )
+                        addFunction(
+                            FunSpec.constructorBuilder()
+                                .addParameters(nonDefaultParamSpecs)
+                                .callSuperConstructor(nonDefaultParamSpecs.map { CodeBlock.of("%1N = %1N", it) })
+                                .build()
+                        )
+                    }
                 }
 
                 try {
@@ -150,45 +163,84 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         element: AstClass,
         constructor: AstConstructor?,
         injectComponent: TypeSpec
-    ): FunSpec {
-        val typeName = element.type.asTypeName()
-        return FunSpec.builder("create")
-            .apply {
-                if (constructor != null) {
-                    addParameters(ParameterSpec.parametersOf(constructor))
-                }
-                if (options.generateCompanionExtensions) {
-                    val companion = element.companion
+    ): List<FunSpec> {
+        fun generateCreate(
+            typeName: TypeName,
+            constructor: AstConstructor?,
+            injectComponent: TypeSpec,
+            companion: AstClass?,
+            params: List<AstParam>
+        ): FunSpec {
+            return FunSpec.builder("create")
+                .apply {
+                    if (constructor != null) {
+                        for (param in params) {
+                            addParameter(param.asParameterSpec())
+                        }
+                    }
                     if (companion != null) {
                         receiver(companion.type.asTypeName())
                     } else {
-                        error(
-                            """Missing companion for class: ${element.asClassName()}.
+                        receiver(KClass::class.asClassName().plusParameter(typeName))
+                    }
+                }
+                .returns(typeName)
+                .apply {
+                    val codeBlock = CodeBlock.builder()
+                    codeBlock.add("return %N(", injectComponent)
+                    if (constructor != null) {
+                        params.forEachIndexed { i, parameter ->
+                            if (i != 0) {
+                                codeBlock.add(", ")
+                            }
+                            codeBlock.add("%L", parameter.name)
+                        }
+                    }
+                    codeBlock.add(")")
+                    addCode(codeBlock.build())
+                }
+                .build()
+        }
+
+        val companion = if (options.generateCompanionExtensions) {
+            element.companion.also {
+                if (it == null) {
+                    error(
+                        """Missing companion for class: ${element.asClassName()}.
                             |When you have the option me.tatarka.inject.generateCompanionExtensions=true you must declare a companion option on the component class for the extension function to apply to.
                             |You can do so by adding 'companion object' to the class.
                         """.trimMargin(), element
-                        )
-                    }
-                } else {
-                    receiver(KClass::class.asClassName().plusParameter(typeName))
+                    )
                 }
             }
-            .returns(typeName)
-            .apply {
-                val codeBlock = CodeBlock.builder()
-                codeBlock.add("return %N(", injectComponent)
-                if (constructor != null) {
-                    constructor.parameters.forEachIndexed { i, parameter ->
-                        if (i != 0) {
-                            codeBlock.add(", ")
-                        }
-                        codeBlock.add("%L", parameter.name)
-                    }
-                }
-                codeBlock.add(")")
-                addCode(codeBlock.build())
+        } else {
+            null
+        }
+        return mutableListOf<FunSpec>().apply {
+            val typeName = element.type.asTypeName()
+            val params = constructor?.parameters ?: emptyList()
+            add(
+                generateCreate(
+                    typeName,
+                    constructor,
+                    injectComponent,
+                    companion,
+                    params
+                )
+            )
+            val nonDefaultParams = constructor?.parameters?.filter { !it.hasDefault } ?: emptyList()
+            if (params.size != nonDefaultParams.size) {
+                add(
+                    generateCreate(
+                        typeName,
+                        constructor,
+                        injectComponent,
+                        companion,
+                        nonDefaultParams
+                    )
+                )
             }
-            .build()
+        }
     }
 
     private fun collectTypes(
