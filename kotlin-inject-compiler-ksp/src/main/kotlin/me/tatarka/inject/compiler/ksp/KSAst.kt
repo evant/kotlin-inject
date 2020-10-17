@@ -440,6 +440,9 @@ private class KSAstParam(
     override val isPrivate: Boolean
         get() = parentClass?.getDeclaredProperties()?.find { it.simpleName == declaration.name }?.isPrivate() ?: false
 
+    override val hasDefault: Boolean
+        get() = declaration.hasDefault
+
     override fun asParameterSpec(): ParameterSpec {
         return ParameterSpec.builder(name, type.asTypeName())
             .build()

@@ -636,6 +636,9 @@ private class ModelAstParam(
         return parent.properties.find { it.name == param.name }?.isPrivate() ?: false
     }
 
+    override val hasDefault: Boolean
+        get() = kmValueParameter?.hasDefault() ?: false
+
     override fun asParameterSpec(): ParameterSpec {
         return ParameterSpec(name, type.asTypeName())
     }

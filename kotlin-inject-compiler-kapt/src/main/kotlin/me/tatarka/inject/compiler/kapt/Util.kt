@@ -7,13 +7,7 @@ import com.squareup.kotlinpoet.LambdaTypeName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.asTypeName
-import kotlinx.metadata.Flag
-import kotlinx.metadata.KmClass
-import kotlinx.metadata.KmClassifier
-import kotlinx.metadata.KmConstructor
-import kotlinx.metadata.KmFunction
-import kotlinx.metadata.KmProperty
-import kotlinx.metadata.KmType
+import kotlinx.metadata.*
 import kotlinx.metadata.jvm.JvmMethodSignature
 import kotlinx.metadata.jvm.KotlinClassHeader
 import kotlinx.metadata.jvm.KotlinClassMetadata
@@ -323,3 +317,5 @@ inline fun KmProperty.isAbstract() = Flag.Common.IS_ABSTRACT(flags)
 inline fun KmProperty.isPrivate() = Flag.Common.IS_PRIVATE(flags)
 
 inline fun KmConstructor.isVal() = Flag.Constructor.IS_PRIMARY
+
+inline fun KmValueParameter.hasDefault() = Flag.ValueParameter.DECLARES_DEFAULT_VALUE(flags)

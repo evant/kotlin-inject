@@ -195,6 +195,8 @@ abstract class AstParam : AstElement() {
 
     abstract val isPrivate: Boolean
 
+    abstract val hasDefault: Boolean
+
     abstract fun asParameterSpec(): ParameterSpec
 
     override fun toString(): String {
@@ -206,6 +208,3 @@ interface AstHasModifiers {
     val isPrivate: Boolean
     val isAbstract: Boolean
 }
-
-fun ParameterSpec.Companion.parametersOf(constructor: AstConstructor) =
-    constructor.parameters.map { it.asParameterSpec() }
