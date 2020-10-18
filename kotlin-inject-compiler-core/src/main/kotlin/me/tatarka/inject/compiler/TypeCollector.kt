@@ -230,7 +230,8 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
             return result
         }
         val astClass = key.type.toAstClass()
-        if (astClass.isInject(options)) {
+        val injectCtor = astClass.findInjectConstructors(messenger, options)
+        if (injectCtor != null) {
             val scope = astClass.scopeType(options)
             val scopedComponent = if (scope != null) scopedAccessors[scope] else null
             if (scope != null && scopedComponent == null) {
@@ -238,7 +239,7 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
                 return null
             }
             return TypeCreator.Constructor(
-                astClass.primaryConstructor!!,
+                injectCtor,
                 accessor = scopedComponent?.accessor,
                 scopedComponent = scopedComponent?.type
             )

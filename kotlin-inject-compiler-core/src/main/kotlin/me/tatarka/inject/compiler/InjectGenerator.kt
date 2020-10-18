@@ -628,13 +628,28 @@ fun AstElement.isComponent() = hasAnnotation<Component>()
 
 fun AstMethod.isProvides(): Boolean = hasAnnotation<Provides>()
 
-fun AstClass.isInject(options: Options): Boolean {
-    if (options.enableJavaxAnnotations) {
-        if (primaryConstructor?.hasAnnotation("javax.inject.Inject") == true) {
-            return true
+fun AstClass.findInjectConstructors(messenger: Messenger, options: Options): AstConstructor? {
+    val injectCtors = constructors.filter {
+        if (options.enableJavaxAnnotations) {
+            it.hasAnnotation("javax.inject.Inject") || it.hasAnnotation<Inject>()
+        } else {
+            it.hasAnnotation<Inject>()
         }
     }
-    return hasAnnotation<Inject>()
+
+    return when {
+        hasAnnotation<Inject>() && injectCtors.isNotEmpty() -> {
+            messenger.error("Cannot annotate constructor with @Inject in an @Inject-annotated class", this)
+            null
+        }
+        hasAnnotation<Inject>() -> primaryConstructor
+        injectCtors.size > 1 -> {
+            messenger.error("Class cannot contain multiple @Inject-annotated constructors", this)
+            null
+        }
+        injectCtors.isNotEmpty() -> injectCtors.first()
+        else -> null
+    }
 }
 
 fun AstElement.qualifier(options: Options): AstAnnotation? {

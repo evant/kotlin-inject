@@ -164,6 +164,49 @@ class FailureTest(val target: Target) {
     }
 
     @Test
+    fun fails_if_inject_annotated_class_has_inject_annotated_constructors() {
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt", """
+                    import me.tatarka.inject.annotations.Component
+                    import me.tatarka.inject.annotations.Inject
+                    
+                    @Inject class Foo @Inject constructor(bar: String)
+                    
+                    @Component abstract class MyComponent {
+                        abstract val foo: Foo
+                    }
+                """.trimIndent()
+            ).compile()
+        }.isFailure()
+            .output()
+            .contains("Cannot annotate constructor with @Inject in an @Inject-annotated class")
+    }
+
+    @Test
+    fun fails_if_class_has_multiple_inject_annotated_constructors() {
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt", """
+                    import me.tatarka.inject.annotations.Component
+                    import me.tatarka.inject.annotations.Inject
+                    
+                    class Foo @Inject constructor(bar: String) {
+                        
+                        @Inject constructor() : this("test")
+                    }
+                    
+                    @Component abstract class MyComponent {
+                        abstract val foo: Foo
+                    }
+                """.trimIndent()
+            ).compile()
+        }.isFailure()
+            .output()
+            .contains("Class cannot contain multiple @Inject-annotated constructors")
+    }
+
+    @Test
     fun fails_if_type_cannot_be_provided_to_provides() {
         assertThat {
             projectCompiler.source(
