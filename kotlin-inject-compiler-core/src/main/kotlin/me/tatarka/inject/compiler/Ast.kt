@@ -1,8 +1,6 @@
 package me.tatarka.inject.compiler
 
 import com.squareup.kotlinpoet.*
-import kotlin.contracts.InvocationKind
-import kotlin.contracts.contract
 import kotlin.reflect.KClass
 
 interface AstProvider {
@@ -57,6 +55,8 @@ abstract class AstClass : AstElement(), AstHasModifiers {
     abstract val superTypes: List<AstClass>
 
     abstract val primaryConstructor: AstConstructor?
+
+    abstract val constructors: List<AstConstructor>
 
     abstract val methods: List<AstMethod>
 
