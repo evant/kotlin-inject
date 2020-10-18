@@ -3,12 +3,10 @@ package me.tatarka.inject.compiler.kapt
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ClassName
 import kotlinx.metadata.*
-import kotlinx.metadata.jvm.JvmMethodSignature
 import kotlinx.metadata.jvm.annotations
 import kotlinx.metadata.jvm.getterSignature
 import kotlinx.metadata.jvm.signature
 import me.tatarka.inject.compiler.*
-import java.util.*
 import javax.annotation.processing.Messager
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.*
@@ -164,6 +162,7 @@ private class PrimitiveModelAstClass(
     override val companion: AstClass? = null
     override val superTypes: List<AstClass> = emptyList()
     override val primaryConstructor: AstConstructor? = null
+    override val constructors: List<AstConstructor> = emptyList()
     override val methods: List<AstMethod> = emptyList()
 
     override fun asClassName(): ClassName = throw UnsupportedOperationException()
@@ -232,20 +231,35 @@ private class ModelAstClass(
 
     override val primaryConstructor: AstConstructor?
         get() {
-            return ElementFilter.constructorsIn(element.enclosedElements).mapNotNull { constructor ->
-                //TODO: not sure how to match constructors
+            if (kmClass == null) return null
+
+            val primaryKmCtor = kmClass.constructors.find(KmConstructor::isPrimary)
+            val primaryKmCtorSignature = primaryKmCtor?.signature?.simpleSig ?: return null
+
+            return ElementFilter.constructorsIn(element.enclosedElements)
+                .find { it.simpleSig == primaryKmCtorSignature }
+                ?.let { ModelAstConstructor(this, this, it, primaryKmCtor) }
+        }
+
+    override val constructors: List<AstConstructor>
+        get() {
+            if (kmClass == null) return emptyList()
+
+            val kmCtors = kmClass.constructors.associateBy { it.signature?.simpleSig }
+            return ElementFilter.constructorsIn(element.enclosedElements).map { constructor ->
                 ModelAstConstructor(
                     this,
                     this,
                     constructor,
-                    kmClass?.constructors?.first()
+                    kmCtors[constructor.simpleSig]
                 )
-            }.firstOrNull()
+            }
         }
 
     override val methods: List<AstMethod>
         get() {
-            val kmClass = kmClass ?: return emptyList()
+            if (kmClass == null) return emptyList()
+
             val methods = mutableMapOf<String, ExecutableElement>()
 
             for (method in ElementFilter.methodsIn(element.enclosedElements)) {

@@ -1,5 +1,6 @@
 package me.tatarka.inject.compiler.ksp
 
+import com.google.devtools.ksp.*
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterSpec
@@ -18,11 +19,6 @@ import me.tatarka.inject.compiler.AstProperty
 import me.tatarka.inject.compiler.AstProvider
 import me.tatarka.inject.compiler.AstType
 import me.tatarka.inject.compiler.Messenger
-import com.google.devtools.ksp.findActualType
-import com.google.devtools.ksp.getDeclaredFunctions
-import com.google.devtools.ksp.getDeclaredProperties
-import com.google.devtools.ksp.isAbstract
-import com.google.devtools.ksp.isPrivate
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.symbol.*
@@ -175,6 +171,9 @@ private class KSAstClass(provider: KSAstProvider, override val declaration: KSCl
         get() {
             return declaration.primaryConstructor?.let { KSAstConstructor(this, this, it) }
         }
+
+    override val constructors: List<AstConstructor>
+        get() = declaration.getConstructors().map { KSAstConstructor(this, this, it) }
 
     override val methods: List<AstMethod>
         get() {
