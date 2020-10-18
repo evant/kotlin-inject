@@ -4,7 +4,7 @@ import kotlin.annotation.AnnotationRetention.RUNTIME
 import kotlin.annotation.AnnotationTarget.*
 
 @Retention(RUNTIME)
-@Target(CLASS, FUNCTION)
+@Target(CLASS, FUNCTION, CONSTRUCTOR)
 annotation class Inject
 
 @Retention(RUNTIME)
