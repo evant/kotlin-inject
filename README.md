@@ -362,8 +362,8 @@ You can provide some additional options to the processor.
 - `me.tatarka.inject.generateCompanionExtensions=true`
 
   This will generate the `create()` methods on the companion object instead of the component's class. This allows you to do
-  `MyComponent.create()` instead of `MyComponent::class.create()`. However, due to a kotlin limitiation you will have to
-  explitilcy specify a companion object for your component.
+  `MyComponent.create()` instead of `MyComponent::class.create()`. However, due to a kotlin limitation you will have to
+  explicitly specify a companion object for your component.
   
   ```kotlin
   @Component abstract class MyComponent {
