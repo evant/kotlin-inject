@@ -13,8 +13,14 @@ jobs:
       - gradle/with_cache:
           steps:
             - run:
-                name: Run Tests
-                command: ./gradlew test
+                name: Run Tests and Checks
+                command: ./gradlew check
+            - run:
+                name: Collect Detekt Reports
+                command: cp -vr build/reports detekt
+                when: on_fail
+            - store_artifacts:
+                path: detekt
             - deploy:
                 command: |
                   if [ "${CIRCLE_BRANCH}" == "main" ]; then
