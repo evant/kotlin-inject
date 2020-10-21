@@ -1,6 +1,11 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.4.0' apply false
     id 'symbol-processing' version "$ksp_version" apply false
+    id "io.gitlab.arturbosch.detekt" version "1.14.2"
+}
+
+repositories {
+    jcenter()
 }
 
 subprojects {
@@ -8,4 +13,28 @@ subprojects {
         google()
         mavenCentral()
     }
+    afterEvaluate { project ->
+        project.tasks.findByName("check")?.dependsOn rootProject.tasks["detektAll"]
+    }
+}
+
+task detektAll(type: io.gitlab.arturbosch.detekt.Detekt) {
+    parallel = true
+    failFast = false
+    buildUponDefaultConfig = true
+    source = files(projectDir)
+    config.from = project.file(".static/detekt-config.yml")
+    include("**/*.kt")
+    exclude("**/build/**")
+    reports {
+        html {
+            enabled = true
+            destination = project.file("build/reports/detekt.html")
+        }
+        xml.enabled = false
+    }
+}
+
+dependencies {
+    detektPlugins "io.gitlab.arturbosch.detekt:detekt-formatting:1.14.2"
 }
