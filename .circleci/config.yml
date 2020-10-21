@@ -15,9 +15,6 @@ jobs:
             - run:
                 name: Run Tests
                 command: ./gradlew test
-            - gradle/collect_test_results:
-                test_results_path: yesdata-checker/build/test-results
-                reports_path: yesdata-checker/build/reports
             - deploy:
                 command: |
                   if [ "${CIRCLE_BRANCH}" == "main" ]; then
@@ -30,4 +27,11 @@ workflows:
   build:
     jobs:
       - build:
+          filters:
+            branches:
+              ignore: main
+      - build:
           context: opensource-maven
+          filters:
+            branches:
+              only: main
