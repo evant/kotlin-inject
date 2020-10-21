@@ -2,6 +2,7 @@ package me.tatarka.inject.internal
 
 import java.util.concurrent.ConcurrentHashMap
 
+@Suppress("VariableNaming")
 interface ScopedComponent {
     val _scoped: LazyMap
 }

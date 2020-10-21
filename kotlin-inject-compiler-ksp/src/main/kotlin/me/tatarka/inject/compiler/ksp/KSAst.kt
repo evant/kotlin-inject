@@ -1,6 +1,28 @@
 package me.tatarka.inject.compiler.ksp
 
-import com.google.devtools.ksp.*
+import com.google.devtools.ksp.findActualType
+import com.google.devtools.ksp.getConstructors
+import com.google.devtools.ksp.getDeclaredFunctions
+import com.google.devtools.ksp.getDeclaredProperties
+import com.google.devtools.ksp.isAbstract
+import com.google.devtools.ksp.isPrivate
+import com.google.devtools.ksp.processing.KSPLogger
+import com.google.devtools.ksp.processing.Resolver
+import com.google.devtools.ksp.symbol.AnnotationUseSiteTarget
+import com.google.devtools.ksp.symbol.ClassKind
+import com.google.devtools.ksp.symbol.FileLocation
+import com.google.devtools.ksp.symbol.KSAnnotated
+import com.google.devtools.ksp.symbol.KSAnnotation
+import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.google.devtools.ksp.symbol.KSDeclaration
+import com.google.devtools.ksp.symbol.KSFunctionDeclaration
+import com.google.devtools.ksp.symbol.KSPropertyDeclaration
+import com.google.devtools.ksp.symbol.KSType
+import com.google.devtools.ksp.symbol.KSTypeAlias
+import com.google.devtools.ksp.symbol.KSTypeReference
+import com.google.devtools.ksp.symbol.KSValueParameter
+import com.google.devtools.ksp.symbol.Modifier
+import com.google.devtools.ksp.symbol.Variance
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterSpec
@@ -19,9 +41,6 @@ import me.tatarka.inject.compiler.AstProperty
 import me.tatarka.inject.compiler.AstProvider
 import me.tatarka.inject.compiler.AstType
 import me.tatarka.inject.compiler.Messenger
-import com.google.devtools.ksp.processing.KSPLogger
-import com.google.devtools.ksp.processing.Resolver
-import com.google.devtools.ksp.symbol.*
 import org.jetbrains.kotlin.analyzer.AnalysisResult
 import kotlin.reflect.KClass
 
@@ -54,9 +73,14 @@ interface KSAstProvider : AstProvider {
 
     override fun declaredTypeOf(klass: KClass<*>, vararg astTypes: AstType): AstType {
         val declaration = resolver.getClassDeclarationByName(resolver.getKSNameFromString(klass.qualifiedName!!))!!
-        return KSAstType(this, declaration.asType(astTypes.map {
-            resolver.getTypeArgument((it as KSAstType).typeRef!!, Variance.INVARIANT)
-        }))
+        return KSAstType(
+            this,
+            declaration.asType(
+                astTypes.map {
+                    resolver.getTypeArgument((it as KSAstType).typeRef!!, Variance.INVARIANT)
+                }
+            )
+        )
     }
 
     override fun AstElement.toTrace(): String {
@@ -132,14 +156,18 @@ private interface KSAstAnnotated : AstAnnotated, KSAstProvider {
     }
 }
 
-private class KSAstBasicElement(provider: KSAstProvider, override val declaration: KSDeclaration) : AstBasicElement(),
-    KSAstAnnotated, KSAstProvider by provider {
+private class KSAstBasicElement(provider: KSAstProvider, override val declaration: KSDeclaration) :
+    AstBasicElement(),
+    KSAstAnnotated,
+    KSAstProvider by provider {
     override val simpleName: String
         get() = declaration.simpleName.asString()
 }
 
-private class KSAstClass(provider: KSAstProvider, override val declaration: KSClassDeclaration) : AstClass(),
-    KSAstAnnotated, KSAstProvider by provider {
+private class KSAstClass(provider: KSAstProvider, override val declaration: KSClassDeclaration) :
+    AstClass(),
+    KSAstAnnotated,
+    KSAstProvider by provider {
 
     override val packageName: String
         get() = declaration.qualifiedName!!.getQualifier()
@@ -158,13 +186,14 @@ private class KSAstClass(provider: KSAstProvider, override val declaration: KSCl
 
     override val companion: AstClass?
         get() = declaration.declarations
-            .find { it is KSClassDeclaration && it.isCompanionObject }?.let {
-            KSAstClass(this, it as KSClassDeclaration)
-        }
+            .find { it is KSClassDeclaration && it.isCompanionObject }
+            ?.let { KSAstClass(this, it as KSClassDeclaration) }
 
     override val superTypes: List<AstClass>
         get() {
-            return declaration.superTypes.mapNotNull { type -> (type.resolve().declaration as? KSClassDeclaration)?.toAstClass() }
+            return declaration
+                .superTypes
+                .mapNotNull { type -> (type.resolve().declaration as? KSClassDeclaration)?.toAstClass() }
         }
 
     override val primaryConstructor: AstConstructor?
@@ -178,12 +207,16 @@ private class KSAstClass(provider: KSAstProvider, override val declaration: KSCl
     override val methods: List<AstMethod>
         get() {
             return mutableListOf<AstMethod>().apply {
-                addAll(declaration.getDeclaredProperties().map {
-                    KSAstProperty(this@KSAstClass, it)
-                })
-                addAll(declaration.getDeclaredFunctions().map {
-                    KSAstFunction(this@KSAstClass, it)
-                })
+                addAll(
+                    declaration.getDeclaredProperties().map {
+                        KSAstProperty(this@KSAstClass, it)
+                    }
+                )
+                addAll(
+                    declaration.getDeclaredFunctions().map {
+                        KSAstFunction(this@KSAstClass, it)
+                    }
+                )
             }
         }
 
@@ -225,8 +258,10 @@ private class KSAstConstructor(
     }
 }
 
-private class KSAstFunction(provider: KSAstProvider, override val declaration: KSFunctionDeclaration) : AstFunction(),
-    KSAstAnnotated, KSAstProvider by provider {
+private class KSAstFunction(provider: KSAstProvider, override val declaration: KSFunctionDeclaration) :
+    AstFunction(),
+    KSAstAnnotated,
+    KSAstProvider by provider {
 
     override val parameters: List<AstParam>
         get() = declaration.parameters.map { param ->
@@ -274,8 +309,10 @@ private class KSAstFunction(provider: KSAstProvider, override val declaration: K
     }
 }
 
-private class KSAstProperty(provider: KSAstProvider, override val declaration: KSPropertyDeclaration) : AstProperty(),
-    KSAstAnnotated, KSAstProvider by provider {
+private class KSAstProperty(provider: KSAstProvider, override val declaration: KSPropertyDeclaration) :
+    AstProperty(),
+    KSAstAnnotated,
+    KSAstProvider by provider {
     override val name: String
         get() = declaration.simpleName.asString()
 
@@ -307,17 +344,16 @@ private class KSAstProperty(provider: KSAstProvider, override val declaration: K
     }
 
     override fun hasAnnotation(className: String): Boolean {
-        return declaration.getter?.hasAnnotation(className) == true
-                || declaration.hasAnnotation(className, AnnotationUseSiteTarget.GET)
+        return declaration.getter?.hasAnnotation(className) == true ||
+            declaration.hasAnnotation(className, AnnotationUseSiteTarget.GET)
     }
 
     override fun annotationAnnotatedWith(className: String): AstAnnotation? {
-        return (declaration.getter?.annotationAnnotatedWith(className) ?: declaration.annotationAnnotatedWith(
-            className,
-            AnnotationUseSiteTarget.GET
-        ))?.let {
-            KSAstAnnotation(this, it)
-        }
+        return (
+            declaration.getter
+                ?.annotationAnnotatedWith(className)
+                ?: declaration.annotationAnnotatedWith(className, AnnotationUseSiteTarget.GET)
+            )?.let { KSAstAnnotation(this, it) }
     }
 
     override fun equals(other: Any?): Boolean {
@@ -405,7 +441,8 @@ private class KSAstType(provider: KSAstProvider) : AstType(), KSAstAnnotated, KS
     }
 
     override fun equals(other: Any?): Boolean {
-        // don't use type == other.type as the impl declares differing typealias as equal and we don't want that behavior.
+        // don't use type == other.type as the impl declares differing typealias as equal
+        // and we don't want that behavior.
         return other is KSAstType && type.eqv(other.type)
     }
 
@@ -425,7 +462,8 @@ private class KSAstParam(
     val parent: KSDeclaration,
     override val declaration: KSValueParameter
 ) : AstParam(),
-    KSAstAnnotated, KSAstProvider by provider {
+    KSAstAnnotated,
+    KSAstProvider by provider {
 
     override val name: String
         get() = declaration.name!!.asString()
@@ -450,7 +488,8 @@ private class KSAstParam(
     override fun toString(): String = "$name: $type"
 }
 
-private class KSAstAnnotation(provider: KSAstProvider, val annotation: KSAnnotation) : AstAnnotation(),
+private class KSAstAnnotation(provider: KSAstProvider, val annotation: KSAnnotation) :
+    AstAnnotation(),
     KSAstProvider by provider {
 
     override val type: AstType
@@ -473,6 +512,8 @@ private class KSAstAnnotation(provider: KSAstProvider, val annotation: KSAnnotat
     }
 
     override fun toString(): String {
-        return "${annotation}(${annotation.arguments.joinToString(", ") { arg -> "${arg.name?.asString()}=${arg.value}" }})"
+        return "$annotation(${
+        annotation.arguments.joinToString(", ") { arg -> "${arg.name?.asString()}=${arg.value}" }
+        })"
     }
 }

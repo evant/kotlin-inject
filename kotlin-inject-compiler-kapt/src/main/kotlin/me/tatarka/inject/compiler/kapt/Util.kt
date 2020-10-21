@@ -7,7 +7,14 @@ import com.squareup.kotlinpoet.LambdaTypeName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.asTypeName
-import kotlinx.metadata.*
+import kotlinx.metadata.Flag
+import kotlinx.metadata.KmClass
+import kotlinx.metadata.KmClassifier
+import kotlinx.metadata.KmConstructor
+import kotlinx.metadata.KmFunction
+import kotlinx.metadata.KmProperty
+import kotlinx.metadata.KmType
+import kotlinx.metadata.KmValueParameter
 import kotlinx.metadata.jvm.JvmMethodSignature
 import kotlinx.metadata.jvm.KotlinClassHeader
 import kotlinx.metadata.jvm.KotlinClassMetadata
@@ -67,6 +74,7 @@ val ExecutableElement.simpleSig: String
     get() {
         val name = simpleName.toString()
 
+        @Suppress("ComplexMethod", "NestedBlockDepth")
         fun convert(type: TypeMirror, out: StringBuilder) {
             with(out) {
                 when (type.kind) {
@@ -206,7 +214,7 @@ fun KmType.asTypeName(): TypeName? {
     val isNullable = Flag.Type.IS_NULLABLE(flags)
     return if (isFunction()) {
         if (isSuspendFunction()) {
-            val returnType = arguments[arguments.size -2].type!!.arguments[0]
+            val returnType = arguments[arguments.size - 2].type!!.arguments[0]
             val parameters = arguments.dropLast(2)
             LambdaTypeName.get(
                 parameters = parameters.map { it.type!!.asTypeName()!! }.toTypedArray(),
@@ -238,8 +246,8 @@ fun KmType.isFunction(): Boolean {
 
 private fun KmType.isSuspendFunction(): Boolean {
     return isFunction() &&
-            arguments.size >= 2 &&
-            arguments[arguments.size - 2].type?.classifier?.name == "kotlin/coroutines/Continuation"
+        arguments.size >= 2 &&
+        arguments[arguments.size - 2].type?.classifier?.name == "kotlin/coroutines/Continuation"
 }
 
 fun AnnotationMirror.eqv(other: AnnotationMirror): Boolean {
@@ -269,10 +277,10 @@ fun KmType.eqv(other: KmType): Boolean {
         }
     }
     return classifier == other.classifier &&
-            arguments.eqvItr(other.arguments) { a, b ->
-                a.variance == b.variance &&
-                        a.type.eqv(b.type, KmType::eqv)
-            }
+        arguments.eqvItr(other.arguments) { a, b ->
+            a.variance == b.variance &&
+                a.type.eqv(b.type, KmType::eqv)
+        }
 }
 
 fun KmType.eqvHashCode(collector: HashCollector = HashCollector()): Int {

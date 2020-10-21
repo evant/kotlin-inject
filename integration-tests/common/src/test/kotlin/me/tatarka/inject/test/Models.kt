@@ -2,7 +2,9 @@ package me.tatarka.inject.test
 
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Scope
-import kotlin.annotation.AnnotationTarget.*
+import kotlin.annotation.AnnotationTarget.CLASS
+import kotlin.annotation.AnnotationTarget.FUNCTION
+import kotlin.annotation.AnnotationTarget.PROPERTY_GETTER
 
 interface IFoo
 
@@ -22,9 +24,9 @@ var fooConstructorCount = 0
 
 @Inject data class Bar(val foo: Foo) : IFoo
 
-@Inject data class BarImpl(val foo: IFoo): IBar
+@Inject data class BarImpl(val foo: IFoo) : IBar
 
-@Inject class Baz: IFoo
+@Inject class Baz : IFoo
 
 class NamedFoo(val name: String)
 

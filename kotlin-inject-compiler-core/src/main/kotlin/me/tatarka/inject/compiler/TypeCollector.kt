@@ -39,6 +39,7 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
     var providerMethods: List<AstMethod> = emptyList()
         private set
 
+    @Suppress("ComplexMethod")
     private fun collectTypes(
         astClass: AstClass,
         accessor: String? = null,
@@ -51,7 +52,7 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
         for (method in typeInfo.providesMethods) {
             val scopeType = method.scopeType(options)
             if (scopeType != null && scopeType != typeInfo.elementScope) {
-                error("@Provides scope:${scopeType} must match component scope: ${typeInfo.elementScope}", method)
+                error("@Provides scope:$scopeType must match component scope: ${typeInfo.elementScope}", method)
             }
             val scopedComponent = if (scopeType != null) astClass else null
             if (method.hasAnnotation<IntoMap>()) {
@@ -59,7 +60,8 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
                 val type = method.returnTypeFor(astClass)
                 if (type.packageName == "kotlin" && type.simpleName == "Pair") {
                     val typeArgs = method.returnTypeFor(astClass).arguments
-                    val mapType = TypeKey(declaredTypeOf(Map::class, typeArgs[0], typeArgs[1]), method.qualifier(options))
+                    val mapType =
+                        TypeKey(declaredTypeOf(Map::class, typeArgs[0], typeArgs[1]), method.qualifier(options))
                     addContainerType(mapType, mapOf, method, accessor, scopedComponent)
                 } else {
                     error("@IntoMap must have return type of type Pair", method)
@@ -81,8 +83,8 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
             if (typeInfo.isComponent) {
                 addProviderMethod(key, method, accessor)
             } else {
-                // If we aren't a component ourselves, allow obtaining types from providers as these may be contributed from the
-                // eventual implementation
+                // If we aren't a component ourselves, allow obtaining types from providers as these may be contributed
+                // from the eventual implementation
                 addMethod(key, method, accessor, scopedComponent = null)
             }
         }
@@ -103,6 +105,7 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
         }
     }
 
+    @Suppress("ComplexMethod", "LongMethod", "LoopWithTooManyJumpStatements")
     private fun collectTypeInfo(astClass: AstClass): TypeInfo {
         return TYPE_INFO_CACHE.getOrPut(astClass) {
             val isComponent = astClass.isComponent()
@@ -275,6 +278,7 @@ sealed class TypeCreator(val source: AstElement) {
         TypeCreator(source)
 }
 
+@Suppress("EnumNaming")
 enum class ContainerCreator {
     mapOf, setOf
 }

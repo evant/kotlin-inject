@@ -1,7 +1,11 @@
 package me.tatarka.inject.test
 
 import assertk.assertThat
-import assertk.assertions.*
+import assertk.assertions.containsExactly
+import assertk.assertions.isEqualTo
+import assertk.assertions.isNotNull
+import assertk.assertions.isSameAs
+import assertk.assertions.isTrue
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Provides
@@ -266,4 +270,3 @@ class ProvidesTest {
         assertThat(component.fooFactory).isNotNull()
     }
 }
-

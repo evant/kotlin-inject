@@ -13,7 +13,6 @@ abstract class ScopedAccessComponent {
     abstract val foo: Foo
 }
 
-
 class InjectLazyScopedAccessComponent : ScopedAccessComponent() {
     private val _foo by lazy {
         Foo()

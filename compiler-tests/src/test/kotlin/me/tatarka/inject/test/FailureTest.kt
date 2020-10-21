@@ -12,7 +12,6 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
-import kotlin.test.Ignore
 
 @RunWith(Parameterized::class)
 class FailureTest(val target: Target) {
@@ -38,7 +37,8 @@ class FailureTest(val target: Target) {
     fun fails_if_component_is_not_abstract() {
         assertThat {
             projectCompiler.source(
-                "MyComponent.kt", """
+                "MyComponent.kt",
+                """
                     import me.tatarka.inject.annotations.Component
                     
                     @Component class MyComponent
@@ -52,7 +52,8 @@ class FailureTest(val target: Target) {
     fun fails_if_component_is_private() {
         assertThat {
             projectCompiler.source(
-                "MyComponent.kt", """
+                "MyComponent.kt",
+                """
                     import me.tatarka.inject.annotations.Component
                     
                     @Component private abstract class MyComponent
@@ -66,7 +67,8 @@ class FailureTest(val target: Target) {
     fun fails_if_provides_is_private() {
         assertThat {
             projectCompiler.source(
-                "MyComponent.kt", """
+                "MyComponent.kt",
+                """
                     import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Provides
                     
@@ -82,7 +84,8 @@ class FailureTest(val target: Target) {
     fun fails_if_provides_is_abstract() {
         assertThat {
             projectCompiler.source(
-                "MyComponent.kt", """
+                "MyComponent.kt",
+                """
                     import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Provides
                     
@@ -99,7 +102,8 @@ class FailureTest(val target: Target) {
     fun fails_if_provides_returns_unit() {
         assertThat {
             projectCompiler.source(
-                "MyComponent.kt", """
+                "MyComponent.kt",
+                """
                     import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Provides
                     
@@ -115,7 +119,8 @@ class FailureTest(val target: Target) {
     fun fails_if_the_same_type_is_provided_more_than_once() {
         assertThat {
             projectCompiler.source(
-                "MyComponent.kt", """
+                "MyComponent.kt",
+                """
                     import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Provides
                     
@@ -133,7 +138,8 @@ class FailureTest(val target: Target) {
     fun fails_if_type_cannot_be_provided() {
         assertThat {
             projectCompiler.source(
-                "MyComponent.kt", """
+                "MyComponent.kt",
+                """
                     import me.tatarka.inject.annotations.Component
                     
                     @Component abstract class MyComponent {
@@ -149,7 +155,8 @@ class FailureTest(val target: Target) {
     fun fails_if_type_cannot_be_provided_to_constructor() {
         assertThat {
             projectCompiler.source(
-                "MyComponent.kt", """
+                "MyComponent.kt",
+                """
                     import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Inject
                     
@@ -167,7 +174,8 @@ class FailureTest(val target: Target) {
     fun fails_if_inject_annotated_class_has_inject_annotated_constructors() {
         assertThat {
             projectCompiler.source(
-                "MyComponent.kt", """
+                "MyComponent.kt",
+                """
                     import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Inject
                     
@@ -187,7 +195,8 @@ class FailureTest(val target: Target) {
     fun fails_if_class_has_multiple_inject_annotated_constructors() {
         assertThat {
             projectCompiler.source(
-                "MyComponent.kt", """
+                "MyComponent.kt",
+                """
                     import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Inject
                     
@@ -210,7 +219,8 @@ class FailureTest(val target: Target) {
     fun fails_if_type_cannot_be_provided_to_provides() {
         assertThat {
             projectCompiler.source(
-                "MyComponent.kt", """
+                "MyComponent.kt",
+                """
                     import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Provides
                     
@@ -231,7 +241,8 @@ class FailureTest(val target: Target) {
     fun fails_if_component_does_not_have_scope_to_provide_dependency() {
         assertThat {
             projectCompiler.source(
-                "MyComponent.kt", """
+                "MyComponent.kt",
+                """
                     import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Scope
                     import me.tatarka.inject.annotations.Inject
@@ -252,7 +263,8 @@ class FailureTest(val target: Target) {
     fun fails_if_simple_cycle_is_detected() {
         assertThat {
             projectCompiler.source(
-                "MyComponent.kt", """
+                "MyComponent.kt",
+                """
                     import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Inject
                     
@@ -273,7 +285,8 @@ class FailureTest(val target: Target) {
     fun includes_trace_when_cant_inject() {
         assertThat {
             projectCompiler.source(
-                "MyComponent.kt", """
+                "MyComponent.kt",
+                """
                     import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Inject
                     
@@ -293,13 +306,14 @@ class FailureTest(val target: Target) {
     fun fails_if_parent_component_is_missing_val() {
         assertThat {
             projectCompiler.source(
-                "MyComponent.kt", """
+                "MyComponent.kt",
+                """
                import me.tatarka.inject.annotations.Component
                
                @Component abstract class ParentComponent()
                
                @Component abstract class MyComponent(@Component parent: ParentComponent)
-           """.trimIndent()
+                """.trimIndent()
             ).compile()
         }.isFailure().output().contains(
             "@Component parameter: parent must be val"
@@ -310,13 +324,14 @@ class FailureTest(val target: Target) {
     fun fails_if_parent_component_is_private() {
         assertThat {
             projectCompiler.source(
-                "MyComponent.kt", """
+                "MyComponent.kt",
+                """
                import me.tatarka.inject.annotations.Component
                
                @Component abstract class ParentComponent()
                
                @Component abstract class MyComponent(@Component private val parent: ParentComponent)
-           """.trimIndent()
+                """.trimIndent()
             ).compile()
         }.isFailure().output().contains(
             "@Component parameter: parent must not be private"
@@ -327,11 +342,12 @@ class FailureTest(val target: Target) {
     fun fails_if_companion_option_is_enabled_but_companion_is_missing() {
         assertThat {
             projectCompiler.source(
-                "MyComponent.kt", """
+                "MyComponent.kt",
+                """
                import me.tatarka.inject.annotations.Component
                 
                @Component abstract class MyComponent()
-            """.trimIndent()
+                """.trimIndent()
             ).options(Options(generateCompanionExtensions = true)).compile()
         }.isFailure().output().contains(
             "Missing companion for class: MyComponent"
@@ -340,6 +356,6 @@ class FailureTest(val target: Target) {
 }
 
 private fun Target.sourceExt() = when (this) {
-    Target.kapt -> "java"
-    Target.ksp -> "kt"
+    Target.KAPT -> "java"
+    Target.KSP -> "kt"
 }

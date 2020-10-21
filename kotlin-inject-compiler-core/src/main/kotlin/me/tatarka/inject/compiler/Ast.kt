@@ -1,6 +1,10 @@
 package me.tatarka.inject.compiler
 
-import com.squareup.kotlinpoet.*
+import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.MemberName
+import com.squareup.kotlinpoet.ParameterSpec
+import com.squareup.kotlinpoet.TypeName
+import com.squareup.kotlinpoet.TypeSpec
 import kotlin.reflect.KClass
 
 interface AstProvider {
@@ -29,7 +33,8 @@ interface Messenger {
 sealed class AstElement : AstAnnotated {
     inline fun <reified T : Annotation> hasAnnotation() = hasAnnotation(T::class.qualifiedName!!)
 
-    inline fun <reified T : Annotation> annotationAnnotatedWith(): AstAnnotation? = annotationAnnotatedWith(T::class.qualifiedName!!)
+    inline fun <reified T : Annotation> annotationAnnotatedWith(): AstAnnotation? =
+        annotationAnnotatedWith(T::class.qualifiedName!!)
 }
 
 interface AstAnnotated {

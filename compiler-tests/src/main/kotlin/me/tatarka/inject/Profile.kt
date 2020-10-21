@@ -3,18 +3,23 @@ package me.tatarka.inject
 import me.tatarka.inject.compiler.Profiler
 
 fun main() {
-    val compiler = ProjectCompiler(Target.ksp, profiler = object : Profiler {
-        override fun onStart() {
-            println("generate start")
-            readLine()
-        }
+    val compiler = ProjectCompiler(
+        Target.KSP,
+        profiler = object : Profiler {
+            override fun onStart() {
+                println("generate start")
+                readLine()
+            }
 
-        override fun onStop() {
-            println("generate end")
-            readLine()
+            override fun onStop() {
+                println("generate end")
+                readLine()
+            }
         }
-    })
-    compiler.source("MyComponent.kt", """
+    )
+    compiler.source(
+        "MyComponent.kt",
+        """
         import me.tatarka.inject.annotations.Component
         import me.tatarka.inject.annotations.Provides
         
@@ -61,7 +66,8 @@ fun main() {
         interface I4: I5 { val foo4: S4 }
         
         interface I5 { val foo5: S5 }
-    """.trimIndent())
+        """.trimIndent()
+    )
 
     compiler.compile()
 }

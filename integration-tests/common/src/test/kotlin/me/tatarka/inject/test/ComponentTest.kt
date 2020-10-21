@@ -9,7 +9,6 @@ import kotlin.test.Test
     abstract val foo: Foo
 }
 
-
 @Component abstract class Component2 {
     abstract val bar: Bar
 }

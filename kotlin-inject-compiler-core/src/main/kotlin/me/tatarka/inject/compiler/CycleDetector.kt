@@ -8,7 +8,7 @@ class CycleDetector {
 
     fun check(element: AstElement): CycleResult {
         return if (element in _elements) {
-            //TODO: check resolvable
+            // TODO: check resolvable
             CycleResult.Cycle
         } else {
             _elements.add(element)

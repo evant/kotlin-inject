@@ -24,7 +24,7 @@ abstract class CycleComponent {
     abstract val bar: CycleBar
 }
 
-//TODO: actually generate this
+// TODO: actually generate this
 class InjectCycleComponent : CycleComponent() {
     override val bar: CycleBar
         get() {
@@ -43,7 +43,7 @@ abstract class LazyCycleComponent {
     fun foo(bar: LazyCycleBar) = LazyCycleFoo(bar)
 }
 
-//TODO: actually generate this
+// TODO: actually generate this
 class InjectLazyCycleComponent : LazyCycleComponent() {
     override val bar: LazyCycleBar
         get() {
@@ -64,7 +64,7 @@ abstract class FunctionCycleComponent {
     fun foo(bar: FBar) = FFoo(bar)
 }
 
-//TODO: actually generate this
+// TODO: actually generate this
 class InjectFunctionCycleComponent : FunctionCycleComponent() {
     override val bar: FBar
         get() {
@@ -101,4 +101,3 @@ class RecursiveTest {
         assertThat(bar).isSameAs(bar.foo().bar)
     }
 }
-

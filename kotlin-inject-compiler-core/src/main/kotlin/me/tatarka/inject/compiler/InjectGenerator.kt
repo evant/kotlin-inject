@@ -1,7 +1,15 @@
 package me.tatarka.inject.compiler
 
-import com.squareup.kotlinpoet.*
+import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.plusParameter
+import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.TypeName
+import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.asClassName
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Provides
@@ -37,6 +45,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
             .build()
     }
 
+    @Suppress("ComplexMethod", "LongMethod", "NestedBlockDepth")
     private fun generateInjectComponent(
         astClass: AstClass,
         constructor: AstConstructor?
@@ -119,35 +128,19 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                             )
 
                             when (method) {
-                                is AstProperty -> {
-                                    addProperty(
-                                        PropertySpec.builder(
-                                            method.name,
-                                            returnType.asTypeName(),
-                                            KModifier.OVERRIDE
-                                        )
-                                            .getter(
-                                                FunSpec.getterBuilder()
-                                                    .addCode(codeBlock.build())
-                                                    .build()
-                                            )
-                                            .build()
-                                    )
-                                }
-                                is AstFunction -> {
-                                    addFunction(
-                                        FunSpec.builder(method.name)
-                                            .returns(returnType.asTypeName())
-                                            .addModifiers(KModifier.OVERRIDE)
-                                            .apply {
-                                                if (method.isSuspend) {
-                                                    addModifiers(KModifier.SUSPEND)
-                                                }
-                                            }
-                                            .addCode(codeBlock.build())
-                                            .build()
-                                    )
-                                }
+                                is AstProperty -> addProperty(
+                                    PropertySpec.builder(
+                                        method.name,
+                                        returnType.asTypeName(),
+                                        KModifier.OVERRIDE
+                                    ).getter(FunSpec.getterBuilder().addCode(codeBlock.build()).build()).build()
+                                )
+                                is AstFunction -> addFunction(
+                                    FunSpec.builder(method.name).returns(returnType.asTypeName())
+                                        .addModifiers(KModifier.OVERRIDE)
+                                        .apply { if (method.isSuspend) addModifiers(KModifier.SUSPEND) }
+                                        .addCode(codeBlock.build()).build()
+                                )
                             }
                         }
                     }
@@ -159,6 +152,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
             .build()
     }
 
+    @Suppress("ComplexMethod")
     private fun generateCreate(
         element: AstClass,
         constructor: AstConstructor?,
@@ -202,6 +196,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                 .build()
         }
 
+        @Suppress("MaxLineLength")
         val companion = if (options.generateCompanionExtensions) {
             element.companion.also {
                 if (it == null) {
@@ -209,7 +204,8 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                         """Missing companion for class: ${element.asClassName()}.
                             |When you have the option me.tatarka.inject.generateCompanionExtensions=true you must declare a companion option on the component class for the extension function to apply to.
                             |You can do so by adding 'companion object' to the class.
-                        """.trimMargin(), element
+                        """.trimMargin(),
+                        element
                     )
                 }
             }
@@ -284,6 +280,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         }
     }
 
+    @Suppress("LongMethod")
     private fun provideProvides(
         providesResult: Result.Provides,
         context: Context
@@ -350,7 +347,8 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                             provide(
                                 key = TypeKey(param.type, param.qualifier(options)),
                                 context = context
-                            ) { context, key -> context.findWithIndex(key, i, size) })
+                            ) { context, key -> context.findWithIndex(key, i, size) }
+                        )
                     }
                     codeBlock.add(")")
                 }
@@ -381,7 +379,8 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                     context = context
                 ) { context, key ->
                     context.findWithIndex(key, i, size)
-                })
+                }
+            )
         }
         codeBlock.add(")")
         codeBlock.build()
@@ -468,7 +467,8 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                             context.withArgs(argList)
                         ) { context, key ->
                             context.findWithIndex(key, i, size)
-                        })
+                        }
+                    )
                 }
                 add(")")
 
@@ -531,26 +531,23 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
     }
 
     private fun TypeCreator.toResult(skipScoped: AstType?): Result {
-        when (this) {
-            is TypeCreator.Constructor -> {
-                return if (scopedComponent != null && skipScoped != constructor.type) {
+        return when (this) {
+            is TypeCreator.Constructor ->
+                if (scopedComponent != null && skipScoped != constructor.type) {
                     Result.Scoped(name = accessor, astClass = scopedComponent)
                 } else {
                     Result.Constructor(constructor)
                 }
-            }
-            is TypeCreator.Method -> {
-                return if (scopedComponent != null && skipScoped != method.returnType) {
+            is TypeCreator.Method ->
+                if (scopedComponent != null && skipScoped != method.returnType) {
                     Result.Scoped(name = accessor, astClass = scopedComponent)
                 } else {
                     Result.Provides(name = accessor, method = method)
                 }
-            }
-            is TypeCreator.Container -> {
-                return Result.Container(
-                    creator = creator.toString(),
-                    args = args.map { it.toResult(skipScoped) as Result.Provides })
-            }
+            is TypeCreator.Container -> Result.Container(
+                creator = creator.toString(),
+                args = args.map { it.toResult(skipScoped) as Result.Provides }
+            )
         }
     }
 
@@ -580,21 +577,15 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
 
         fun <T> use(source: AstElement, f: (context: Context) -> T): T {
             return when (cycleDetector.check(source)) {
-                CycleResult.None -> {
-                    f(withSource(source)).also {
-                        cycleDetector.pop()
-                    }
-                }
-                CycleResult.Cycle -> {
-                    throw FailedToGenerateException(trace("Cycle detected"))
-                }
+                CycleResult.None -> f(withSource(source)).also { cycleDetector.pop() }
+                CycleResult.Cycle -> throw FailedToGenerateException(trace("Cycle detected"))
                 CycleResult.Resolvable -> TODO()
             }
         }
 
         fun trace(message: String): String = "$message\n" +
-                cycleDetector.elements.reversed()
-                    .joinToString(separator = "\n") { with(provider) { it.toTrace() } }
+            cycleDetector.elements.reversed()
+                .joinToString(separator = "\n") { with(provider) { it.toTrace() } }
     }
 
     sealed class Result(val name: String?) {
@@ -608,9 +599,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         class Arg(val argName: String) : Result(null)
         class Lazy(val key: TypeKey) : Result(null)
     }
-
 }
-
 
 fun AstElement.scopeType(options: Options): AstType? {
     if (options.enableJavaxAnnotations) {
@@ -621,8 +610,6 @@ fun AstElement.scopeType(options: Options): AstType? {
     }
     return annotationAnnotatedWith<Scope>()?.type
 }
-
-private fun String.asScopedProp(): String = "_" + decapitalize()
 
 fun AstElement.isComponent() = hasAnnotation<Component>()
 
