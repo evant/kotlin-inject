@@ -4,8 +4,8 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotNull
 import assertk.assertions.isSameAs
-import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Component
+import me.tatarka.inject.annotations.Inject
 import kotlin.test.Test
 
 @Inject class FunctionFoo

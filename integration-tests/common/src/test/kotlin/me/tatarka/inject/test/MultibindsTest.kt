@@ -2,7 +2,10 @@ package me.tatarka.inject.test
 
 import assertk.assertThat
 import assertk.assertions.containsOnly
-import me.tatarka.inject.annotations.*
+import me.tatarka.inject.annotations.Component
+import me.tatarka.inject.annotations.IntoMap
+import me.tatarka.inject.annotations.IntoSet
+import me.tatarka.inject.annotations.Provides
 import kotlin.test.Test
 
 data class FooValue(val name: String)
@@ -25,7 +28,8 @@ data class FooValue(val name: String)
     fun fooValue1() = "1" to FooValue("1")
 
     val fooValue2
-        @Provides @IntoMap get() = "2" to FooValue("2") }
+        @Provides @IntoMap get() = "2" to FooValue("2")
+}
 
 @Component abstract class ParentSetComponent {
     val Foo.bind: IFoo

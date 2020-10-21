@@ -1,16 +1,52 @@
 package me.tatarka.inject.compiler.kapt
 
-import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ClassName
-import kotlinx.metadata.*
+import com.squareup.kotlinpoet.MemberName
+import com.squareup.kotlinpoet.ParameterSpec
+import com.squareup.kotlinpoet.TypeName
+import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.asClassName
+import kotlinx.metadata.KmAnnotation
+import kotlinx.metadata.KmClass
+import kotlinx.metadata.KmClassifier
+import kotlinx.metadata.KmConstructor
+import kotlinx.metadata.KmFunction
+import kotlinx.metadata.KmProperty
+import kotlinx.metadata.KmType
+import kotlinx.metadata.KmTypeProjection
+import kotlinx.metadata.KmValueParameter
+import kotlinx.metadata.KmVariance
 import kotlinx.metadata.jvm.annotations
 import kotlinx.metadata.jvm.getterSignature
 import kotlinx.metadata.jvm.signature
-import me.tatarka.inject.compiler.*
+import me.tatarka.inject.compiler.AstAnnotated
+import me.tatarka.inject.compiler.AstAnnotation
+import me.tatarka.inject.compiler.AstBasicElement
+import me.tatarka.inject.compiler.AstClass
+import me.tatarka.inject.compiler.AstConstructor
+import me.tatarka.inject.compiler.AstElement
+import me.tatarka.inject.compiler.AstFunction
+import me.tatarka.inject.compiler.AstMethod
+import me.tatarka.inject.compiler.AstParam
+import me.tatarka.inject.compiler.AstProperty
+import me.tatarka.inject.compiler.AstProvider
+import me.tatarka.inject.compiler.AstType
+import me.tatarka.inject.compiler.Messenger
 import javax.annotation.processing.Messager
 import javax.annotation.processing.ProcessingEnvironment
-import javax.lang.model.element.*
-import javax.lang.model.type.*
+import javax.lang.model.element.AnnotationMirror
+import javax.lang.model.element.Element
+import javax.lang.model.element.ExecutableElement
+import javax.lang.model.element.Modifier
+import javax.lang.model.element.TypeElement
+import javax.lang.model.element.VariableElement
+import javax.lang.model.type.ArrayType
+import javax.lang.model.type.DeclaredType
+import javax.lang.model.type.ExecutableType
+import javax.lang.model.type.NoType
+import javax.lang.model.type.PrimitiveType
+import javax.lang.model.type.TypeMirror
+import javax.lang.model.type.TypeVariable
 import javax.lang.model.util.ElementFilter
 import javax.lang.model.util.Elements
 import javax.lang.model.util.Types
@@ -33,15 +69,15 @@ interface ModelAstProvider :
         return ModelAstClass(this@ModelAstProvider, this, metadata?.toKmClass())
     }
 
+    @Suppress("LoopWithTooManyJumpStatements")
     override fun findFunctions(packageName: String, functionName: String): List<AstFunction> {
         val packageElement = elements.getPackageElement(packageName)
         val results = mutableListOf<AstFunction>()
         for (element in ElementFilter.typesIn(packageElement.enclosedElements)) {
             for (function in ElementFilter.methodsIn(element.enclosedElements)) {
-                if (function.simpleName.contentEquals(functionName)
-                    && function.modifiers.contains(Modifier.STATIC) && function.modifiers.contains(Modifier.STATIC) && function.modifiers.contains(
-                        Modifier.FINAL
-                    )
+                if (function.simpleName.contentEquals(functionName) &&
+                    Modifier.STATIC in function.modifiers &&
+                    Modifier.FINAL in function.modifiers
                 ) {
                     val metadata = element.metadata?.toKmPackage() ?: continue
                     val kmFunction = metadata.functions.find { it.name == functionName } ?: continue
@@ -63,10 +99,12 @@ interface ModelAstProvider :
 
     private fun kmDeclaredType(name: kotlinx.metadata.ClassName, astTypes: List<AstType>): KmType = KmType(0).apply {
         classifier = KmClassifier.Class(name).apply {
-            arguments.addAll(astTypes.map { type ->
-                require(type is ModelAstType)
-                KmTypeProjection(KmVariance.INVARIANT, type.kmType)
-            })
+            arguments.addAll(
+                astTypes.map { type ->
+                    require(type is ModelAstType)
+                    KmTypeProjection(KmVariance.INVARIANT, type.kmType)
+                }
+            )
         }
     }
 
@@ -81,7 +119,7 @@ interface ModelAstProvider :
             simpleName = java.simpleName
         }
         val packageName = qualifiedName.removeSuffix(".$simpleName").replace('.', '/')
-        return "${packageName}/${simpleName}"
+        return "$packageName/$simpleName"
     }
 
     private fun ModelAstType.kmClassName(): kotlinx.metadata.ClassName {
@@ -94,9 +132,12 @@ interface ModelAstProvider :
     }
 
     private fun elementDeclaredType(type: TypeElement, astTypes: List<AstType>) =
-        types.getDeclaredType(type, *astTypes.map {
-            (it as ModelAstType).type
-        }.toTypedArray())
+        types.getDeclaredType(
+            type,
+            *astTypes.map {
+                (it as ModelAstType).type
+            }.toTypedArray()
+        )
 
     override fun AstElement.toTrace(): String {
         require(this is ModelAstElement)
@@ -146,8 +187,10 @@ private interface ModelAstMethod : ModelAstElement {
     override val element: ExecutableElement
 }
 
-private class ModelBasicElement(provider: ModelAstProvider, override val element: Element) : AstBasicElement(),
-    ModelAstElement, ModelAstProvider by provider {
+private class ModelBasicElement(provider: ModelAstProvider, override val element: Element) :
+    AstBasicElement(),
+    ModelAstElement,
+    ModelAstProvider by provider {
     override val simpleName: String get() = element.simpleName.toString()
 }
 
@@ -184,7 +227,8 @@ private class ModelAstClass(
     override val element: TypeElement,
     val kmClass: KmClass?
 ) : AstClass(),
-    ModelAstElement, ModelAstProvider by provider {
+    ModelAstElement,
+    ModelAstProvider by provider {
 
     override val packageName: String
         get() {
@@ -222,10 +266,12 @@ private class ModelAstClass(
                     val superclass = types.asElement(superclassType) as TypeElement
                     add(superclass.toAstClass())
                 }
-                addAll(element.interfaces.mapNotNull { ifaceType ->
-                    val iface = types.asElement(ifaceType) as TypeElement
-                    iface.toAstClass()
-                })
+                addAll(
+                    element.interfaces.mapNotNull { ifaceType ->
+                        val iface = types.asElement(ifaceType) as TypeElement
+                        iface.toAstClass()
+                    }
+                )
             }
         }
 
@@ -311,7 +357,8 @@ private class ModelAstConstructor(
     override val element: ExecutableElement,
     private val kmConstructor: KmConstructor?
 ) : AstConstructor(parent),
-    ModelAstElement, ModelAstProvider by provider {
+    ModelAstElement,
+    ModelAstProvider by provider {
 
     override val parameters: List<AstParam>
         get() {
@@ -343,7 +390,8 @@ private class ModelAstFunction(
     override val element: ExecutableElement,
     private val kmFunction: KmFunction
 ) : AstFunction(),
-    ModelAstMethod, ModelAstProvider by provider {
+    ModelAstMethod,
+    ModelAstProvider by provider {
 
     override val name: String get() = kmFunction.name
 
@@ -390,9 +438,7 @@ private class ModelAstFunction(
                     // drop last continuation parameter
                     element.parameters.dropLast(1)
                 }
-                else -> {
-                    element.parameters
-                }
+                else -> element.parameters
             }
             val kmParams: List<KmValueParameter> = kmFunction.valueParameters
             return params.mapIndexed { index, param ->
@@ -430,7 +476,8 @@ private class ModelAstProperty(
     override val element: ExecutableElement,
     private val kmProperty: KmProperty
 ) : AstProperty(),
-    ModelAstMethod, ModelAstProvider by provider {
+    ModelAstMethod,
+    ModelAstProvider by provider {
 
     override val name: String get() = kmProperty.name
 
@@ -486,7 +533,8 @@ private class ModelAstType(
     val type: TypeMirror,
     val kmType: KmType?
 ) : AstType(),
-    ModelAstElement, ModelAstProvider by provider {
+    ModelAstElement,
+    ModelAstProvider by provider {
 
     override val element: Element get() = types.asElement(type)
 
@@ -558,7 +606,7 @@ private class ModelAstType(
             is PrimitiveType -> PrimitiveModelAstClass(this)
             is ArrayType -> PrimitiveModelAstClass(this)
             is DeclaredType, is TypeVariable -> (types.asElement(type) as TypeElement).toAstClass()
-            else -> throw IllegalStateException("unknown type: $type")
+            else -> kotlin.error("unknown type: $type")
         }
     }
 
@@ -590,7 +638,8 @@ private class ModelAstAnnotation(
     val mirror: AnnotationMirror,
     private val kmAnnotation: KmAnnotation?
 ) : AstAnnotation(),
-    ModelAstElement, ModelAstProvider by provider {
+    ModelAstElement,
+    ModelAstProvider by provider {
     override val element: Element get() = types.asElement(mirror.annotationType)
 
     override val type: AstType
@@ -611,13 +660,13 @@ private class ModelAstAnnotation(
 
     override fun toString(): String {
         return "@${mirror.annotationType}(${
-            if (kmAnnotation != null) {
-                kmAnnotation.arguments.toList()
-                    .joinToString(separator = ", ") { (name, value) -> "$name=${value.value}" }
-            } else {
-                mirror.elementValues.toList()
-                    .joinToString(separator = ", ") { (element, value) -> "${element.simpleName}=${value.value}" }
-            }
+        if (kmAnnotation != null) {
+            kmAnnotation.arguments.toList()
+                .joinToString(separator = ", ") { (name, value) -> "$name=${value.value}" }
+        } else {
+            mirror.elementValues.toList()
+                .joinToString(separator = ", ") { (element, value) -> "${element.simpleName}=${value.value}" }
+        }
         })"
     }
 }
@@ -628,7 +677,8 @@ private class ModelAstParam(
     val kmParent: KmClass?,
     val kmValueParameter: KmValueParameter?
 ) : AstParam(),
-    ModelAstElement, ModelAstProvider by provider {
+    ModelAstElement,
+    ModelAstProvider by provider {
 
     override val name: String
         get() {
@@ -638,17 +688,19 @@ private class ModelAstParam(
     override val type: AstType
         get() = ModelAstType(this, element.asType(), kmValueParameter?.type)
 
-    override val isVal: Boolean get() {
-        val param = kmValueParameter ?: return false
-        val parent = kmParent ?: return false
-        return parent.properties.any { it.name == param.name }
-    }
+    override val isVal: Boolean
+        get() {
+            val param = kmValueParameter ?: return false
+            val parent = kmParent ?: return false
+            return parent.properties.any { it.name == param.name }
+        }
 
-    override val isPrivate: Boolean get() {
-        val param = kmValueParameter ?: return false
-        val parent = kmParent ?: return false
-        return parent.properties.find { it.name == param.name }?.isPrivate() ?: false
-    }
+    override val isPrivate: Boolean
+        get() {
+            val param = kmValueParameter ?: return false
+            val parent = kmParent ?: return false
+            return parent.properties.find { it.name == param.name }?.isPrivate() ?: false
+        }
 
     override val hasDefault: Boolean
         get() = kmValueParameter?.hasDefault() ?: false

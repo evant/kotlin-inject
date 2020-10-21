@@ -10,7 +10,6 @@ import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.KSTypeAlias
 import com.google.devtools.ksp.symbol.KSTypeParameter
 import com.google.devtools.ksp.symbol.KSTypeReference
-import com.google.devtools.ksp.symbol.Modifier
 import com.google.devtools.ksp.symbol.Nullability
 import com.google.devtools.ksp.symbol.Variance
 import com.google.devtools.ksp.visitor.KSDefaultVisitor
@@ -43,7 +42,7 @@ fun KSAnnotated.annotationAnnotatedWith(
 fun KSAnnotated.hasAnnotation(className: String, useSiteTarget: AnnotationUseSiteTarget? = null): Boolean {
     return annotations.any {
         it.annotationType.resolve().declaration.qualifiedName?.asString() == className &&
-                useSiteTarget == it.useSiteTarget
+            useSiteTarget == it.useSiteTarget
     }
 }
 
@@ -86,49 +85,53 @@ fun KSType.asTypeName(): TypeName {
         }
     }
 
-    return declaration.accept(object : KSDefaultVisitor<Unit, TypeName>() {
+    return declaration.accept(
+        object : KSDefaultVisitor<Unit, TypeName>() {
 
-        override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: Unit): TypeName {
-            return fromDeclaration(classDeclaration)
-        }
+            override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: Unit): TypeName {
+                return fromDeclaration(classDeclaration)
+            }
 
-        override fun visitTypeAlias(typeAlias: KSTypeAlias, data: Unit): TypeName {
-            return fromDeclaration(typeAlias)
-        }
+            override fun visitTypeAlias(typeAlias: KSTypeAlias, data: Unit): TypeName {
+                return fromDeclaration(typeAlias)
+            }
 
-        override fun visitTypeParameter(typeParameter: KSTypeParameter, data: Unit): TypeName {
-            return TypeVariableName(
-                name = typeParameter.name.asString(),
-                bounds = typeParameter.bounds.map { it.resolve().asTypeName() },
-                variance = when (typeParameter.variance) {
-                    Variance.COVARIANT -> KModifier.IN
-                    Variance.CONTRAVARIANT -> KModifier.OUT
-                    else -> null
+            override fun visitTypeParameter(typeParameter: KSTypeParameter, data: Unit): TypeName {
+                return TypeVariableName(
+                    name = typeParameter.name.asString(),
+                    bounds = typeParameter.bounds.map { it.resolve().asTypeName() },
+                    variance = when (typeParameter.variance) {
+                        Variance.COVARIANT -> KModifier.IN
+                        Variance.CONTRAVARIANT -> KModifier.OUT
+                        else -> null
+                    }
+                )
+            }
+
+            private fun fromDeclaration(declaration: KSDeclaration): TypeName {
+                val rawType =
+                    declaration.asClassName().copy(nullable = nullability == Nullability.NULLABLE) as ClassName
+                if (declaration.typeParameters.isEmpty()) {
+                    return rawType
                 }
-            )
-        }
-
-        private fun fromDeclaration(declaration: KSDeclaration): TypeName {
-            val rawType = declaration.asClassName().copy(nullable = nullability == Nullability.NULLABLE) as ClassName
-            if (declaration.typeParameters.isEmpty()) {
-                return rawType
+                val typeArgumentNames = mutableListOf<TypeName>()
+                for (typeArgument in arguments) {
+                    typeArgumentNames += typeArgument.type!!.resolve().asTypeName()
+                }
+                return rawType.parameterizedBy(typeArgumentNames)
             }
-            val typeArgumentNames = mutableListOf<TypeName>()
-            for (typeArgument in arguments) {
-                typeArgumentNames += typeArgument.type!!.resolve().asTypeName()
-            }
-            return rawType.parameterizedBy(typeArgumentNames)
-        }
 
-        override fun defaultHandler(node: KSNode, data: Unit): TypeName {
-            throw IllegalArgumentException("Unexpected node: $node")
-        }
-    }, Unit)
+            override fun defaultHandler(node: KSNode, data: Unit): TypeName {
+                throw IllegalArgumentException("Unexpected node: $node")
+            }
+        },
+        Unit
+    )
 }
 
 fun KSAnnotation.eqv(other: KSAnnotation): Boolean {
     return annotationType.resolve() == other.annotationType.resolve() &&
-            arguments == other.arguments
+        arguments == other.arguments
 }
 
 fun KSTypeReference.eqv(other: KSTypeReference): Boolean {
@@ -137,13 +140,13 @@ fun KSTypeReference.eqv(other: KSTypeReference): Boolean {
 
 fun KSType.eqv(other: KSType): Boolean {
     return declaration.qualifiedName == other.declaration.qualifiedName &&
-            nullability == other.nullability &&
-            arguments.eqvItr(other.arguments) { a, b ->
-                a.variance == b.variance && a.type.eqv(
-                    b.type,
-                    KSTypeReference::eqv
-                )
-            }
+        nullability == other.nullability &&
+        arguments.eqvItr(other.arguments) { a, b ->
+            a.variance == b.variance && a.type.eqv(
+                b.type,
+                KSTypeReference::eqv
+            )
+        }
 }
 
 fun KSType.eqvHashCode(collector: HashCollector = HashCollector()): Int = collectHash(collector) {

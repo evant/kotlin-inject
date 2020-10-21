@@ -20,13 +20,14 @@ fun <T> Iterable<T>.eqvItr(other: Iterable<T>, eqv: (T, T) -> Boolean): Boolean 
 }
 
 fun <T : Any> T?.eqv(other: T?, eqv: (T, T) -> Boolean): Boolean =
-    (this == null && other == null) ||
-            (this != null && other != null && eqv(this, other))
+    this == null && other == null ||
+        this != null && other != null && eqv(this, other)
 
-class HashCollector() {
+class HashCollector {
     var hash: Int = 1
         private set
 
+    @Suppress("MagicNumber")
     fun hash(arg: Any?) {
         hash = 31 * hash + arg.hashCode()
     }

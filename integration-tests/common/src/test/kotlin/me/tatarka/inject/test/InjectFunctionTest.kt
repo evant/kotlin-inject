@@ -30,7 +30,4 @@ class InjectFunctionTest {
 
         assertThat(component.bar()).isEqualTo("test")
     }
-
 }
-
-

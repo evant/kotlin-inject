@@ -16,4 +16,3 @@ fun File.recursiveDelete() {
     }
     delete()
 }
-

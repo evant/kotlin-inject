@@ -27,7 +27,6 @@ import kotlin.test.Test
         @Provides @CustomScope get() = this
 }
 
-
 @Component abstract class ParentScopedComponent(@Component val parent: CustomScopeConstructorComponent) {
     abstract val bar: CustomScopeBar
 }
@@ -48,9 +47,9 @@ class ScopedFoo(val bar: ScopedBar)
 
 @CustomScope
 @Inject
-class ScopedBar()
+class ScopedBar
 
-@CustomScope @Component abstract class DependentCustomScopeComponent() {
+@CustomScope @Component abstract class DependentCustomScopeComponent {
     abstract val foo: ScopedFoo
 
     abstract val bar: ScopedBar

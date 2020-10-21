@@ -5,7 +5,11 @@ import assertk.assertions.isEqualTo
 import me.tatarka.inject.annotations.Component
 import kotlin.test.Test
 
-@Component abstract class DefaultArgComponent(val required1: String, val optional: String = "default", val required2: String)
+@Component abstract class DefaultArgComponent(
+    val required1: String,
+    val optional: String = "default",
+    val required2: String
+)
 
 class DefaultArgTest {
     @Test

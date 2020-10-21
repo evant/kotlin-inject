@@ -40,4 +40,3 @@ class SuspendTest {
         assertThat(component.suspendFoo()).isInstanceOf(Foo::class)
     }
 }
-

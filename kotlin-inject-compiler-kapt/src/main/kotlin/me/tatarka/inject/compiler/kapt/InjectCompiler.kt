@@ -1,7 +1,9 @@
 package me.tatarka.inject.compiler.kapt
 
 import me.tatarka.inject.annotations.Component
-import me.tatarka.inject.compiler.*
+import me.tatarka.inject.compiler.FailedToGenerateException
+import me.tatarka.inject.compiler.InjectGenerator
+import me.tatarka.inject.compiler.Profiler
 import javax.annotation.processing.RoundEnvironment
 import javax.lang.model.element.TypeElement
 
@@ -13,6 +15,7 @@ class InjectCompiler(private val profiler: Profiler? = null) : BaseInjectCompile
         annotationNames.add(Component::class.java.canonicalName)
     }
 
+    @Suppress("LoopWithTooManyJumpStatements")
     override fun process(elements: Set<TypeElement>, env: RoundEnvironment): Boolean {
         if (elements.isEmpty()) {
             return false

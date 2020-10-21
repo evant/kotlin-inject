@@ -1,6 +1,9 @@
 package me.tatarka.inject
 
-import com.tschuchort.compiletesting.*
+import com.tschuchort.compiletesting.KotlinCompilation
+import com.tschuchort.compiletesting.SourceFile
+import com.tschuchort.compiletesting.kspArgs
+import com.tschuchort.compiletesting.symbolProcessors
 import me.tatarka.inject.compiler.Options
 import me.tatarka.inject.compiler.Profiler
 import me.tatarka.inject.compiler.kapt.InjectCompiler
@@ -39,13 +42,13 @@ class ProjectCompiler(
             root?.let { workingDir = it }
             inheritClassPath = true
             when (target) {
-                Target.kapt -> {
+                Target.KAPT -> {
                     options?.let {
                         kaptArgs.putAll(it.toMap())
                     }
                     annotationProcessors = listOf(InjectCompiler(profiler))
                 }
-                Target.ksp -> {
+                Target.KSP -> {
                     options?.let {
                         kspArgs.putAll(it.toMap())
                     }
@@ -56,12 +59,13 @@ class ProjectCompiler(
         System.setErr(oldErr)
 
         if (result.exitCode != KotlinCompilation.ExitCode.OK) {
+            @Suppress("TooGenericExceptionThrown")
             throw Exception(output.toString())
         }
     }
 }
 
 enum class Target {
-    kapt,
-    ksp
+    KAPT,
+    KSP
 }
