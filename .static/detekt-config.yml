@@ -1,0 +1,167 @@
+build:
+  maxIssues: 0
+
+console-reports:
+  exclude:
+    - "ProjectStatisticsReport"
+    - "ComplexityReport"
+    - "NotificationReport"
+
+complexity:
+  LongParameterList:
+    active: false
+  LargeClass:
+    excludes: "**/test/**,**/integration-tests/**,**/*.Test.kt"
+  ReplaceSafeCallChainWithRun:
+    active: true
+  TooManyFunctions:
+    active: false
+
+formatting:
+  FinalNewline:
+    active: false
+  AnnotationSpacing:
+    active: true
+    autoCorrect: true
+
+naming:
+  ConstructorParameterNaming:
+    privateParameterPattern: "(_)?[a-z][A-Za-z0-9]*"
+  TopLevelPropertyNaming:
+    active: false
+  VariableNaming:
+    active: true
+    variablePattern: "[a-z][A-Za-z0-9]*"
+    privateVariablePattern: "(_)?[a-z][A-Za-z0-9]*"
+    excludeClassPattern: "$^"
+  NonBooleanPropertyPrefixedWithIs:
+    active: true
+    excludes: "**/test/**,**/integration-tests/**,**/*.Test.kt"
+  FunctionNaming:
+    ignoreAnnotated: ["Benchmark"]
+
+performance:
+  SpreadOperator:
+    active: false
+
+potential-bugs:
+  EqualsAlwaysReturnsTrueOrFalse:
+    active: true
+  InvalidRange:
+    active: true
+  IteratorHasNextCallsNextMethod:
+    active: true
+  IteratorNotThrowingNoSuchElementException:
+    active: true
+  UnconditionalJumpStatementInLoop:
+    active: true
+  UselessPostfixExpression:
+    active: true
+  WrongEqualsTypeParameter:
+    active: true
+  Deprecation:
+    active: true
+  HasPlatformType:
+    active: true
+  MissingWhenCase:
+    active: true
+  NullableToStringCall:
+    active: true
+  RedundantElseInWhen:
+    active: true
+  UnnecessaryNotNullOperator:
+    active: true
+  UnnecessarySafeCall:
+    active: true
+
+style:
+  ReturnCount:
+    active: false
+  LoopWithTooManyJumpStatements:
+    active: true
+  ForbiddenComment:
+    active: false
+  MagicNumber:
+    ignoreEnums: true
+    ignorePropertyDeclaration: true
+  MayBeConst:
+    active: true
+  NewLineAtEndOfFile:
+    active: false
+  RedundantVisibilityModifierRule:
+    active: true
+  SpacingBetweenPackageAndImports:
+    active: true
+  TrailingWhitespace:
+    active: true
+  UnnecessaryAbstractClass:
+    active: true
+    excludeAnnotatedClasses: ["Component"]
+    excludes: "**/test/**,**/integration-tests/**,**/*.Test.kt"
+  UnnecessaryApply:
+    active: true
+  UnnecessaryInheritance:
+    active: true
+  UnnecessaryParentheses:
+    active: true
+  UntilInsteadOfRangeTo:
+    active: true
+  UnusedImports:
+    active: true
+  UnusedPrivateMember:
+    active: true
+    excludes: "**/test/**,**/integration-tests/**,**/*.Test.kt"
+  UtilityClassWithPublicConstructor:
+    active: true
+    excludes: "**/test/**,**/integration-tests/**,**/*.Test.kt"
+  CollapsibleIfStatements:
+    active: true
+  EqualsNullCall:
+    active: true
+  EqualsOnSignatureLine:
+    active: true
+  ExplicitItLambdaParameter:
+    active: true
+  ForbiddenVoid:
+    active: true
+    ignoreOverridden: false
+    ignoreUsageInGenerics: false
+  LibraryCodeMustSpecifyReturnType:
+    active: true
+  MandatoryBracesIfStatements:
+    active: true
+  PreferToOverPairSyntax:
+    active: true
+  OptionalWhenBraces:
+    active: true
+  ProtectedMemberInFinalClass:
+    active: true
+  RedundantExplicitType:
+    active: true
+  SafeCast:
+    active: true
+  UseArrayLiteralsInAnnotations:
+    active: true
+  UseEmptyCounterpart:
+    active: true
+  UseCheckOrError:
+    active: true
+  UseRequire:
+    active: true
+  UselessCallOnNotNull:
+    active: true
+  VarCouldBeVal:
+    active: true
+  UseCheckNotNull:
+    active: true
+  UseRequireNotNull:
+    active: true
+
+coroutines:
+  active: true
+  GlobalCoroutineUsage:
+    active: true
+  RedundantSuspendModifier:
+    active: true
+  SuspendFunWithFlowReturnType:
+    active: true
