@@ -55,6 +55,8 @@ abstract class AstClass : AstElement(), AstHasModifiers {
 
     abstract val companion: AstClass?
 
+    abstract val isObject: Boolean
+
     abstract val isInterface: Boolean
 
     abstract val superTypes: List<AstClass>

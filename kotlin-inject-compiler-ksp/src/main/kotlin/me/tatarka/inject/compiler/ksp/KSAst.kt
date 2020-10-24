@@ -189,6 +189,9 @@ private class KSAstClass(provider: KSAstProvider, override val declaration: KSCl
             .find { it is KSClassDeclaration && it.isCompanionObject }
             ?.let { KSAstClass(this, it as KSClassDeclaration) }
 
+    override val isObject: Boolean
+        get() = declaration.classKind == ClassKind.OBJECT
+
     override val superTypes: List<AstClass>
         get() {
             return declaration

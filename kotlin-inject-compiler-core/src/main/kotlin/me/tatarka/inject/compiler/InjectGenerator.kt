@@ -275,6 +275,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
             is Result.Container -> provideContainer(result, context)
             is Result.Function -> provideFunction(result, context)
             is Result.NamedFunction -> provideNamedFunction(result, context)
+            is Result.Object -> provideObject(result.astClass)
             is Result.Arg -> provideArg(result)
             is Result.Lazy -> provideLazy(result, context)
         }
@@ -416,6 +417,8 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         }.build()
     }
 
+    private fun provideObject(astClass: AstClass) = CodeBlock.builder().add("%T", astClass.type.asTypeName()).build()
+
     private fun provideFunction(result: Result.Function, context: Context): CodeBlock =
         context.use(result.element) { context ->
             CodeBlock.builder().apply {
@@ -548,6 +551,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
                 creator = creator.toString(),
                 args = args.map { it.toResult(skipScoped) as Result.Provides }
             )
+            is TypeCreator.Object -> Result.Object(astClass)
         }
     }
 
@@ -595,6 +599,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
         class Container(val creator: String, val args: List<Provides>) : Result(null)
         class Function(val element: AstElement, val key: TypeKey, val args: List<AstType>) : Result(null)
         class NamedFunction(val function: AstFunction, val args: List<AstType>) : Result(null)
+        class Object(val astClass: AstClass) : Result(astClass.name)
 
         class Arg(val argName: String) : Result(null)
         class Lazy(val key: TypeKey) : Result(null)

@@ -203,6 +203,7 @@ private class PrimitiveModelAstClass(
     override val isPrivate: Boolean = false
     override val isInterface: Boolean = false
     override val companion: AstClass? = null
+    override val isObject: Boolean = false
     override val superTypes: List<AstClass> = emptyList()
     override val primaryConstructor: AstConstructor? = null
     override val constructors: List<AstConstructor> = emptyList()
@@ -249,6 +250,9 @@ private class ModelAstClass(
     override val isInterface: Boolean
         get() = kmClass?.isInterface() ?: false
 
+    override val isObject: Boolean
+        get() = kmClass?.isObject() ?: false
+
     override val companion: AstClass?
         get() {
             val companionName = kmClass?.companionObject ?: return null
@@ -277,7 +281,7 @@ private class ModelAstClass(
 
     override val primaryConstructor: AstConstructor?
         get() {
-            if (kmClass == null) return null
+            if (kmClass == null || isObject) return null
 
             val primaryKmCtor = kmClass.constructors.find(KmConstructor::isPrimary)
             val primaryKmCtorSignature = primaryKmCtor?.signature?.simpleSig ?: return null
