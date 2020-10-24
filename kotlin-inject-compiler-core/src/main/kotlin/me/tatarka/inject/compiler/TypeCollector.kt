@@ -1,5 +1,6 @@
 package me.tatarka.inject.compiler
 
+import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.IntoMap
 import me.tatarka.inject.annotations.IntoSet
 import me.tatarka.inject.compiler.ContainerCreator.mapOf
@@ -247,6 +248,9 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
                 scopedComponent = scopedComponent?.type
             )
         }
+        if (astClass.hasAnnotation<Inject>() && astClass.isObject) {
+            return TypeCreator.Object(astClass)
+        }
         return null
     }
 }
@@ -261,12 +265,13 @@ class TypeInfo(
 
 sealed class TypeCreator(val source: AstElement) {
 
+    class Object(val astClass: AstClass) : TypeCreator(astClass)
+
     class Constructor(
         val constructor: AstConstructor,
         val accessor: String? = null,
         val scopedComponent: AstClass? = null
-    ) :
-        TypeCreator(constructor)
+    ) : TypeCreator(constructor)
 
     class Method(
         val method: AstMethod,
@@ -274,8 +279,11 @@ sealed class TypeCreator(val source: AstElement) {
         val scopedComponent: AstClass? = null
     ) : TypeCreator(method)
 
-    class Container(val creator: ContainerCreator, source: AstElement, val args: MutableList<Method>) :
-        TypeCreator(source)
+    class Container(
+        val creator: ContainerCreator,
+        val args: MutableList<Method>,
+        source: AstElement
+    ) : TypeCreator(source)
 }
 
 @Suppress("EnumNaming")

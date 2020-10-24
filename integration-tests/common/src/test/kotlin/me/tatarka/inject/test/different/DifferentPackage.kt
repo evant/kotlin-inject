@@ -7,6 +7,7 @@ import me.tatarka.inject.test.CustomScope
 
 class DifferentPackageFoo {
     @Inject class Factory
+    @Inject object MyObject
 }
 
 @CustomScope @Component abstract class DifferentPackageScopedComponent {
