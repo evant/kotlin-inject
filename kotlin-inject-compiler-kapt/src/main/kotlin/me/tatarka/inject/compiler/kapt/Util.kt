@@ -310,15 +310,11 @@ fun TypeMirror.eqvHashCode(collector: HashCollector = HashCollector()): Int = co
 
 inline fun KmClass.isAbstract() = Flag.Common.IS_ABSTRACT(flags)
 
-inline fun KmClass.isPrivate() = Flag.Common.IS_PRIVATE(flags)
-
 inline fun KmClass.isInterface() = Flag.Class.IS_INTERFACE(flags)
 
 inline fun KmClass.isObject() = Flag.Class.IS_OBJECT(flags)
 
 inline fun KmFunction.isAbstract() = Flag.Common.IS_ABSTRACT(flags)
-
-inline fun KmFunction.isPrivate() = Flag.Common.IS_PRIVATE(flags)
 
 inline fun KmFunction.isSuspend() = Flag.Function.IS_SUSPEND(flags)
 

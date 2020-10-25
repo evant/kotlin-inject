@@ -1,46 +1,17 @@
 package me.tatarka.inject.compiler.ksp
 
-import com.google.devtools.ksp.findActualType
-import com.google.devtools.ksp.getConstructors
-import com.google.devtools.ksp.getDeclaredFunctions
-import com.google.devtools.ksp.getDeclaredProperties
-import com.google.devtools.ksp.isAbstract
-import com.google.devtools.ksp.isPrivate
+import com.google.devtools.ksp.*
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
-import com.google.devtools.ksp.symbol.AnnotationUseSiteTarget
-import com.google.devtools.ksp.symbol.ClassKind
-import com.google.devtools.ksp.symbol.FileLocation
-import com.google.devtools.ksp.symbol.KSAnnotated
-import com.google.devtools.ksp.symbol.KSAnnotation
-import com.google.devtools.ksp.symbol.KSClassDeclaration
-import com.google.devtools.ksp.symbol.KSDeclaration
-import com.google.devtools.ksp.symbol.KSFunctionDeclaration
-import com.google.devtools.ksp.symbol.KSPropertyDeclaration
-import com.google.devtools.ksp.symbol.KSType
-import com.google.devtools.ksp.symbol.KSTypeAlias
-import com.google.devtools.ksp.symbol.KSValueParameter
-import com.google.devtools.ksp.symbol.Modifier
-import com.google.devtools.ksp.symbol.Variance
+import com.google.devtools.ksp.symbol.*
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
-import me.tatarka.inject.compiler.AstAnnotated
-import me.tatarka.inject.compiler.AstAnnotation
-import me.tatarka.inject.compiler.AstBasicElement
-import me.tatarka.inject.compiler.AstClass
-import me.tatarka.inject.compiler.AstConstructor
-import me.tatarka.inject.compiler.AstElement
-import me.tatarka.inject.compiler.AstFunction
-import me.tatarka.inject.compiler.AstMethod
-import me.tatarka.inject.compiler.AstParam
-import me.tatarka.inject.compiler.AstProperty
-import me.tatarka.inject.compiler.AstProvider
-import me.tatarka.inject.compiler.AstType
-import me.tatarka.inject.compiler.Messenger
+import me.tatarka.inject.compiler.*
 import org.jetbrains.kotlin.analyzer.AnalysisResult
+import java.nio.file.attribute.AttributeView
 import kotlin.reflect.KClass
 
 interface KSAstProvider : AstProvider {
@@ -175,11 +146,11 @@ private class KSAstClass(provider: KSAstProvider, override val declaration: KSCl
     override val name: String
         get() = declaration.simpleName.asString()
 
+    override val visibility: AstVisibility
+        get() = declaration.getVisibility().astVisibility()
+
     override val isAbstract: Boolean
         get() = declaration.isAbstract()
-
-    override val isPrivate: Boolean
-        get() = declaration.isPrivate()
 
     override val isInterface: Boolean
         get() = declaration.classKind == ClassKind.INTERFACE
@@ -274,11 +245,11 @@ private class KSAstFunction(provider: KSAstProvider, override val declaration: K
     override val name: String
         get() = declaration.simpleName.asString()
 
+    override val visibility: AstVisibility
+        get() = declaration.getVisibility().astVisibility()
+
     override val isAbstract: Boolean
         get() = declaration.isAbstract
-
-    override val isPrivate: Boolean
-        get() = declaration.isPrivate()
 
     override val isSuspend: Boolean
         get() = declaration.modifiers.contains(Modifier.SUSPEND)
@@ -323,11 +294,11 @@ private class KSAstProperty(provider: KSAstProvider, override val declaration: K
     override val name: String
         get() = declaration.simpleName.asString()
 
+    override val visibility: AstVisibility
+        get() = declaration.getVisibility().astVisibility()
+
     override val isAbstract: Boolean
         get() = declaration.isAbstract()
-
-    override val isPrivate: Boolean
-        get() = declaration.isPrivate()
 
     override val receiverParameterType: AstType?
         get() = declaration.extensionReceiver?.let { KSAstType(this, it.resolve()) }
@@ -514,3 +485,12 @@ private class KSAstAnnotation(provider: KSAstProvider, val annotation: KSAnnotat
         })"
     }
 }
+
+private fun Visibility.astVisibility(): AstVisibility =
+    when (this) {
+        Visibility.PUBLIC, Visibility.JAVA_PACKAGE -> AstVisibility.PUBLIC
+        Visibility.PRIVATE -> AstVisibility.PRIVATE
+        Visibility.PROTECTED -> AstVisibility.PROTECTED
+        Visibility.INTERNAL -> AstVisibility.INTERNAL
+        else -> throw UnsupportedOperationException("unsupported visibility: $this")
+    }

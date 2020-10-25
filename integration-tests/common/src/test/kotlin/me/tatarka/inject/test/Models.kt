@@ -28,6 +28,10 @@ var fooConstructorCount = 0
 
 @Inject class Baz : IFoo
 
+@Inject internal class InternalFoo
+
+class InternalBarConstructor @Inject internal constructor(internal val foo: InternalFoo)
+
 class NamedFoo(val name: String)
 
 interface INamedBar {

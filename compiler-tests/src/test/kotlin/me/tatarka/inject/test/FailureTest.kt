@@ -14,7 +14,7 @@ import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 
 @RunWith(Parameterized::class)
-class FailureTest(val target: Target) {
+class FailureTest(private val target: Target) {
 
     companion object {
         @JvmStatic
