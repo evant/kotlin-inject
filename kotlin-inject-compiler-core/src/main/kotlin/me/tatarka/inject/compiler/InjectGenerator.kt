@@ -64,7 +64,7 @@ class InjectGenerator(
                 if (scope != null) {
                     addSuperinterface(SCOPED_COMPONENT)
                 }
-
+                addModifiers(astClass.visibility.toModifier())
                 if (constructor != null) {
                     val funSpec = FunSpec.constructorBuilder()
                     val params = constructor.parameters

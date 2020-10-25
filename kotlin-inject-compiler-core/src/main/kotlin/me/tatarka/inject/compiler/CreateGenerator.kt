@@ -30,15 +30,16 @@ class CreateGenerator(private val astProvider: AstProvider, private val options:
         return mutableListOf<FunSpec>().apply {
             val typeName = element.type.asTypeName()
             val params = constructor?.parameters ?: emptyList()
-            add(generateCreate(typeName, constructor, injectComponent, companion, params))
+            add(generateCreate(element, typeName, constructor, injectComponent, companion, params))
             val nonDefaultParams = constructor?.parameters?.filter { !it.hasDefault } ?: emptyList()
             if (params.size != nonDefaultParams.size) {
-                add(generateCreate(typeName, constructor, injectComponent, companion, nonDefaultParams))
+                add(generateCreate(element, typeName, constructor, injectComponent, companion, nonDefaultParams))
             }
         }
     }
 
     private fun generateCreate(
+        element: AstClass,
         typeName: TypeName,
         constructor: AstConstructor?,
         injectComponent: TypeSpec,
@@ -47,6 +48,7 @@ class CreateGenerator(private val astProvider: AstProvider, private val options:
     ): FunSpec {
         return FunSpec.builder("create")
             .apply {
+                addModifiers(element.visibility.toModifier())
                 if (constructor != null) {
                     for (param in params) {
                         addParameter(param.asParameterSpec())
