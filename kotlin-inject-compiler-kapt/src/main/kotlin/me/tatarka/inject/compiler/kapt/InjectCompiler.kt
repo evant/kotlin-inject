@@ -1,6 +1,7 @@
 package me.tatarka.inject.compiler.kapt
 
 import me.tatarka.inject.annotations.Component
+import me.tatarka.inject.compiler.CreateGenerator
 import me.tatarka.inject.compiler.FailedToGenerateException
 import me.tatarka.inject.compiler.InjectGenerator
 import me.tatarka.inject.compiler.Profiler
@@ -23,7 +24,7 @@ class InjectCompiler(private val profiler: Profiler? = null) : BaseInjectCompile
 
         profiler?.onStart()
 
-        val generator = InjectGenerator(this, options)
+        val generator = InjectGenerator(this, options, CreateGenerator(this, options))
 
         for (element in env.getElementsAnnotatedWith(Component::class.java)) {
             if (element !is TypeElement) continue
