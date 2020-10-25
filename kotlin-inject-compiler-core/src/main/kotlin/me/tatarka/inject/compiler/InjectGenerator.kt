@@ -28,7 +28,7 @@ class InjectGenerator(provider: AstProvider, private val options: Options) :
     fun generate(astClass: AstClass): FileSpec {
         if (!astClass.isAbstract) {
             throw FailedToGenerateException("@Component class: $astClass must be abstract", astClass)
-        } else if (astClass.isPrivate) {
+        } else if (astClass.visibility == AstVisibility.PRIVATE) {
             throw FailedToGenerateException("@Component class: $astClass must not be private", astClass)
         }
 

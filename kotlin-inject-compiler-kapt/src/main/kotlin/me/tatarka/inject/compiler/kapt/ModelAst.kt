@@ -32,6 +32,7 @@ import me.tatarka.inject.compiler.AstProperty
 import me.tatarka.inject.compiler.AstProvider
 import me.tatarka.inject.compiler.AstType
 import me.tatarka.inject.compiler.Messenger
+import me.tatarka.inject.compiler.VisibleElement
 import javax.annotation.processing.Messager
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.AnnotationMirror
@@ -53,8 +54,7 @@ import javax.lang.model.util.Types
 import javax.tools.Diagnostic
 import kotlin.reflect.KClass
 
-interface ModelAstProvider :
-    AstProvider {
+interface ModelAstProvider : AstProvider {
 
     val env: ProcessingEnvironment
 
@@ -196,11 +196,13 @@ private class ModelBasicElement(provider: ModelAstProvider, override val element
 
 private class PrimitiveModelAstClass(
     override val type: ModelAstType
-) : AstClass(), ModelAstProvider by type {
+) : AstClass(),
+    VisibleElement by KaptVisibility(type.element, type.kmType?.flags),
+    ModelAstProvider by type {
+
     override val packageName: String = "kotlin"
     override val name: String = type.toString()
     override val isAbstract: Boolean = false
-    override val isPrivate: Boolean = false
     override val isInterface: Boolean = false
     override val companion: AstClass? = null
     override val isObject: Boolean = false
@@ -229,6 +231,7 @@ private class ModelAstClass(
     val kmClass: KmClass?
 ) : AstClass(),
     ModelAstElement,
+    VisibleElement by KaptVisibility(element, kmClass?.flags),
     ModelAstProvider by provider {
 
     override val packageName: String
@@ -243,9 +246,6 @@ private class ModelAstClass(
 
     override val isAbstract: Boolean
         get() = kmClass?.isAbstract() ?: false
-
-    override val isPrivate: Boolean
-        get() = kmClass?.isPrivate() ?: false
 
     override val isInterface: Boolean
         get() = kmClass?.isInterface() ?: false
@@ -351,7 +351,6 @@ private class ModelAstClass(
     override fun asClassName(): ClassName = element.asClassName()
 
     override fun equals(other: Any?): Boolean = other is ModelAstElement && element == other.element
-
     override fun hashCode(): Int = element.hashCode()
 }
 
@@ -394,6 +393,7 @@ private class ModelAstFunction(
     override val element: ExecutableElement,
     private val kmFunction: KmFunction
 ) : AstFunction(),
+    VisibleElement by KaptVisibility(element, kmFunction.flags),
     ModelAstMethod,
     ModelAstProvider by provider {
 
@@ -401,9 +401,6 @@ private class ModelAstFunction(
 
     override val isAbstract: Boolean
         get() = kmFunction.isAbstract()
-
-    override val isPrivate: Boolean
-        get() = kmFunction.isPrivate()
 
     override val isSuspend: Boolean
         get() = kmFunction.isSuspend()
@@ -480,6 +477,7 @@ private class ModelAstProperty(
     override val element: ExecutableElement,
     private val kmProperty: KmProperty
 ) : AstProperty(),
+    VisibleElement by KaptVisibility(element, kmProperty.flags),
     ModelAstMethod,
     ModelAstProvider by provider {
 
@@ -487,9 +485,6 @@ private class ModelAstProperty(
 
     override val isAbstract: Boolean
         get() = kmProperty.isAbstract()
-
-    override val isPrivate: Boolean
-        get() = kmProperty.isPrivate()
 
     override val returnType: AstType
         get() = ModelAstType(

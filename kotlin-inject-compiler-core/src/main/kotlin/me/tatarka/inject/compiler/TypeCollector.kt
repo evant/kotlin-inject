@@ -139,7 +139,7 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
                         concreteMethods.add(method)
                     }
                     if (method.isProvides()) {
-                        if (method.isPrivate) {
+                        if (method.visibility == AstVisibility.PRIVATE) {
                             error("@Provides method must not be private", method)
                             continue
                         }

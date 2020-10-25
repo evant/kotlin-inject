@@ -211,7 +211,6 @@ abstract class AstParam : AstElement() {
     }
 }
 
-interface AstHasModifiers {
-    val isPrivate: Boolean
+interface AstHasModifiers : VisibleElement {
     val isAbstract: Boolean
 }

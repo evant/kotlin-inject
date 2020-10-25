@@ -40,6 +40,7 @@ import me.tatarka.inject.compiler.AstProperty
 import me.tatarka.inject.compiler.AstProvider
 import me.tatarka.inject.compiler.AstType
 import me.tatarka.inject.compiler.Messenger
+import me.tatarka.inject.compiler.VisibleElement
 import org.jetbrains.kotlin.analyzer.AnalysisResult
 import kotlin.reflect.KClass
 
@@ -167,6 +168,7 @@ private class KSAstBasicElement(provider: KSAstProvider, override val declaratio
 private class KSAstClass(provider: KSAstProvider, override val declaration: KSClassDeclaration) :
     AstClass(),
     KSAstAnnotated,
+    VisibleElement by KSVisibility(declaration),
     KSAstProvider by provider {
 
     override val packageName: String
@@ -177,9 +179,6 @@ private class KSAstClass(provider: KSAstProvider, override val declaration: KSCl
 
     override val isAbstract: Boolean
         get() = declaration.isAbstract()
-
-    override val isPrivate: Boolean
-        get() = declaration.isPrivate()
 
     override val isInterface: Boolean
         get() = declaration.classKind == ClassKind.INTERFACE
@@ -263,6 +262,7 @@ private class KSAstConstructor(
 
 private class KSAstFunction(provider: KSAstProvider, override val declaration: KSFunctionDeclaration) :
     AstFunction(),
+    VisibleElement by KSVisibility(declaration),
     KSAstAnnotated,
     KSAstProvider by provider {
 
@@ -276,9 +276,6 @@ private class KSAstFunction(provider: KSAstProvider, override val declaration: K
 
     override val isAbstract: Boolean
         get() = declaration.isAbstract
-
-    override val isPrivate: Boolean
-        get() = declaration.isPrivate()
 
     override val isSuspend: Boolean
         get() = declaration.modifiers.contains(Modifier.SUSPEND)
@@ -318,6 +315,7 @@ private class KSAstFunction(provider: KSAstProvider, override val declaration: K
 
 private class KSAstProperty(provider: KSAstProvider, override val declaration: KSPropertyDeclaration) :
     AstProperty(),
+    VisibleElement by KSVisibility(declaration),
     KSAstAnnotated,
     KSAstProvider by provider {
     override val name: String
@@ -325,9 +323,6 @@ private class KSAstProperty(provider: KSAstProvider, override val declaration: K
 
     override val isAbstract: Boolean
         get() = declaration.isAbstract()
-
-    override val isPrivate: Boolean
-        get() = declaration.isPrivate()
 
     override val receiverParameterType: AstType?
         get() = declaration.extensionReceiver?.let { KSAstType(this, it.resolve()) }
