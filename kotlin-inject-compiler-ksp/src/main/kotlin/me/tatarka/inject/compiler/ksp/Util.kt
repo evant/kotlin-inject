@@ -53,20 +53,6 @@ fun KSDeclaration.asClassName(): ClassName {
     return ClassName(if (packageName == "<root>") "" else packageName, shortName.split('.'))
 }
 
-fun KSTypeReference.memberOf(enclosingClass: KSClassDeclaration): KSTypeReference {
-    val declaration = resolve().declaration
-    return if (declaration is KSTypeParameter) {
-        val parent = declaration.parentDeclaration!!
-        val resolvedParent =
-            enclosingClass.superTypes.first { it.resolve().declaration.qualifiedName == parent.qualifiedName }
-                .resolve()
-        val typePosition = parent.typeParameters.indexOfFirst { it.name == declaration.name }
-        resolvedParent.arguments[typePosition].type!!
-    } else {
-        this
-    }
-}
-
 fun KSType.asTypeName(): TypeName {
     val isFunction = isFunction()
     val isSuspending = isSuspendingFunction()
