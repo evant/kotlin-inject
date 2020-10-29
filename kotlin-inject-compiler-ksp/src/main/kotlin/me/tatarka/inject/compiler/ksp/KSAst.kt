@@ -19,7 +19,6 @@ import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.KSTypeAlias
-import com.google.devtools.ksp.symbol.KSTypeReference
 import com.google.devtools.ksp.symbol.KSValueParameter
 import com.google.devtools.ksp.symbol.Modifier
 import com.google.devtools.ksp.symbol.Variance
@@ -77,7 +76,8 @@ interface KSAstProvider : AstProvider {
             this,
             declaration.asType(
                 astTypes.map {
-                    resolver.getTypeArgument((it as KSAstType).typeRef!!, Variance.INVARIANT)
+                    val type = (it as KSAstType).type
+                    resolver.getTypeArgument(resolver.createKSTypeReferenceFromKSType(type), Variance.INVARIANT)
                 }
             )
         )
@@ -284,7 +284,7 @@ private class KSAstFunction(provider: KSAstProvider, override val declaration: K
         get() = declaration.modifiers.contains(Modifier.SUSPEND)
 
     override val receiverParameterType: AstType?
-        get() = declaration.extensionReceiver?.let { KSAstType(this, it) }
+        get() = declaration.extensionReceiver?.let { KSAstType(this, it.resolve()) }
 
     override fun overrides(other: AstMethod): Boolean {
         if (other !is KSAstFunction) return false
@@ -292,10 +292,14 @@ private class KSAstFunction(provider: KSAstProvider, override val declaration: K
     }
 
     override val returnType: AstType
-        get() = KSAstType(this, declaration.returnType!!)
+        get() = KSAstType(this, declaration.returnType!!.resolve())
 
     override fun returnTypeFor(enclosingClass: AstClass): AstType {
-        return KSAstType(this, declaration.returnType!!)
+        require(enclosingClass is KSAstClass)
+        return KSAstType(
+            this,
+            resolver.asMemberOf(declaration, enclosingClass.declaration.asStarProjectedType()).returnType!!
+        )
     }
 
     override fun asMemberName(): MemberName {
@@ -326,7 +330,7 @@ private class KSAstProperty(provider: KSAstProvider, override val declaration: K
         get() = declaration.isPrivate()
 
     override val receiverParameterType: AstType?
-        get() = declaration.extensionReceiver?.let { KSAstType(this, it) }
+        get() = declaration.extensionReceiver?.let { KSAstType(this, it.resolve()) }
 
     override fun overrides(other: AstMethod): Boolean {
         if (other !is KSAstProperty) return false
@@ -334,11 +338,14 @@ private class KSAstProperty(provider: KSAstProvider, override val declaration: K
     }
 
     override val returnType: AstType
-        get() = KSAstType(this, declaration.type)
+        get() = KSAstType(this, declaration.type.resolve())
 
     override fun returnTypeFor(enclosingClass: AstClass): AstType {
         require(enclosingClass is KSAstClass)
-        return KSAstType(this, declaration.type.memberOf(enclosingClass.declaration))
+        return KSAstType(
+            this,
+            resolver.asMemberOf(declaration, enclosingClass.declaration.asStarProjectedType())
+        )
     }
 
     override fun asMemberName(): MemberName {
@@ -348,15 +355,15 @@ private class KSAstProperty(provider: KSAstProvider, override val declaration: K
 
     override fun hasAnnotation(className: String): Boolean {
         return declaration.getter?.hasAnnotation(className) == true ||
-            declaration.hasAnnotation(className, AnnotationUseSiteTarget.GET)
+                declaration.hasAnnotation(className, AnnotationUseSiteTarget.GET)
     }
 
     override fun annotationAnnotatedWith(className: String): AstAnnotation? {
         return (
-            declaration.getter
-                ?.annotationAnnotatedWith(className)
-                ?: declaration.annotationAnnotatedWith(className, AnnotationUseSiteTarget.GET)
-            )?.let { KSAstAnnotation(this, it) }
+                declaration.getter
+                    ?.annotationAnnotatedWith(className)
+                    ?: declaration.annotationAnnotatedWith(className, AnnotationUseSiteTarget.GET)
+                )?.let { KSAstAnnotation(this, it) }
     }
 
     override fun equals(other: Any?): Boolean {
@@ -368,21 +375,8 @@ private class KSAstProperty(provider: KSAstProvider, override val declaration: K
     }
 }
 
-private class KSAstType(provider: KSAstProvider) : AstType(), KSAstAnnotated, KSAstProvider by provider {
-
-    lateinit var type: KSType
-    var typeRef: KSTypeReference? = null
-        private set
-
-    constructor(provider: KSAstProvider, typeRef: KSTypeReference) : this(provider) {
-        this.type = typeRef.resolve()
-        this.typeRef = typeRef
-    }
-
-    constructor(provider: KSAstProvider, type: KSType) : this(provider) {
-        this.type = type
-        this.typeRef = null
-    }
+private class KSAstType(provider: KSAstProvider, val type: KSType) : AstType(), KSAstAnnotated,
+    KSAstProvider by provider {
 
     override val declaration: KSDeclaration get() = type.declaration
 
@@ -397,7 +391,7 @@ private class KSAstType(provider: KSAstProvider) : AstType(), KSAstAnnotated, KS
 
     override val arguments: List<AstType>
         get() = type.arguments.map {
-            KSAstType(this, it.type!!)
+            KSAstType(this, it.type!!.resolve())
         }
 
     override fun isUnit(): Boolean {
@@ -416,7 +410,7 @@ private class KSAstType(provider: KSAstProvider) : AstType(), KSAstAnnotated, KS
     override fun resolvedType(): AstType {
         val declaration = declaration
         return if (declaration is KSTypeAlias) {
-            KSAstType(this, declaration.type)
+            KSAstType(this, declaration.type.resolve())
         } else {
             this
         }
@@ -496,7 +490,7 @@ private class KSAstAnnotation(provider: KSAstProvider, val annotation: KSAnnotat
     KSAstProvider by provider {
 
     override val type: AstType
-        get() = KSAstType(this, annotation.annotationType)
+        get() = KSAstType(this, annotation.annotationType.resolve())
 
     override fun hasAnnotation(className: String): Boolean {
         TODO("Not yet implemented")
@@ -516,7 +510,7 @@ private class KSAstAnnotation(provider: KSAstProvider, val annotation: KSAnnotat
 
     override fun toString(): String {
         return "$annotation(${
-        annotation.arguments.joinToString(", ") { arg -> "${arg.name?.asString()}=${arg.value}" }
+            annotation.arguments.joinToString(", ") { arg -> "${arg.name?.asString()}=${arg.value}" }
         })"
     }
 }
