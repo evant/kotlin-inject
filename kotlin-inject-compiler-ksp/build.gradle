@@ -7,7 +7,7 @@ dependencies {
     implementation project(':kotlin-inject-compiler-core')
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
     // for access to CompilationErrorException until ksp properly fails on errors
-    implementation 'org.jetbrains.kotlin:kotlin-compiler-embeddable:1.4.0'
+    implementation "org.jetbrains.kotlin:kotlin-compiler-embeddable:$kotlin_version"
     implementation "com.google.devtools.ksp:symbol-processing-api:$ksp_version"
 }
 
