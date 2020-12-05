@@ -1,6 +1,7 @@
 package me.tatarka.inject.compiler.kapt
 
 import me.tatarka.inject.annotations.Component
+import me.tatarka.inject.compiler.CreateGenerator
 import me.tatarka.inject.compiler.FailedToGenerateException
 import me.tatarka.inject.compiler.InjectGenerator
 import me.tatarka.inject.compiler.Profiler
