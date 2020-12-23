@@ -10,7 +10,8 @@ private const val OPTION_GENERATE_COMPANION_EXTENSIONS = "me.tatarka.inject.gene
 
 abstract class BaseInjectCompiler :
     AbstractProcessor(),
-    ModelAstProvider {
+    ModelAstProvider,
+    ModelOutputProvider {
 
     protected lateinit var options: Options
     protected lateinit var filer: Filer

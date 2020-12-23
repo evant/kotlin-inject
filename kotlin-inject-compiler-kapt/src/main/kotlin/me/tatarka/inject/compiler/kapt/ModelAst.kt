@@ -1,6 +1,7 @@
 package me.tatarka.inject.compiler.kapt
 
 import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.TypeName
@@ -11,6 +12,7 @@ import kotlinx.metadata.jvm.annotations
 import kotlinx.metadata.jvm.getterSignature
 import kotlinx.metadata.jvm.signature
 import me.tatarka.inject.compiler.*
+import javax.annotation.processing.Filer
 import javax.annotation.processing.Messager
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.AnnotationMirror
@@ -124,10 +126,17 @@ interface ModelAstProvider : AstProvider {
             else -> toString()
         }
     }
+}
 
-    override fun TypeSpec.Builder.addOriginatingElement(astClass: AstClass): TypeSpec.Builder = apply {
-        require(astClass is ModelAstClass)
-        addOriginatingElement(astClass.element)
+interface ModelOutputProvider : OutputProvider<Filer> {
+
+    override fun astTypeSpec(typeSpecBuilder: TypeSpec.Builder, originatingElement: AstClass): AstTypeSpec {
+        require(originatingElement is ModelAstClass)
+        return ModelAstTypeSpec(typeSpecBuilder, originatingElement)
+    }
+
+    override fun astFileSpec(fileSpecBuilder: FileSpec.Builder, astTypeSpec: AstTypeSpec): AstFileSpec<Filer> {
+        return ModelAstFileSpec(fileSpecBuilder, astTypeSpec)
     }
 }
 
@@ -735,3 +744,19 @@ val AstClass.element: TypeElement
         require(this is ModelAstClass)
         return element
     }
+
+private class ModelAstTypeSpec(typeSpecBuilder: TypeSpec.Builder, astClass: ModelAstClass) : AstTypeSpec() {
+    override val typeSpec: TypeSpec = typeSpecBuilder
+        .addOriginatingElement(astClass.element)
+        .build()
+}
+
+private class ModelAstFileSpec(fileSpecBuilder: FileSpec.Builder, typeSpec: AstTypeSpec) : AstFileSpec<Filer>() {
+    private val fileSpec: FileSpec = fileSpecBuilder
+        .addType(typeSpec.typeSpec)
+        .build()
+
+    override fun writeTo(output: Filer) {
+        fileSpec.writeTo(output)
+    }
+}

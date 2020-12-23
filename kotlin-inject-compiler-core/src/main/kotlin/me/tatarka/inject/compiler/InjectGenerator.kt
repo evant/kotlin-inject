@@ -15,17 +15,18 @@ import me.tatarka.inject.annotations.Scope
 private val SCOPED_COMPONENT = ClassName("me.tatarka.inject.internal", "ScopedComponent")
 private val LAZY_MAP = ClassName("me.tatarka.inject.internal", "LazyMap")
 
-class InjectGenerator(
-    provider: AstProvider,
+class InjectGenerator<Output, Provider>(
+    private val provider: Provider,
     private val options: Options,
-) : AstProvider by provider {
+) : AstProvider by provider
+        where Provider : AstProvider, Provider : OutputProvider<Output> {
 
     private val createGenerator = CreateGenerator(provider, options)
 
     var scopeType: AstType? = null
         private set
 
-    fun generate(astClass: AstClass): FileSpec {
+    fun generate(astClass: AstClass): AstFileSpec<Output> {
         if (!astClass.isAbstract) {
             throw FailedToGenerateException("@Component class: $astClass must be abstract", astClass)
         } else if (astClass.visibility == AstVisibility.PRIVATE) {
@@ -35,121 +36,121 @@ class InjectGenerator(
         val constructor = astClass.primaryConstructor
 
         val injectComponent = generateInjectComponent(astClass, constructor)
-        val createFunction = createGenerator.create(astClass, constructor, injectComponent)
+        val createFunction = createGenerator.create(astClass, constructor, injectComponent.typeSpec)
 
-        return FileSpec.builder(astClass.packageName, "Inject${astClass.name}")
-            .addType(injectComponent)
-            .apply {
-                createFunction.forEach { addFunction(it) }
-            }
-            .build()
+        return provider.astFileSpec(
+            FileSpec.builder(astClass.packageName, "Inject${astClass.name}")
+                .apply {
+                    createFunction.forEach { addFunction(it) }
+                }, injectComponent
+        )
     }
 
     @Suppress("ComplexMethod", "LongMethod", "NestedBlockDepth")
     private fun generateInjectComponent(
         astClass: AstClass,
         constructor: AstConstructor?
-    ): TypeSpec {
+    ): AstTypeSpec {
         val context = collectTypes(astClass)
         val scope = context.collector.scopeClass
         scopeType = scope?.scopeType(options)
 
-        return TypeSpec.classBuilder("Inject${astClass.name}")
-            .addOriginatingElement(astClass)
-            .apply {
-                if (astClass.isInterface) {
-                    addSuperinterface(astClass.asClassName())
-                } else {
-                    superclass(astClass.asClassName())
-                }
-                if (scope != null) {
-                    addSuperinterface(SCOPED_COMPONENT)
-                }
-                addModifiers(astClass.visibility.toModifier())
-                if (constructor != null) {
-                    val funSpec = FunSpec.constructorBuilder()
-                    val params = constructor.parameters
-                    for (param in params) {
-                        if (param.isComponent()) {
-                            if (!param.isVal) {
-                                error("@Component parameter: ${param.name} must be val", param)
-                            } else if (param.isPrivate) {
-                                error("@Component parameter: ${param.name} must not be private", param)
-                            }
-                        }
-                    }
-                    val paramSpecs = params.map { it.asParameterSpec() }
-                    val nonDefaultParamSpecs =
-                        constructor.parameters.filter { !it.hasDefault }.map { it.asParameterSpec() }
-                    if (paramSpecs.size == nonDefaultParamSpecs.size) {
-                        for (p in paramSpecs) {
-                            funSpec.addParameter(p)
-                            addSuperclassConstructorParameter("%N", p)
-                        }
-                        primaryConstructor(funSpec.build())
+        return provider.astTypeSpec(
+            TypeSpec.classBuilder("Inject${astClass.name}")
+                .apply {
+                    if (astClass.isInterface) {
+                        addSuperinterface(astClass.asClassName())
                     } else {
-                        addFunction(
-                            FunSpec.constructorBuilder()
-                                .addParameters(paramSpecs)
-                                .callSuperConstructor(paramSpecs.map { CodeBlock.of("%N", it) })
-                                .build()
-                        )
-                        addFunction(
-                            FunSpec.constructorBuilder()
-                                .addParameters(nonDefaultParamSpecs)
-                                .callSuperConstructor(nonDefaultParamSpecs.map { CodeBlock.of("%1N = %1N", it) })
-                                .build()
-                        )
+                        superclass(astClass.asClassName())
                     }
-                }
-
-                try {
                     if (scope != null) {
-                        addProperty(
-                            PropertySpec.builder("_scoped", LAZY_MAP)
-                                .addModifiers(KModifier.OVERRIDE)
-                                .initializer("%T()", LAZY_MAP)
-                                .build()
-                        )
+                        addSuperinterface(SCOPED_COMPONENT)
                     }
-
-                    for (method in context.collector.providerMethods) {
-                        val returnType = method.returnTypeFor(astClass)
-
-                        context.withoutProvider(returnType).use(method) { context ->
-                            val codeBlock = CodeBlock.builder()
-                            codeBlock.add("return ")
-
-                            codeBlock.add(
-                                provide(
-                                    key = TypeKey(returnType, method.qualifier(options)),
-                                    context = context
-                                )
-                            )
-
-                            when (method) {
-                                is AstProperty -> addProperty(
-                                    PropertySpec.builder(
-                                        method.name,
-                                        returnType.asTypeName(),
-                                        KModifier.OVERRIDE
-                                    ).getter(FunSpec.getterBuilder().addCode(codeBlock.build()).build()).build()
-                                )
-                                is AstFunction -> addFunction(
-                                    FunSpec.builder(method.name).returns(returnType.asTypeName())
-                                        .addModifiers(KModifier.OVERRIDE)
-                                        .apply { if (method.isSuspend) addModifiers(KModifier.SUSPEND) }
-                                        .addCode(codeBlock.build()).build()
-                                )
+                    addModifiers(astClass.visibility.toModifier())
+                    if (constructor != null) {
+                        val funSpec = FunSpec.constructorBuilder()
+                        val params = constructor.parameters
+                        for (param in params) {
+                            if (param.isComponent()) {
+                                if (!param.isVal) {
+                                    error("@Component parameter: ${param.name} must be val", param)
+                                } else if (param.isPrivate) {
+                                    error("@Component parameter: ${param.name} must not be private", param)
+                                }
                             }
                         }
+                        val paramSpecs = params.map { it.asParameterSpec() }
+                        val nonDefaultParamSpecs =
+                            constructor.parameters.filter { !it.hasDefault }.map { it.asParameterSpec() }
+                        if (paramSpecs.size == nonDefaultParamSpecs.size) {
+                            for (p in paramSpecs) {
+                                funSpec.addParameter(p)
+                                addSuperclassConstructorParameter("%N", p)
+                            }
+                            primaryConstructor(funSpec.build())
+                        } else {
+                            addFunction(
+                                FunSpec.constructorBuilder()
+                                    .addParameters(paramSpecs)
+                                    .callSuperConstructor(paramSpecs.map { CodeBlock.of("%N", it) })
+                                    .build()
+                            )
+                            addFunction(
+                                FunSpec.constructorBuilder()
+                                    .addParameters(nonDefaultParamSpecs)
+                                    .callSuperConstructor(nonDefaultParamSpecs.map { CodeBlock.of("%1N = %1N", it) })
+                                    .build()
+                            )
+                        }
                     }
-                } catch (e: FailedToGenerateException) {
-                    error(e.message.orEmpty(), e.element)
-                    // Create a stub component to prevent extra compile errors, the original one will still be reported.
-                }
-            }
-            .build()
+
+                    try {
+                        if (scope != null) {
+                            addProperty(
+                                PropertySpec.builder("_scoped", LAZY_MAP)
+                                    .addModifiers(KModifier.OVERRIDE)
+                                    .initializer("%T()", LAZY_MAP)
+                                    .build()
+                            )
+                        }
+
+                        for (method in context.collector.providerMethods) {
+                            val returnType = method.returnTypeFor(astClass)
+
+                            context.withoutProvider(returnType).use(method) { context ->
+                                val codeBlock = CodeBlock.builder()
+                                codeBlock.add("return ")
+
+                                codeBlock.add(
+                                    provide(
+                                        key = TypeKey(returnType, method.qualifier(options)),
+                                        context = context
+                                    )
+                                )
+
+                                when (method) {
+                                    is AstProperty -> addProperty(
+                                        PropertySpec.builder(
+                                            method.name,
+                                            returnType.asTypeName(),
+                                            KModifier.OVERRIDE
+                                        ).getter(FunSpec.getterBuilder().addCode(codeBlock.build()).build()).build()
+                                    )
+                                    is AstFunction -> addFunction(
+                                        FunSpec.builder(method.name).returns(returnType.asTypeName())
+                                            .addModifiers(KModifier.OVERRIDE)
+                                            .apply { if (method.isSuspend) addModifiers(KModifier.SUSPEND) }
+                                            .addCode(codeBlock.build()).build()
+                                    )
+                                }
+                            }
+                        }
+                    } catch (e: FailedToGenerateException) {
+                        error(e.message.orEmpty(), e.element)
+                        // Create a stub component to prevent extra compile errors, the original one will still be reported.
+                    }
+                }, astClass
+        )
     }
 
     private fun collectTypes(
@@ -501,8 +502,8 @@ class InjectGenerator(
         }
 
         fun trace(message: String): String = "$message\n" +
-            cycleDetector.elements.reversed()
-                .joinToString(separator = "\n") { with(provider) { it.toTrace() } }
+                cycleDetector.elements.reversed()
+                    .joinToString(separator = "\n") { with(provider) { it.toTrace() } }
     }
 
     sealed class Result(val name: String?) {
