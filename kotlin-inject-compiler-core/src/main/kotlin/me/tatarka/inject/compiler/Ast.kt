@@ -224,10 +224,10 @@ interface OutputProvider<Output> {
     fun astFileSpec(fileSpecBuilder: FileSpec.Builder, astTypeSpec: AstTypeSpec): AstFileSpec<Output>
 }
 
-abstract class AstTypeSpec {
-    abstract val typeSpec: TypeSpec
+interface AstTypeSpec {
+    val typeSpec: TypeSpec
 }
 
-abstract class AstFileSpec<Output> {
-    abstract fun writeTo(output: Output)
+interface AstFileSpec<Output> {
+    fun writeTo(output: Output)
 }

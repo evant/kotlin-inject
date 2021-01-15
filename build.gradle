@@ -1,7 +1,7 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm' version "$kotlin_version" apply false
     id 'com.google.devtools.ksp' version "$ksp_version" apply false
-    id "io.gitlab.arturbosch.detekt" version "1.14.2"
+    id "io.gitlab.arturbosch.detekt" version "1.15.0"
 }
 
 repositories {
@@ -14,11 +14,11 @@ subprojects {
         mavenCentral()
     }
     afterEvaluate { project ->
-        project.tasks.findByName("check")?.dependsOn rootProject.tasks["detektAll"]
+        project.tasks.findByName("check")?.dependsOn rootProject.tasks["detekt"]
     }
 }
 
-task detektAll(type: io.gitlab.arturbosch.detekt.Detekt) {
+tasks.withType(io.gitlab.arturbosch.detekt.Detekt).configureEach {
     parallel = true
     failFast = false
     buildUponDefaultConfig = true
@@ -26,6 +26,8 @@ task detektAll(type: io.gitlab.arturbosch.detekt.Detekt) {
     config.from = project.file(".static/detekt-config.yml")
     include("**/*.kt")
     exclude("**/build/**")
+    autoCorrect = findProperty('fix') == 'true'
+    jvmTarget = "1.8"
     reports {
         html {
             enabled = true

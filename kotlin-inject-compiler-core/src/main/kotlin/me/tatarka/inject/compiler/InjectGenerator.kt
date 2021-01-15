@@ -147,7 +147,8 @@ class InjectGenerator<Output, Provider>(
                         }
                     } catch (e: FailedToGenerateException) {
                         error(e.message.orEmpty(), e.element)
-                        // Create a stub component to prevent extra compile errors, the original one will still be reported.
+                        // Create a stub component to prevent extra compile errors,
+                        // the original one will still be reported.
                     }
                 }, astClass
         )

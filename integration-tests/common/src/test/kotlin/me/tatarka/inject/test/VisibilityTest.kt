@@ -14,5 +14,4 @@ class VisibilityTest {
     fun internal_component_generates_internal_create() {
         assertThat(InternalVisibilityTestComponent::class.create()::class.visibility).isEqualTo(KVisibility.INTERNAL)
     }
-
 }
