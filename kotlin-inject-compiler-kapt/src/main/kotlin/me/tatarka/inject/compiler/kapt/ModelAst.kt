@@ -1,16 +1,45 @@
 package me.tatarka.inject.compiler.kapt
 
 import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asClassName
-import kotlinx.metadata.*
+import kotlinx.metadata.Flag
+import kotlinx.metadata.Flags
+import kotlinx.metadata.KmAnnotation
+import kotlinx.metadata.KmClass
+import kotlinx.metadata.KmClassifier
+import kotlinx.metadata.KmConstructor
+import kotlinx.metadata.KmFunction
+import kotlinx.metadata.KmProperty
+import kotlinx.metadata.KmType
+import kotlinx.metadata.KmTypeProjection
+import kotlinx.metadata.KmValueParameter
+import kotlinx.metadata.KmVariance
 import kotlinx.metadata.jvm.annotations
 import kotlinx.metadata.jvm.getterSignature
 import kotlinx.metadata.jvm.signature
-import me.tatarka.inject.compiler.*
+import me.tatarka.inject.compiler.AstAnnotated
+import me.tatarka.inject.compiler.AstAnnotation
+import me.tatarka.inject.compiler.AstBasicElement
+import me.tatarka.inject.compiler.AstClass
+import me.tatarka.inject.compiler.AstConstructor
+import me.tatarka.inject.compiler.AstElement
+import me.tatarka.inject.compiler.AstFileSpec
+import me.tatarka.inject.compiler.AstFunction
+import me.tatarka.inject.compiler.AstMethod
+import me.tatarka.inject.compiler.AstParam
+import me.tatarka.inject.compiler.AstProperty
+import me.tatarka.inject.compiler.AstProvider
+import me.tatarka.inject.compiler.AstType
+import me.tatarka.inject.compiler.AstTypeSpec
+import me.tatarka.inject.compiler.AstVisibility
+import me.tatarka.inject.compiler.Messenger
+import me.tatarka.inject.compiler.OutputProvider
+import javax.annotation.processing.Filer
 import javax.annotation.processing.Messager
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.AnnotationMirror
@@ -124,10 +153,17 @@ interface ModelAstProvider : AstProvider {
             else -> toString()
         }
     }
+}
 
-    override fun TypeSpec.Builder.addOriginatingElement(astClass: AstClass): TypeSpec.Builder = apply {
-        require(astClass is ModelAstClass)
-        addOriginatingElement(astClass.element)
+interface ModelOutputProvider : OutputProvider<Filer> {
+
+    override fun astTypeSpec(typeSpecBuilder: TypeSpec.Builder, originatingElement: AstClass): AstTypeSpec {
+        require(originatingElement is ModelAstClass)
+        return ModelAstTypeSpec(typeSpecBuilder, originatingElement)
+    }
+
+    override fun astFileSpec(fileSpecBuilder: FileSpec.Builder, astTypeSpec: AstTypeSpec): AstFileSpec<Filer> {
+        return ModelAstFileSpec(fileSpecBuilder, astTypeSpec)
     }
 }
 
@@ -735,3 +771,19 @@ val AstClass.element: TypeElement
         require(this is ModelAstClass)
         return element
     }
+
+private class ModelAstTypeSpec(typeSpecBuilder: TypeSpec.Builder, astClass: ModelAstClass) : AstTypeSpec {
+    override val typeSpec: TypeSpec = typeSpecBuilder
+        .addOriginatingElement(astClass.element)
+        .build()
+}
+
+private class ModelAstFileSpec(fileSpecBuilder: FileSpec.Builder, typeSpec: AstTypeSpec) : AstFileSpec<Filer> {
+    private val fileSpec: FileSpec = fileSpecBuilder
+        .addType(typeSpec.typeSpec)
+        .build()
+
+    override fun writeTo(output: Filer) {
+        fileSpec.writeTo(output)
+    }
+}

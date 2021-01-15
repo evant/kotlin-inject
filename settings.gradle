@@ -1,16 +1,7 @@
 pluginManagement {
     repositories {
-        google()
-        mavenCentral()
         gradlePluginPortal()
-    }
-    resolutionStrategy {
-        eachPlugin {
-            switch (requested.id.id) {
-                case "symbol-processing":
-                    useModule("com.google.devtools.ksp:symbol-processing:${requested.version}")
-            }
-        }
+        google()
     }
 }
 

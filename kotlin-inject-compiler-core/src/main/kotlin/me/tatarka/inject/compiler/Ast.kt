@@ -1,6 +1,7 @@
 package me.tatarka.inject.compiler
 
 import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.TypeName
@@ -20,8 +21,6 @@ interface AstProvider {
         messenger.error(message, element)
 
     fun AstElement.toTrace(): String
-
-    fun TypeSpec.Builder.addOriginatingElement(astClass: AstClass): TypeSpec.Builder
 }
 
 interface Messenger {
@@ -216,4 +215,19 @@ interface AstHasModifiers {
     val visibility: AstVisibility
 
     val isAbstract: Boolean
+}
+
+interface OutputProvider<Output> {
+
+    fun astTypeSpec(typeSpecBuilder: TypeSpec.Builder, originatingElement: AstClass): AstTypeSpec
+
+    fun astFileSpec(fileSpecBuilder: FileSpec.Builder, astTypeSpec: AstTypeSpec): AstFileSpec<Output>
+}
+
+interface AstTypeSpec {
+    val typeSpec: TypeSpec
+}
+
+interface AstFileSpec<Output> {
+    fun writeTo(output: Output)
 }

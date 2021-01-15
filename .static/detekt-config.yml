@@ -22,7 +22,6 @@ formatting:
     active: false
   AnnotationSpacing:
     active: true
-    autoCorrect: true
 
 naming:
   ConstructorParameterNaming:

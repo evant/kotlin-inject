@@ -1,20 +1,59 @@
 package me.tatarka.inject.compiler.ksp
 
-import com.google.devtools.ksp.*
+import com.google.devtools.ksp.findActualType
+import com.google.devtools.ksp.getConstructors
+import com.google.devtools.ksp.getDeclaredFunctions
+import com.google.devtools.ksp.getDeclaredProperties
+import com.google.devtools.ksp.getVisibility
+import com.google.devtools.ksp.isAbstract
+import com.google.devtools.ksp.isPrivate
+import com.google.devtools.ksp.processing.CodeGenerator
+import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
-import com.google.devtools.ksp.symbol.*
+import com.google.devtools.ksp.symbol.AnnotationUseSiteTarget
+import com.google.devtools.ksp.symbol.ClassKind
+import com.google.devtools.ksp.symbol.FileLocation
+import com.google.devtools.ksp.symbol.KSAnnotated
+import com.google.devtools.ksp.symbol.KSAnnotation
+import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.google.devtools.ksp.symbol.KSDeclaration
+import com.google.devtools.ksp.symbol.KSFunctionDeclaration
+import com.google.devtools.ksp.symbol.KSPropertyDeclaration
+import com.google.devtools.ksp.symbol.KSType
+import com.google.devtools.ksp.symbol.KSTypeAlias
+import com.google.devtools.ksp.symbol.KSValueParameter
+import com.google.devtools.ksp.symbol.Modifier
+import com.google.devtools.ksp.symbol.Variance
+import com.google.devtools.ksp.symbol.Visibility
 import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
-import me.tatarka.inject.compiler.*
+import me.tatarka.inject.compiler.AstAnnotated
+import me.tatarka.inject.compiler.AstAnnotation
+import me.tatarka.inject.compiler.AstBasicElement
+import me.tatarka.inject.compiler.AstClass
+import me.tatarka.inject.compiler.AstConstructor
+import me.tatarka.inject.compiler.AstElement
+import me.tatarka.inject.compiler.AstFileSpec
+import me.tatarka.inject.compiler.AstFunction
+import me.tatarka.inject.compiler.AstMethod
+import me.tatarka.inject.compiler.AstParam
+import me.tatarka.inject.compiler.AstProperty
+import me.tatarka.inject.compiler.AstProvider
+import me.tatarka.inject.compiler.AstType
+import me.tatarka.inject.compiler.AstTypeSpec
+import me.tatarka.inject.compiler.AstVisibility
+import me.tatarka.inject.compiler.Messenger
+import me.tatarka.inject.compiler.OutputProvider
 import org.jetbrains.kotlin.analyzer.AnalysisResult
-import java.nio.file.attribute.AttributeView
+
 import kotlin.reflect.KClass
 
-interface KSAstProvider : AstProvider {
+interface KSAstProvider : AstProvider, OutputProvider<CodeGenerator> {
 
     val resolver: Resolver
 
@@ -64,7 +103,15 @@ interface KSAstProvider : AstProvider {
         }
     }
 
-    override fun TypeSpec.Builder.addOriginatingElement(astClass: AstClass): TypeSpec.Builder = this
+    override fun astTypeSpec(typeSpecBuilder: TypeSpec.Builder, originatingElement: AstClass): AstTypeSpec {
+        require(originatingElement is KSAstClass)
+        return KSAstTypeSpec(typeSpecBuilder, originatingElement)
+    }
+
+    override fun astFileSpec(fileSpecBuilder: FileSpec.Builder, astTypeSpec: AstTypeSpec): AstFileSpec<CodeGenerator> {
+        require(astTypeSpec is KSAstTypeSpec)
+        return KSAstFileSpec(fileSpecBuilder, astTypeSpec)
+    }
 }
 
 object KSAstMessenger : Messenger {
@@ -494,3 +541,22 @@ private fun Visibility.astVisibility(): AstVisibility =
         Visibility.INTERNAL -> AstVisibility.INTERNAL
         else -> throw UnsupportedOperationException("unsupported visibility: $this")
     }
+
+private class KSAstTypeSpec(typeSpecBuilder: TypeSpec.Builder, val astClass: KSAstClass) : AstTypeSpec {
+    override val typeSpec: TypeSpec = typeSpecBuilder.build()
+}
+
+private class KSAstFileSpec(fileSpecBuilder: FileSpec.Builder, val typeSpec: KSAstTypeSpec) :
+    AstFileSpec<CodeGenerator> {
+    private val fileSpec: FileSpec = fileSpecBuilder
+        .addType(typeSpec.typeSpec)
+        .build()
+
+    override fun writeTo(output: CodeGenerator) {
+        output.createNewFile(
+            Dependencies(true, typeSpec.astClass.declaration.containingFile!!),
+            fileSpec.packageName,
+            fileSpec.name
+        ).bufferedWriter().use { fileSpec.writeTo(it) }
+    }
+}

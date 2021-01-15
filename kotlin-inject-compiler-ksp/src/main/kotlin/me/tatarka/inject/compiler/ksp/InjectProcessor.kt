@@ -5,9 +5,7 @@ import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.symbol.KSClassDeclaration
-import com.squareup.kotlinpoet.FileSpec
 import me.tatarka.inject.annotations.Component
-import me.tatarka.inject.compiler.CreateGenerator
 import me.tatarka.inject.compiler.FailedToGenerateException
 import me.tatarka.inject.compiler.InjectGenerator
 import me.tatarka.inject.compiler.Options
@@ -58,11 +56,5 @@ class InjectProcessor(private val profiler: Profiler? = null) : SymbolProcessor,
 
     override fun finish() {
         messenger.finalize()
-    }
-
-    private fun FileSpec.writeTo(codeGenerator: CodeGenerator) {
-        codeGenerator.createNewFile(packageName, name).bufferedWriter().use {
-            writeTo(it)
-        }
     }
 }
