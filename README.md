@@ -29,8 +29,8 @@ val repo = appComponent.repo
 
 ```groovy
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '1.4.0'
-    id 'org.jetbrains.kotlin.kapt' version '1.4.0'
+    id 'org.jetbrains.kotlin.jvm' version '1.4.20'
+    id 'org.jetbrains.kotlin.kapt' version '1.4.20'
 }
 
 dependencies {
@@ -47,15 +47,6 @@ kapt.
 `settings.gradle`
 ```groovy
 pluginManagement {
-    resolutionStrategy {
-        eachPlugin {
-            switch (requested.id.id) {
-                case "symbol-processing":
-                    useModule("com.google.devtools.ksp:symbol-processing:${requested.version}")
-            }
-        }
-    }
-
     repositories {
         gradlePluginPortal()
         google()
@@ -66,8 +57,8 @@ pluginManagement {
 `build.gradle`
 ```groovy
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '1.4.10'
-    id 'symbol-processing' version '1.4.10-dev-experimental-20200924'
+    id 'org.jetbrains.kotlin.jvm' version '1.4.20'
+    id 'com.google.devtools.ksp' version '1.4.20-dev-experimental-20210111'
 }
 
 repositories {

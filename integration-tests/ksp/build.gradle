@@ -1,6 +1,6 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm'
-    id 'symbol-processing'
+    id 'com.google.devtools.ksp'
 }
 
 dependencies {
