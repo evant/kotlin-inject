@@ -4,10 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2021-02-25
+
+### Changed
+
+- Updated ksp to [1.4.30-1.0.0-alpha03](https://github.com/google/ksp/releases/tag/1.4.30-1.0.0-alpha03)
+- Minimum supported kotlin version is now 1.4.30
+
 ## [0.3.0] - 2021-01-14
 
 ### Changed
-- **Updated ksp to [1.4.20-dev-experimental-20210111](https://github.com/google/ksp/releases/tag/1.4.20-dev-experimental-20210111).**
+- **Updated ksp to [1.4.20-dev-experimental-20210111](https://github.com/google/ksp/releases/tag/1.4.20-dev-experimental-20210111)**
 
   Key changes:
   - You no longer have to define `resolutionStrategy` in your `settings.gradle`.
