@@ -4,6 +4,7 @@ import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
+import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.compiler.FailedToGenerateException
@@ -30,7 +31,7 @@ class InjectProcessor(private val profiler: Profiler? = null) : SymbolProcessor,
     }
 
     @Suppress("LoopWithTooManyJumpStatements")
-    override fun process(resolver: Resolver) {
+    override fun process(resolver: Resolver): List<KSAnnotated> {
         this.resolver = resolver
 
         profiler?.onStart()
@@ -52,9 +53,11 @@ class InjectProcessor(private val profiler: Profiler? = null) : SymbolProcessor,
         }
 
         profiler?.onStop()
+
+        return emptyList()
     }
 
     override fun finish() {
-        messenger.finalize()
+        // ignore
     }
 }
