@@ -8,9 +8,7 @@ import me.tatarka.inject.compiler.Options
 import me.tatarka.inject.compiler.Profiler
 import me.tatarka.inject.compiler.kapt.InjectCompiler
 import me.tatarka.inject.compiler.ksp.InjectProcessor
-import java.io.ByteArrayOutputStream
 import java.io.File
-import java.io.PrintStream
 
 class ProjectCompiler(
     private val target: Target,
@@ -32,13 +30,8 @@ class ProjectCompiler(
     }
 
     fun compile() {
-        val output = ByteArrayOutputStream()
-        val printOut = PrintStream(output)
-        val oldErr = System.err
-        System.setErr(printOut)
         val result = KotlinCompilation().apply {
             sources = sourceFiles
-            messageOutputStream = printOut
             root?.let { workingDir = it }
             inheritClassPath = true
             when (target) {
@@ -56,11 +49,10 @@ class ProjectCompiler(
                 }
             }
         }.compile()
-        System.setErr(oldErr)
 
         if (result.exitCode != KotlinCompilation.ExitCode.OK) {
             @Suppress("TooGenericExceptionThrown")
-            throw Exception(output.toString())
+            throw Exception(result.messages)
         }
     }
 }

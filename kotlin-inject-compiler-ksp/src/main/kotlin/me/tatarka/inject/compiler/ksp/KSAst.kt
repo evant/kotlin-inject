@@ -49,7 +49,6 @@ import me.tatarka.inject.compiler.AstTypeSpec
 import me.tatarka.inject.compiler.AstVisibility
 import me.tatarka.inject.compiler.Messenger
 import me.tatarka.inject.compiler.OutputProvider
-import org.jetbrains.kotlin.analyzer.AnalysisResult
 
 import kotlin.reflect.KClass
 
@@ -115,7 +114,6 @@ interface KSAstProvider : AstProvider, OutputProvider<CodeGenerator> {
 }
 
 object KSAstMessenger : Messenger {
-    private val errorMessages = mutableListOf<Message>()
     internal lateinit var logger: KSPLogger
 
     override fun warn(message: String, element: AstElement?) {
@@ -124,39 +122,6 @@ object KSAstMessenger : Messenger {
 
     override fun error(message: String, element: AstElement?) {
         logger.error(message, (element as? KSAstAnnotated)?.declaration)
-        errorMessages.add(Message(message, element))
-    }
-
-    fun finalize() {
-        // ksp won't error out if no exception is thrown
-        if (errorMessages.isNotEmpty()) {
-            throw AnalysisResult.CompilationErrorException()
-        }
-    }
-
-    private data class Message(val message: String, val element: AstElement?) {
-        override fun toString(): String = StringBuilder().apply {
-            val containing = when (element) {
-                is KSAstFunction -> element.declaration.parentDeclaration
-                is KSAstConstructor -> element.declaration.parentDeclaration
-                is KSAstProperty -> element.declaration.parentDeclaration
-                is KSAstParam -> element.parent
-                else -> null
-            }
-            if (containing != null) {
-                if (containing.qualifiedName != null) {
-                    append(containing.qualifiedName?.asString())
-                } else {
-                    append(containing.parentDeclaration?.qualifiedName?.asString())
-                }
-                append(": ")
-            }
-            append(message)
-            if (element != null) {
-                append("\n\t")
-                append(element)
-            }
-        }.toString()
     }
 }
 
