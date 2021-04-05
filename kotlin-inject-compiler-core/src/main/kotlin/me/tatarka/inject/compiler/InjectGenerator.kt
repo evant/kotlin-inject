@@ -311,7 +311,7 @@ class InjectGenerator<Output, Provider>(
                     SCOPED_COMPONENT
                 )
             }
-            add("_scoped.get(%S)", key.type).beginControlFlow("{")
+            add("_scoped.get(%S)", key).beginControlFlow("{")
             add(provide(key, context.withoutScoped(key.type)))
             endControlFlow()
         }.build()
