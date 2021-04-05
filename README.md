@@ -34,8 +34,8 @@ plugins {
 }
 
 dependencies {
-    kapt "me.tatarka.inject:kotlin-inject-compiler-kapt:0.3.1"
-    implementation "me.tatarka.inject:kotlin-inject-runtime:0.3.1"
+    kapt "me.tatarka.inject:kotlin-inject-compiler-kapt:0.3.2"
+    implementation "me.tatarka.inject:kotlin-inject-runtime:0.3.2"
 }
 ```
 
@@ -58,7 +58,7 @@ pluginManagement {
 ```groovy
 plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.4.30'
-    id 'com.google.devtools.ksp' version '1.4.30-1.0.0-alpha03'
+    id 'com.google.devtools.ksp' version '1.4.30-1.0.0-alpha05'
 }
 
 repositories {
@@ -67,8 +67,8 @@ repositories {
 }
 
 dependencies {
-    ksp "me.tatarka.inject:kotlin-inject-compiler-ksp:0.3.1"
-    implementation "me.tatarka.inject:kotlin-inject-runtime:0.3.1"
+    ksp "me.tatarka.inject:kotlin-inject-compiler-ksp:0.3.2"
+    implementation "me.tatarka.inject:kotlin-inject-runtime:0.3.2"
 }
 ```
 
@@ -361,4 +361,3 @@ You can provide some additional options to the processor.
     companion object
   }
   ```
-
