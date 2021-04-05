@@ -3,7 +3,7 @@ apply plugin: 'maven-publish'
 apply plugin: 'de.marcphilipp.nexus-publish'
 
 group = 'me.tatarka.inject'
-version = '0.3.1'
+version = '0.3.2-SNAPSHOT'
 
 task sourcesJar(type: Jar) {
     from sourceSets.main.allJava
@@ -60,4 +60,3 @@ signing {
     required { project.findProperty('signing.keyId') != null }
     sign publishing.publications.lib
 }
-

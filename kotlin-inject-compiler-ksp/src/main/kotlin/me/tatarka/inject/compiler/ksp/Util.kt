@@ -1,6 +1,5 @@
 package me.tatarka.inject.compiler.ksp
 
-import com.google.devtools.ksp.symbol.AnnotationUseSiteTarget
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
@@ -24,25 +23,19 @@ import me.tatarka.inject.compiler.collectHash
 import me.tatarka.inject.compiler.eqv
 import me.tatarka.inject.compiler.eqvItr
 
-fun KSAnnotated.annotationAnnotatedWith(
-    className: String,
-    useSiteTarget: AnnotationUseSiteTarget? = null
-): KSAnnotation? {
+fun KSAnnotated.annotationAnnotatedWith(className: String): KSAnnotation? {
     for (annotation in annotations) {
-        if (annotation.useSiteTarget == useSiteTarget) {
-            val t = annotation.annotationType.resolve()
-            if (t.declaration.hasAnnotation(className)) {
-                return annotation
-            }
+        val t = annotation.annotationType.resolve()
+        if (t.declaration.hasAnnotation(className)) {
+            return annotation
         }
     }
     return null
 }
 
-fun KSAnnotated.hasAnnotation(className: String, useSiteTarget: AnnotationUseSiteTarget? = null): Boolean {
+fun KSAnnotated.hasAnnotation(className: String): Boolean {
     return annotations.any {
-        it.annotationType.resolve().declaration.qualifiedName?.asString() == className &&
-            useSiteTarget == it.useSiteTarget
+        it.annotationType.resolve().declaration.qualifiedName?.asString() == className
     }
 }
 
@@ -117,7 +110,7 @@ fun KSType.asTypeName(): TypeName {
 
 fun KSAnnotation.eqv(other: KSAnnotation): Boolean {
     return annotationType.resolve() == other.annotationType.resolve() &&
-        arguments == other.arguments
+            arguments == other.arguments
 }
 
 fun KSTypeReference.eqv(other: KSTypeReference): Boolean {
@@ -126,13 +119,13 @@ fun KSTypeReference.eqv(other: KSTypeReference): Boolean {
 
 fun KSType.eqv(other: KSType): Boolean {
     return declaration.qualifiedName == other.declaration.qualifiedName &&
-        nullability == other.nullability &&
-        arguments.eqvItr(other.arguments) { a, b ->
-            a.variance == b.variance && a.type.eqv(
-                b.type,
-                KSTypeReference::eqv
-            )
-        }
+            nullability == other.nullability &&
+            arguments.eqvItr(other.arguments) { a, b ->
+                a.variance == b.variance && a.type.eqv(
+                    b.type,
+                    KSTypeReference::eqv
+                )
+            }
 }
 
 fun KSType.eqvHashCode(collector: HashCollector = HashCollector()): Int = collectHash(collector) {

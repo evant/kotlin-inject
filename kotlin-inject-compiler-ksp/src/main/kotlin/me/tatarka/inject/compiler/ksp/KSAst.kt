@@ -11,7 +11,6 @@ import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
-import com.google.devtools.ksp.symbol.AnnotationUseSiteTarget
 import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.FileLocation
 import com.google.devtools.ksp.symbol.KSAnnotated
@@ -337,16 +336,13 @@ private class KSAstProperty(provider: KSAstProvider, override val declaration: K
     }
 
     override fun hasAnnotation(className: String): Boolean {
-        return declaration.getter?.hasAnnotation(className) == true ||
-                declaration.hasAnnotation(className, AnnotationUseSiteTarget.GET)
+        return declaration.getter?.hasAnnotation(className) == true
     }
 
     override fun annotationAnnotatedWith(className: String): AstAnnotation? {
-        return (
-                declaration.getter
-                    ?.annotationAnnotatedWith(className)
-                    ?: declaration.annotationAnnotatedWith(className, AnnotationUseSiteTarget.GET)
-                )?.let { KSAstAnnotation(this, it) }
+        return declaration.getter?.annotationAnnotatedWith(className)?.let {
+            KSAstAnnotation(this, it)
+        }
     }
 
     override fun equals(other: Any?): Boolean {
