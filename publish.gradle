@@ -3,7 +3,7 @@ apply plugin: 'maven-publish'
 apply plugin: 'de.marcphilipp.nexus-publish'
 
 group = 'me.tatarka.inject'
-version = '0.3.2'
+version = '0.3.3-SNAPSHOT'
 
 task sourcesJar(type: Jar) {
     from sourceSets.main.allJava
