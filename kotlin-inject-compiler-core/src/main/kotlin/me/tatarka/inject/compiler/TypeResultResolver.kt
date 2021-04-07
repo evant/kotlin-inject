@@ -14,12 +14,8 @@ class TypeResultResolver(private val options: Options) {
      * Resolves the given type in this context. This will return a cached result if has already been resolved.
      */
     fun resolve(context: Context, key: TypeKey): TypeResultRef {
-        return TypeResultRef(key, types[key] ?: context.findType(key).linkRefs()
+        return TypeResultRef(key, types[key] ?: context.findType(key)
             .also { types[key] = it })
-    }
-
-    private fun <T : TypeResult> T.linkRefs(): T = also {
-        it.children.forEach { child -> child.ref.parents.add(it) }
     }
 
     /**

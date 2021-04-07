@@ -6,6 +6,7 @@ import java.util.Locale
 fun List<MethodEntry>.optimize(): List<MethodEntry> {
     val newEntries = mutableListOf<MethodEntry>()
     val visited = mutableSetOf<TypeResult>()
+    val parentMap = collectParents()
 
     fun visit(ref: TypeResultRef) {
         // If a node has multiple parents and has a least one child, insert a getter node above it.
@@ -22,10 +23,11 @@ fun List<MethodEntry>.optimize(): List<MethodEntry> {
         // override fun getBaz(): Baz = Baz(_foo)
         // ```
         val key = ref.key
-        val oldRef = ref.ref
-        if (oldRef !in visited && oldRef.parents.size > 1 && oldRef.children.hasNext()) {
+        val currentResult = ref.result
+        val parents = parentMap[currentResult] ?: emptySet()
+        if (currentResult !in visited && parents.size > 1 && currentResult.children.hasNext()) {
             val topLevel = find { it.typeResult == ref }
-            val newVar = if (topLevel != null) {
+            val newResult = if (topLevel != null) {
                 TypeResult.Provides(
                     className = "",
                     methodName = topLevel.name,
@@ -44,24 +46,20 @@ fun List<MethodEntry>.optimize(): List<MethodEntry> {
                     parameters = emptyList(),
                 ).also { newVar ->
                     newEntries.add(
-                        MethodEntry.privateGetter(newVar.methodName, key.type, TypeResultRef(key, oldRef))
+                        MethodEntry.privateGetter(newVar.methodName, key.type, TypeResultRef(key, currentResult))
                     )
                 }
             }
-            for (parent in oldRef.parents) {
+            for (parent in parents) {
                 for (child in parent.children) {
-                    if (child.ref == oldRef) {
-                        child.ref = newVar
+                    if (child.result == currentResult) {
+                        child.result = newResult
                     }
                 }
             }
-            oldRef.parents.apply {
-                clear()
-                add(newVar)
-            }
-            visited.add(oldRef)
+            visited.add(currentResult)
         }
-        ref.ref.children.forEach { visit(it) }
+        ref.result.children.forEach { visit(it) }
     }
 
     for (entry in this) {
@@ -69,4 +67,21 @@ fun List<MethodEntry>.optimize(): List<MethodEntry> {
     }
 
     return newEntries + this
+}
+
+private fun List<MethodEntry>.collectParents(): Map<TypeResult, Set<TypeResult>> {
+    val parentMap = mutableMapOf<TypeResult, MutableSet<TypeResult>>()
+
+    fun collectParents(ref: TypeResultRef) {
+        val parent = ref.result
+        parent.children.forEach { child ->
+            parentMap.getOrPut(child.result) { mutableSetOf() }.add(parent)
+            collectParents(child)
+        }
+    }
+    for (entry in this) {
+        collectParents(entry.typeResult)
+    }
+
+    return parentMap
 }

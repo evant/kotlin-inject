@@ -2,7 +2,7 @@ package me.tatarka.inject.compiler
 
 import com.squareup.kotlinpoet.CodeBlock
 
-fun TypeResultRef.generate() = ref.generate()
+fun TypeResultRef.generate() = result.generate()
 
 fun TypeResult.generate(): CodeBlock {
     return when (this) {

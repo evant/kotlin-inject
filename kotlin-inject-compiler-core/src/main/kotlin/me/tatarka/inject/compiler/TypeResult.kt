@@ -1,6 +1,9 @@
 package me.tatarka.inject.compiler
 
-class TypeResultRef(val key: TypeKey, var ref: TypeResult)
+/**
+ * [TypeResult] wrapper that allows updating it's value.
+ */
+class TypeResultRef(val key: TypeKey, var result: TypeResult)
 
 /**
  * Represents a certain type that can be constructed.
@@ -13,7 +16,6 @@ sealed class TypeResult {
         override fun next(): TypeResultRef = throw NoSuchElementException()
     }
 
-    val parents: MutableList<TypeResult> = mutableListOf()
     open val children: Iterator<TypeResultRef> = EmptyIterator
 
     /**
