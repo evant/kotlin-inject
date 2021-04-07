@@ -16,6 +16,9 @@ sealed class TypeResult {
     val parents: MutableList<TypeResult> = mutableListOf()
     open val children: Iterator<TypeResultRef> = EmptyIterator
 
+    /**
+     * A function or property that can provide the type.
+     */
     class Provides(
         val className: String,
         val methodName: String,
@@ -31,6 +34,9 @@ sealed class TypeResult {
             }
     }
 
+    /**
+     * The type is scoped to key.
+     */
     class Scoped(
         val key: String,
         val accessor: String?,
@@ -40,6 +46,9 @@ sealed class TypeResult {
             get() = iterator { yield(result) }
     }
 
+    /**
+     * A constructor for the the type.
+     */
     class Constructor(
         val type: AstType,
         val parameters: List<TypeResultRef>
@@ -48,6 +57,9 @@ sealed class TypeResult {
             get() = parameters.iterator()
     }
 
+    /**
+     * A container that holds the type (ex: Set or Map).
+     */
     class Container(
         val creator: String,
         val args: List<TypeResultRef>
@@ -56,6 +68,9 @@ sealed class TypeResult {
             get() = args.iterator()
     }
 
+    /**
+     * A lambda function that returns the type.
+     */
     class Function(
         val args: List<String>,
         val result: TypeResultRef,
@@ -64,6 +79,9 @@ sealed class TypeResult {
             get() = iterator { yield(result) }
     }
 
+    /**
+     * A named function that returns the type.
+     */
     class NamedFunction(
         val name: String,
         val args: List<String>,
@@ -73,10 +91,19 @@ sealed class TypeResult {
             get() = parameters.iterator()
     }
 
+    /**
+     * An object type.
+     */
     class Object(val type: AstType) : TypeResult()
 
+    /**
+     * An arg that represents the type. Used in provides & functions.
+     */
     class Arg(val name: String) : TypeResult()
 
+    /**
+     * A lazy type.
+     */
     class Lazy(val result: TypeResultRef) : TypeResult() {
         override val children
             get() = iterator { yield(result) }

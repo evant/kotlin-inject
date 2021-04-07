@@ -382,7 +382,7 @@ private class KSAstType(provider: KSAstProvider, val type: KSType) : AstType(), 
         return actualType.isFunction() || actualType.isSuspendingFunction()
     }
 
-    override fun isTypeAlis(): Boolean {
+    override fun isTypeAlias(): Boolean {
         return declaration is KSTypeAlias
     }
 

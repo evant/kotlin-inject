@@ -2,27 +2,6 @@ package me.tatarka.inject.compiler
 
 import java.util.Locale
 
-@Suppress("FunctionNaming")
-fun MethodEntry(method: AstMethod, returnType: AstType, typeResult: TypeResultRef) = MethodEntry(
-    name = method.name,
-    returnType = returnType,
-    isProperty = method is AstProperty,
-    isPrivate = false,
-    isOverride = true,
-    isSuspend = method is AstFunction && method.isSuspend,
-    typeResult = typeResult,
-)
-
-data class MethodEntry(
-    val name: String,
-    val returnType: AstType,
-    val isProperty: Boolean,
-    val isPrivate: Boolean,
-    val isOverride: Boolean,
-    val isSuspend: Boolean,
-    val typeResult: TypeResultRef,
-)
-
 @Suppress("NestedBlockDepth")
 fun List<MethodEntry>.optimize(): List<MethodEntry> {
     val newEntries = mutableListOf<MethodEntry>()
@@ -42,7 +21,9 @@ fun List<MethodEntry>.optimize(): List<MethodEntry> {
         // override fun getBar(): Bar = Bar(_foo)
         // override fun getBaz(): Baz = Baz(_foo)
         // ```
-        if (ref.ref !in visited && ref.ref.parents.size > 1 && ref.ref.children.hasNext()) {
+        val key = ref.key
+        val oldRef = ref.ref
+        if (oldRef !in visited && oldRef.parents.size > 1 && oldRef.children.hasNext()) {
             val topLevel = find { it.typeResult == ref }
             val newVar = if (topLevel != null) {
                 TypeResult.Provides(
@@ -56,26 +37,17 @@ fun List<MethodEntry>.optimize(): List<MethodEntry> {
             } else {
                 TypeResult.Provides(
                     className = "",
-                    methodName = "_${ref.key.type.simpleName.decapitalize(Locale.US)}",
+                    methodName = "_${key.type.simpleName.decapitalize(Locale.US)}",
                     accessor = null,
                     receiver = null,
                     isProperty = true,
                     parameters = emptyList(),
                 ).also { newVar ->
                     newEntries.add(
-                        MethodEntry(
-                            name = newVar.methodName,
-                            returnType = ref.key.type,
-                            isProperty = true,
-                            isPrivate = true,
-                            isOverride = false,
-                            isSuspend = false,
-                            typeResult = TypeResultRef(ref.key, ref.ref)
-                        )
+                        MethodEntry.privateGetter(newVar.methodName, key.type, TypeResultRef(key, oldRef))
                     )
                 }
             }
-            val oldRef = ref.ref
             for (parent in oldRef.parents) {
                 for (child in parent.children) {
                     if (child.ref == oldRef) {

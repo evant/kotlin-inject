@@ -119,8 +119,8 @@ class InjectGenerator<Output, Provider>(
                             val returnType = method.returnTypeFor(astClass)
                             context.withoutProvider(returnType).use(method) { context ->
                                 val key = TypeKey(returnType, method.qualifier(options))
-                                val typeResult = resolver.find(context, key)
-                                MethodEntry(method, returnType, typeResult)
+                                val typeResult = resolver.resolve(context, key)
+                                MethodEntry.provider(method, returnType, typeResult)
                             }
                         }.optimize()
 

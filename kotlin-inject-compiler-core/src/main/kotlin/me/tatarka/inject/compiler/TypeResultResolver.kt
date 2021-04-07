@@ -11,30 +11,33 @@ class TypeResultResolver(private val options: Options) {
     private val types = mutableMapOf<TypeKey, TypeResult>()
 
     /**
-     * Find the given type in this context.
+     * Resolves the given type in this context. This will return a cached result if has already been resolved.
      */
-    fun find(context: Context, key: TypeKey): TypeResultRef {
+    fun resolve(context: Context, key: TypeKey): TypeResultRef {
         return TypeResultRef(key, types[key] ?: context.findType(key).linkRefs()
             .also { types[key] = it })
-    }
-
-    /**
-     * Find the given type with the given index & size. This is used for matching positional types in function args.
-     */
-    private fun findWithIndex(context: Context, key: TypeKey, index: Int, size: Int): TypeResultRef {
-        val indexFromEnd = size - index - 1
-        context.args.asReversed().getOrNull(indexFromEnd)?.let { (type, name) ->
-            if (type.isAssignableFrom(key.type)) {
-                return TypeResultRef(key, TypeResult.Arg(name))
-            }
-        }
-        return find(context, key)
     }
 
     private fun <T : TypeResult> T.linkRefs(): T = also {
         it.children.forEach { child -> child.ref.parents.add(it) }
     }
 
+    /**
+     * Resolves the given type with the given index & size. This is used for matching positional types in function args.
+     */
+    private fun resolveWithIndex(context: Context, key: TypeKey, index: Int, size: Int): TypeResultRef {
+        val indexFromEnd = size - index - 1
+        context.args.asReversed().getOrNull(indexFromEnd)?.let { (type, name) ->
+            if (type.isAssignableFrom(key.type)) {
+                return TypeResultRef(key, TypeResult.Arg(name))
+            }
+        }
+        return resolve(context, key)
+    }
+
+    /**
+     * Find the given type.
+     */
     private fun Context.findType(key: TypeKey): TypeResult {
         val typeCreator = collector.resolve(key)
         if (typeCreator != null) {
@@ -42,7 +45,7 @@ class TypeResultResolver(private val options: Options) {
         }
         if (key.type.isFunction()) {
             val resolveType = key.type.resolvedType()
-            if (key.type.isTypeAlis()) {
+            if (key.type.isTypeAlias()) {
                 // Check to see if we have a function matching the type alias
                 val functions = provider.findFunctions(key.type.packageName, key.type.simpleName)
                 val injectedFunction = functions.find { it.hasAnnotation<Inject>() }
@@ -99,14 +102,14 @@ class TypeResultResolver(private val options: Options) {
             accessor = accessor,
             receiver = method.receiverParameterType?.let {
                 val key = TypeKey(it, method.qualifier(options))
-                find(context, key)
+                resolve(context, key)
             },
             isProperty = method is AstProperty,
             parameters = (method as? AstFunction)?.let {
                 val size = it.parameters.size
                 it.parameters.mapIndexed { i, param ->
                     val key = TypeKey(param.type, param.qualifier(options))
-                    findWithIndex(context, key, i, size)
+                    resolveWithIndex(context, key, i, size)
                 }
             } ?: emptyList(),
         )
@@ -119,7 +122,7 @@ class TypeResultResolver(private val options: Options) {
     ) = TypeResult.Scoped(
         key = key.toString(),
         accessor = accessor,
-        result = find(context.withoutScoped(key.type), key)
+        result = resolve(context.withoutScoped(key.type), key)
     )
 
     private fun Constructor(context: Context, constructor: AstConstructor) = context.use(constructor) { context ->
@@ -128,7 +131,7 @@ class TypeResultResolver(private val options: Options) {
             type = constructor.type,
             parameters = constructor.parameters.mapIndexed { i, param ->
                 val key = TypeKey(param.type, param.qualifier(options))
-                findWithIndex(context, key, i, size)
+                resolveWithIndex(context, key, i, size)
             }
         )
     }
@@ -153,7 +156,7 @@ class TypeResultResolver(private val options: Options) {
         val namedArgs = args.mapIndexed { i, arg -> arg to "arg$i" }
         TypeResult.Function(
             args = namedArgs.map { it.second },
-            result = find(context.withArgs(namedArgs), key)
+            result = resolve(context.withArgs(namedArgs), key)
         )
     }
 
@@ -169,10 +172,10 @@ class TypeResultResolver(private val options: Options) {
             args = namedArgs.map { it.second },
             parameters = function.parameters.mapIndexed { i, param ->
                 val key = TypeKey(param.type, param.qualifier(options))
-                findWithIndex(context.withArgs(namedArgs), key, i, size)
+                resolveWithIndex(context.withArgs(namedArgs), key, i, size)
             }
         )
     }
 
-    private fun Lazy(context: Context, key: TypeKey) = TypeResult.Lazy(find(context, key))
+    private fun Lazy(context: Context, key: TypeKey) = TypeResult.Lazy(resolve(context, key))
 }
