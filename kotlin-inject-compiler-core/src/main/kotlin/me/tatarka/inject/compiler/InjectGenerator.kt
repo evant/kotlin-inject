@@ -233,22 +233,3 @@ fun AstMethod.isProvider(): Boolean =
         is AstFunction -> parameters.isEmpty()
         is AstProperty -> true
     } && receiverParameterType == null && returnType.isNotUnit()
-
-fun AstClass.scopeClass(messenger: Messenger, options: Options): AstClass? {
-    var elementScopeClass: AstClass? = null
-    visitInheritanceChain { parentClass ->
-        val parentScope = parentClass.scopeType(options)
-        if (parentScope != null) {
-            if (elementScopeClass == null) {
-                elementScopeClass = parentClass
-            } else {
-                messenger.error("Cannot apply scope: $parentScope", parentClass)
-                messenger.error(
-                    "as scope: ${elementScopeClass!!.scopeType(options)} is already applied",
-                    elementScopeClass!!
-                )
-            }
-        }
-    }
-    return elementScopeClass
-}
