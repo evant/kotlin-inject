@@ -1,5 +1,6 @@
 package me.tatarka.inject.test
 
+import assertk.all
 import assertk.assertThat
 import assertk.assertions.contains
 import assertk.assertions.isFailure
@@ -18,7 +19,8 @@ class FailureTest(private val target: Target) {
 
     companion object {
         @JvmStatic
-        @Parameterized.Parameters(name = "{0}") fun data(): Iterable<Array<Any>> {
+        @Parameterized.Parameters(name = "{0}")
+        fun data(): Iterable<Array<Any>> {
             return Target.values().map { arrayOf(it) }
         }
     }
@@ -352,6 +354,30 @@ class FailureTest(private val target: Target) {
         }.isFailure().output().contains(
             "Missing companion for class: MyComponent"
         )
+    }
+
+    @Test
+    fun fails_if_scope_is_applied_at_multiple_levels() {
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+               import me.tatarka.inject.annotations.Component
+               import me.tatarka.inject.annotations.Scope
+               
+               @Scope annotation class MyScope1
+               
+               @Scope annotation class MyScope2
+                 
+               @MyScope1 interface Parent
+               
+               @Component @MyScope2 abstract class MyComponent() : Parent
+                """.trimIndent()
+            ).compile()
+        }.isFailure().output().all {
+            contains("Cannot apply scope: MyScope1")
+            contains("as scope: MyScope2 is already applied")
+        }
     }
 }
 
