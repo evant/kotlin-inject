@@ -26,7 +26,13 @@ var fooConstructorCount = 0
 
 @Inject data class BarImpl(val foo: IFoo) : IBar
 
+@Inject data class BarImpl2(val foo: IFoo) : IFoo
+
 @Inject class Baz : IFoo
+
+@Inject data class Bar2(val bar: Bar) : IFoo
+
+@Inject data class Bar3(val bar: Bar) : IFoo
 
 @Inject internal class InternalFoo
 

@@ -604,7 +604,7 @@ private class ModelAstType(
         return kmType?.isFunction() == true
     }
 
-    override fun isTypeAlis(): Boolean {
+    override fun isTypeAlias(): Boolean {
         return kmType?.abbreviatedType != null
     }
 

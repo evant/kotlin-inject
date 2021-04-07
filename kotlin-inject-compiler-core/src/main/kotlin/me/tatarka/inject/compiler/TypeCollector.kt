@@ -222,13 +222,7 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
         error("as it is already provided", oldValue)
     }
 
-    fun resolve(key: TypeKey, skipSelf: Boolean = false): TypeCreator? {
-        if (!skipSelf) {
-            val result = _providerMethods[key]
-            if (result != null) {
-                return result
-            }
-        }
+    fun resolve(key: TypeKey): TypeCreator? {
         val result = types[key]
         if (result != null) {
             return result

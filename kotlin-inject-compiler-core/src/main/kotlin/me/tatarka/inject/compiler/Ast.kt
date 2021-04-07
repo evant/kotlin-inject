@@ -162,7 +162,7 @@ abstract class AstType : AstElement() {
 
     abstract fun isFunction(): Boolean
 
-    abstract fun isTypeAlis(): Boolean
+    abstract fun isTypeAlias(): Boolean
 
     abstract fun resolvedType(): AstType
 
