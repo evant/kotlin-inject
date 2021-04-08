@@ -52,7 +52,7 @@ class InjectGenerator<Output, Provider>(
         constructor: AstConstructor?
     ): AstTypeSpec {
         val context = collectTypes(astClass)
-        val resolver = TypeResultResolver(options)
+        val resolver = TypeResultResolver(this, options)
         val scope = context.collector.scopeClass
         scopeType = scope?.scopeType(options)
 
@@ -117,17 +117,14 @@ class InjectGenerator<Output, Provider>(
 
                         val results = context.collector.providerMethods.map { method ->
                             val returnType = method.returnTypeFor(astClass)
-                            context.withoutProvider(returnType).use(method) { context ->
-                                val key = TypeKey(returnType, method.qualifier(options))
-                                val typeResult = resolver.resolve(context, key)
-                                MethodEntry.provider(method, returnType, typeResult)
-                            }
+                            resolver.resolveMethodEntry(context, method, returnType)
                         }.optimize()
 
                         for (entry in results) {
                             val codeBlock = CodeBlock.builder().apply {
                                 add("return ")
                                 add(entry.typeResult.generate())
+                                add("\n»")
                             }.build()
 
                             if (entry.isProperty) {
@@ -168,15 +165,12 @@ class InjectGenerator<Output, Provider>(
             options = options,
             astClass = astClass,
         )
-        val cycleDetector = CycleDetector()
         val elementScopeClass = typeCollector.scopeClass
         val scopeFromParent = elementScopeClass != astClass
         return Context(
             provider = this,
             className = "Inject${astClass.name}",
-            source = astClass,
             collector = typeCollector,
-            cycleDetector = cycleDetector,
             scopeInterface = if (scopeFromParent) elementScopeClass else null,
         )
     }

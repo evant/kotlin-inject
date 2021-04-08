@@ -6,14 +6,23 @@ import me.tatarka.inject.annotations.Inject
  * Obtains a [TypeResult] from a given [Context].
  */
 @Suppress("NAME_SHADOWING", "FunctionNaming")
-class TypeResultResolver(private val options: Options) {
+class TypeResultResolver(private val provider: AstProvider, private val options: Options) {
 
+    private val cycleDetector = CycleDetector()
     private val types = mutableMapOf<TypeKey, TypeResult>()
+
+    fun resolveMethodEntry(context: Context, method: AstMethod, returnType: AstType): MethodEntry {
+        val key = TypeKey(returnType, method.qualifier(options))
+        val result = withCycleDetection(context.withoutProvider(returnType), key, method) { context ->
+            resolve(context, key).result
+        }
+        return MethodEntry.provider(method, returnType, TypeResultRef(key, result))
+    }
 
     /**
      * Resolves the given type in this context. This will return a cached result if has already been resolved.
      */
-    fun resolve(context: Context, key: TypeKey): TypeResultRef {
+    private fun resolve(context: Context, key: TypeKey): TypeResultRef {
         return TypeResultRef(key, types[key] ?: context.findType(key)
             .also { types[key] = it })
     }
@@ -49,6 +58,7 @@ class TypeResultResolver(private val options: Options) {
                     return NamedFunction(
                         this,
                         function = injectedFunction,
+                        key = key,
                         args = resolveType.arguments.dropLast(1)
                     )
                 }
@@ -74,13 +84,13 @@ class TypeResultResolver(private val options: Options) {
                 if (scopedComponent != null && skipScoped != constructor.type) {
                     Scoped(context, accessor, key)
                 } else {
-                    Constructor(context, constructor)
+                    Constructor(context, constructor, key)
                 }
             is TypeCreator.Method ->
                 if (scopedComponent != null && skipScoped != method.returnType) {
                     Scoped(context, accessor, key)
                 } else {
-                    Provides(context, accessor, method)
+                    Provides(context, accessor, method, key)
                 }
             is TypeCreator.Container -> Container(context, creator.toString(), args)
             is TypeCreator.Object -> TypeResult.Object(astClass.type)
@@ -91,7 +101,8 @@ class TypeResultResolver(private val options: Options) {
         context: Context,
         accessor: String?,
         method: AstMethod,
-    ) = context.use(method) { context ->
+        key: TypeKey,
+    ) = withCycleDetection(context, key, method) { context ->
         TypeResult.Provides(
             className = context.className,
             methodName = method.name,
@@ -121,16 +132,17 @@ class TypeResultResolver(private val options: Options) {
         result = resolve(context.withoutScoped(key.type), key)
     )
 
-    private fun Constructor(context: Context, constructor: AstConstructor) = context.use(constructor) { context ->
-        val size = constructor.parameters.size
-        TypeResult.Constructor(
-            type = constructor.type,
-            parameters = constructor.parameters.mapIndexed { i, param ->
-                val key = TypeKey(param.type, param.qualifier(options))
-                resolveWithIndex(context, key, i, size)
-            }
-        )
-    }
+    private fun Constructor(context: Context, constructor: AstConstructor, key: TypeKey) =
+        withCycleDetection(context, key, constructor) { context ->
+            val size = constructor.parameters.size
+            TypeResult.Constructor(
+                type = constructor.type,
+                parameters = constructor.parameters.mapIndexed { i, param ->
+                    val key = TypeKey(param.type, param.qualifier(options))
+                    resolveWithIndex(context, key, i, size)
+                }
+            )
+        }
 
     private fun Container(
         context: Context,
@@ -139,7 +151,7 @@ class TypeResultResolver(private val options: Options) {
     ) = TypeResult.Container(creator = creator,
         args = args.map { arg ->
             val key = TypeKey(arg.method.returnType, arg.method.qualifier(options))
-            TypeResultRef(key, Provides(context, arg.accessor, arg.method))
+            TypeResultRef(key, Provides(context, arg.accessor, arg.method, key))
         }
     )
 
@@ -148,19 +160,23 @@ class TypeResultResolver(private val options: Options) {
         element: AstElement,
         key: TypeKey,
         args: List<AstType>
-    ) = context.use(element) { context ->
-        val namedArgs = args.mapIndexed { i, arg -> arg to "arg$i" }
-        TypeResult.Function(
-            args = namedArgs.map { it.second },
-            result = resolve(context.withArgs(namedArgs), key)
-        )
+    ): TypeResult {
+        cycleDetector.delayed()
+        return withCycleDetection(context, key, element) { context ->
+            val namedArgs = args.mapIndexed { i, arg -> arg to "arg$i" }
+            TypeResult.Function(
+                args = namedArgs.map { it.second },
+                result = resolve(context.withArgs(namedArgs), key)
+            )
+        }
     }
 
     private fun NamedFunction(
         context: Context,
         function: AstFunction,
+        key: TypeKey,
         args: List<AstType>
-    ) = context.use(function) { context ->
+    ) = withCycleDetection(context, key, function) { context ->
         val namedArgs = args.mapIndexed { i, arg -> arg to "arg$i" }
         val size = function.parameters.size
         TypeResult.NamedFunction(
@@ -173,5 +189,49 @@ class TypeResultResolver(private val options: Options) {
         )
     }
 
-    private fun Lazy(context: Context, key: TypeKey) = TypeResult.Lazy(resolve(context, key))
+    private fun Lazy(context: Context, key: TypeKey): TypeResult {
+        cycleDetector.delayed()
+        return maybeLateInit(key, TypeResult.Lazy(resolve(context, key)))
+    }
+
+    private fun LateInit(
+        name: String,
+        key: TypeKey,
+        typeResult: TypeResult
+    ): TypeResult.LateInit {
+        return TypeResult.LateInit(
+            name = name,
+            result = TypeResultRef(key, typeResult)
+        )
+    }
+
+    private fun withCycleDetection(
+        context: Context,
+        key: TypeKey,
+        source: AstElement,
+        f: (context: Context) -> TypeResult
+    ): TypeResult {
+        val result = when (val result = cycleDetector.check(key, source)) {
+            is CycleResult.None -> f(context).also { cycleDetector.pop() }
+            is CycleResult.Cycle -> throw FailedToGenerateException(trace("Cycle detected"))
+            is CycleResult.Resolvable -> TypeResult.LocalVar(result.key.type.simpleName.decapitalize())
+        }
+        return maybeLateInit(key, result)
+    }
+
+    private fun maybeLateInit(key: TypeKey, result: TypeResult): TypeResult {
+        return if (result !is TypeResult.LocalVar && cycleDetector.resolve(key)) {
+            LateInit(key.type.simpleName.decapitalize(), key, result)
+        } else {
+            result
+        }
+    }
+
+    /**
+     * Produce a trace with the given message prefix. This will show all the lines with
+     * elements that were traversed for this context.
+     */
+    private fun trace(message: String): String = "$message\n" +
+            cycleDetector.elements.reversed()
+                .joinToString(separator = "\n") { with(provider) { it.toTrace() } }
 }
