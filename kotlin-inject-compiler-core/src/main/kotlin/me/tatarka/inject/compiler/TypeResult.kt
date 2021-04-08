@@ -37,6 +37,11 @@ sealed class TypeResult {
     }
 
     /**
+     * A generated private getter.
+     */
+    class PrivateGetter(val name: String) : TypeResult()
+
+    /**
      * The type is scoped to key.
      */
     class Scoped(
@@ -104,9 +109,23 @@ sealed class TypeResult {
     class Arg(val name: String) : TypeResult()
 
     /**
+     * A local var in the current scope, used for [LateInit].
+     */
+    class LocalVar(val name: String) : TypeResult()
+
+    /**
      * A lazy type.
      */
     class Lazy(val result: TypeResultRef) : TypeResult() {
+
+        override val children
+            get() = iterator { yield(result) }
+    }
+
+    /**
+     * Construct a reference using lateinit, this allows cycles when using lazy/functions for construction.
+     */
+    class LateInit(val name: String, val result: TypeResultRef) : TypeResult() {
         override val children
             get() = iterator { yield(result) }
     }

@@ -2,16 +2,19 @@ package me.tatarka.inject.test
 
 import assertk.assertThat
 import assertk.assertions.isSameAs
+import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
-import kotlin.reflect.KClass
+import me.tatarka.inject.annotations.Provides
 import kotlin.test.Test
 
 class LazyCycleFoo(val bar: LazyCycleBar)
 
 class LazyCycleBar(val foo: Lazy<LazyCycleFoo>)
 
+@Inject
 class FBar(val foo: () -> FFoo)
 
+@Inject
 class FFoo(val bar: FBar)
 
 @Inject
@@ -20,60 +23,32 @@ class CycleFoo(val bar: CycleBar)
 @Inject
 class CycleBar(val foo: () -> CycleFoo)
 
+@Component
 abstract class CycleComponent {
     abstract val bar: CycleBar
 }
 
-// TODO: actually generate this
-class InjectCycleComponent : CycleComponent() {
-    override val bar: CycleBar
-        get() {
-            lateinit var bar: CycleBar
-            return CycleBar { CycleFoo(bar) }.also { bar = it }
-        }
-}
-
-fun KClass<CycleComponent>.create() = InjectCycleComponent()
-
+@Component
 abstract class LazyCycleComponent {
     abstract val bar: LazyCycleBar
 
+    @Provides
     fun bar(foo: Lazy<LazyCycleFoo>) = LazyCycleBar(foo)
 
+    @Provides
     fun foo(bar: LazyCycleBar) = LazyCycleFoo(bar)
 }
 
-// TODO: actually generate this
-class InjectLazyCycleComponent : LazyCycleComponent() {
-    override val bar: LazyCycleBar
-        get() {
-            lateinit var bar: LazyCycleBar
-            return bar(lazy { foo(bar) }).also { bar = it }
-        }
-}
-
-fun KClass<LazyCycleComponent>.create() = InjectLazyCycleComponent()
-
+@Component
 abstract class FunctionCycleComponent {
     abstract val bar: FBar
 
-    // scoped?
+    @Provides
     fun bar(foo: () -> FFoo) = FBar(foo)
 
-    // scoped?
+    @Provides
     fun foo(bar: FBar) = FFoo(bar)
 }
-
-// TODO: actually generate this
-class InjectFunctionCycleComponent : FunctionCycleComponent() {
-    override val bar: FBar
-        get() {
-            lateinit var bar: FBar
-            return bar { foo(bar) }.also { bar = it }
-        }
-}
-
-fun KClass<FunctionCycleComponent>.create() = InjectFunctionCycleComponent()
 
 class RecursiveTest {
 

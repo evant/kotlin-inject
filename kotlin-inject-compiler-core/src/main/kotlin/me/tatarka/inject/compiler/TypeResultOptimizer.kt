@@ -37,16 +37,11 @@ fun List<MethodEntry>.optimize(): List<MethodEntry> {
                     parameters = emptyList(),
                 )
             } else {
-                TypeResult.Provides(
-                    className = "",
-                    methodName = "_${key.type.simpleName.decapitalize(Locale.US)}",
-                    accessor = null,
-                    receiver = null,
-                    isProperty = true,
-                    parameters = emptyList(),
+                TypeResult.PrivateGetter(
+                    name = "_${key.type.simpleName.decapitalize(Locale.US)}",
                 ).also { newVar ->
                     newEntries.add(
-                        MethodEntry.privateGetter(newVar.methodName, key.type, TypeResultRef(key, currentResult))
+                        MethodEntry.privateGetter(newVar.name, key.type, TypeResultRef(key, currentResult))
                     )
                 }
             }

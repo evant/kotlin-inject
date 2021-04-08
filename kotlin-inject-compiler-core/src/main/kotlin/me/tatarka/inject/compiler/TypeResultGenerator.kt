@@ -7,6 +7,7 @@ fun TypeResultRef.generate() = result.generate()
 fun TypeResult.generate(): CodeBlock {
     return when (this) {
         is TypeResult.Provides -> generate()
+        is TypeResult.PrivateGetter -> generate()
         is TypeResult.Scoped -> generate()
         is TypeResult.Constructor -> generate()
         is TypeResult.Container -> generate()
@@ -15,6 +16,8 @@ fun TypeResult.generate(): CodeBlock {
         is TypeResult.Object -> generate()
         is TypeResult.Arg -> generate()
         is TypeResult.Lazy -> generate()
+        is TypeResult.LateInit -> generate()
+        is TypeResult.LocalVar -> generate()
     }
 }
 
@@ -55,6 +58,10 @@ private fun TypeResult.Provides.generate(): CodeBlock {
             endControlFlow()
         }
     }.build()
+}
+
+private fun TypeResult.PrivateGetter.generate(): CodeBlock {
+    return CodeBlock.of("%N", name)
 }
 
 private fun TypeResult.Constructor.generate(): CodeBlock {
@@ -149,10 +156,24 @@ private fun TypeResult.Arg.generate(): CodeBlock {
     return CodeBlock.of(name)
 }
 
+private fun TypeResult.LocalVar.generate(): CodeBlock {
+    return CodeBlock.of(name)
+}
+
 private fun TypeResult.Lazy.generate(): CodeBlock {
     return CodeBlock.builder().apply {
         beginControlFlow("lazy {")
         add(result.generate())
+        endControlFlow()
+    }.build()
+}
+
+private fun TypeResult.LateInit.generate(): CodeBlock {
+    return CodeBlock.builder().apply {
+        beginControlFlow("run {")
+        addStatement("lateinit var %N: %T", name, result.key.type.asTypeName())
+        add(result.generate())
+        addStatement(".also { %N = it }", name)
         endControlFlow()
     }.build()
 }
