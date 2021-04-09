@@ -28,15 +28,13 @@ class CycleDetector {
 
     fun check(key: TypeKey, element: AstElement): CycleResult {
         return if (_elements.any { it is Entry.Element && it.value == element }) {
-            val delayedIndex = _elements.indexOf(Entry.Delayed)
-            if (delayedIndex != -1) {
-                val key = (_elements[delayedIndex - 1] as Entry.Element).key
+            if (_elements.any { it is Entry.Delayed }) {
                 CycleResult.Resolvable(key).also { resolving = it }
             } else {
                 CycleResult.Cycle
             }
         } else {
-            _elements.add(Entry.Element(key, element))
+            _elements.add(Entry.Element(element))
             CycleResult.None
         }
     }
@@ -48,7 +46,7 @@ class CycleDetector {
     }
 
     private sealed class Entry {
-        class Element(val key: TypeKey, val value: AstElement) : Entry()
+        class Element(val value: AstElement) : Entry()
         object Delayed : Entry()
     }
 }

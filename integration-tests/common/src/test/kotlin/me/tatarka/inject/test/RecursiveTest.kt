@@ -50,6 +50,22 @@ abstract class FunctionCycleComponent {
     fun foo(bar: FBar) = FFoo(bar)
 }
 
+@Inject
+@CustomScope
+data class CycleScopedFoo(val bar: CycleScopedBar)
+
+@Inject
+data class CycleScopedBar(val foo: Lazy<CycleScopedFoo>)
+
+@Inject
+class ScopedCycle(val foo: CycleScopedFoo)
+
+@Component
+@CustomScope
+abstract class ScopedCycleComponent {
+    abstract val foo: ScopedCycle
+}
+
 class RecursiveTest {
 
     @Test
@@ -74,5 +90,13 @@ class RecursiveTest {
         val bar = component.bar
 
         assertThat(bar).isSameAs(bar.foo().bar)
+    }
+
+    @Test
+    fun generates_a_component_that_provides_a_scoped_dependency_recursively() {
+        val component = ScopedCycleComponent::class.create()
+        val foo = component.foo.foo
+
+        assertThat(foo).isSameAs(foo.bar.foo.value)
     }
 }
