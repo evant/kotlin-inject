@@ -118,6 +118,10 @@ class InjectGenerator<Output, Provider>(
                         val results = context.collector.providerMethods.map { method ->
                             val returnType = method.returnTypeFor(astClass)
                             resolver.resolveMethodEntry(context, method, returnType)
+                        }.apply {
+                            if (options.dumpGraph) {
+                                messenger.warn(dumpGraph(astClass, this))
+                            }
                         }.optimize()
 
                         for (entry in results) {
@@ -227,3 +231,31 @@ fun AstMethod.isProvider(): Boolean =
         is AstFunction -> parameters.isEmpty()
         is AstProperty -> true
     } && receiverParameterType == null && returnType.isNotUnit()
+
+private fun dumpGraph(astClass: AstClass, entries: List<MethodEntry>): String {
+    val out = StringBuilder(astClass.name).append("\n")
+    for (entry in entries) {
+        out.append("* ${entry.name}: ${entry.returnType}\n")
+        val seen = mutableSetOf<TypeResult>()
+        out.renderTree(entry.typeResult) { ref ->
+            val walkChildren = ref.result !in seen
+            seen.add(ref.result)
+            out.apply {
+                append(ref.result::class.simpleName)
+                append("@")
+                append(System.identityHashCode(ref.result))
+                append(": ")
+                append(ref.key)
+                if (!walkChildren) {
+                    append(" *")
+                }
+            }
+            if (walkChildren) {
+                ref.result.children
+            } else {
+                EmptyIterator
+            }
+        }
+    }
+    return out.toString()
+}

@@ -21,7 +21,7 @@ fun <T> Iterable<T>.eqvItr(other: Iterable<T>, eqv: (T, T) -> Boolean): Boolean 
 
 fun <T : Any> T?.eqv(other: T?, eqv: (T, T) -> Boolean): Boolean =
     this == null && other == null ||
-        this != null && other != null && eqv(this, other)
+            this != null && other != null && eqv(this, other)
 
 class HashCollector {
     var hash: Int = 1
@@ -35,3 +35,35 @@ class HashCollector {
 
 inline fun collectHash(collector: HashCollector = HashCollector(), block: HashCollector.() -> Unit): Int =
     collector.apply(block).hash
+
+object EmptyIterator : Iterator<TypeResultRef> {
+    override fun hasNext(): Boolean = false
+
+    override fun next(): TypeResultRef = throw NoSuchElementException()
+}
+
+typealias TreeVisitor<T> = (T) -> Iterator<T>
+
+fun <T> StringBuilder.renderTree(node: T, visitor: TreeVisitor<T>) {
+    renderTree(node, visitor, "", true, this)
+}
+
+private fun <T> renderTree(node: T, visitor: TreeVisitor<T>, indent: String, out: StringBuilder) {
+    val children = visitor(node)
+    out.append("\n")
+    while (children.hasNext()) {
+        renderTree(children.next(), visitor, indent, !children.hasNext(), out)
+    }
+}
+
+private fun <T> renderTree(node: T, visitor: TreeVisitor<T>, indent: String, isLast: Boolean, out: StringBuilder) {
+    out.append(indent)
+    val newIndent = if (isLast) {
+        out.append("└")
+        "$indent "
+    } else {
+        out.append("├")
+        "$indent│"
+    }
+    renderTree(node, visitor, newIndent, out)
+}

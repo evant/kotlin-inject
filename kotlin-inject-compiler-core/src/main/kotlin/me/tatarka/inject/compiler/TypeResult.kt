@@ -10,12 +10,6 @@ class TypeResultRef(val key: TypeKey, var result: TypeResult)
  */
 sealed class TypeResult {
 
-    private object EmptyIterator : Iterator<TypeResultRef> {
-        override fun hasNext(): Boolean = false
-
-        override fun next(): TypeResultRef = throw NoSuchElementException()
-    }
-
     open val children: Iterator<TypeResultRef> = EmptyIterator
 
     /**
