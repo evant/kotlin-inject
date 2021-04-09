@@ -30,7 +30,7 @@ private fun TypeResult.Provides.generate(): CodeBlock {
         if (accessor != null) {
             if (changeScope) {
                 add("with(this@%L.%L)", className, accessor)
-                beginControlFlow(" {")
+                beginControlFlow("")
             } else {
                 add("%L.", accessor)
             }
@@ -55,6 +55,7 @@ private fun TypeResult.Provides.generate(): CodeBlock {
         }
 
         if (changeScope) {
+            add("\n")
             endControlFlow()
         }
     }.build()
@@ -86,8 +87,9 @@ private fun TypeResult.Scoped.generate(): CodeBlock {
                 SCOPED_COMPONENT
             )
         }
-        add("_scoped.get(%S)", key).beginControlFlow("{")
+        add("_scoped.get(%S)", key).beginControlFlow("")
         add(result.generate())
+        add("\n")
         endControlFlow()
     }.build()
 }
@@ -107,7 +109,7 @@ private fun TypeResult.Container.generate(): CodeBlock {
 
 private fun TypeResult.Function.generate(): CodeBlock {
     return CodeBlock.builder().apply {
-        beginControlFlow("{")
+        beginControlFlow("")
         args.forEachIndexed { index, arg ->
             if (index != 0) {
                 add(",")
@@ -124,7 +126,7 @@ private fun TypeResult.Function.generate(): CodeBlock {
 
 private fun TypeResult.NamedFunction.generate(): CodeBlock {
     return CodeBlock.builder().apply {
-        beginControlFlow("{")
+        beginControlFlow("")
         args.forEachIndexed { index, arg ->
             if (index != 0) {
                 add(",")
@@ -162,15 +164,16 @@ private fun TypeResult.LocalVar.generate(): CodeBlock {
 
 private fun TypeResult.Lazy.generate(): CodeBlock {
     return CodeBlock.builder().apply {
-        beginControlFlow("lazy {")
+        beginControlFlow("lazy")
         add(result.generate())
+        add("\n")
         endControlFlow()
     }.build()
 }
 
 private fun TypeResult.LateInit.generate(): CodeBlock {
     return CodeBlock.builder().apply {
-        beginControlFlow("run {")
+        beginControlFlow("run")
         addStatement("lateinit var %N: %T", name, result.key.type.asTypeName())
         add(result.generate())
         addStatement(".also { %N = it }", name)
