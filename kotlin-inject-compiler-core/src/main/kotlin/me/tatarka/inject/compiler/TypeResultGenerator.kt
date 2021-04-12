@@ -1,13 +1,17 @@
 package me.tatarka.inject.compiler
 
 import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.TypeSpec
 
 fun TypeResultRef.generate() = result.generate()
 
 fun TypeResult.generate(): CodeBlock {
     return when (this) {
+        is TypeResult.Provider -> generate()
         is TypeResult.Provides -> generate()
-        is TypeResult.PrivateGetter -> generate()
         is TypeResult.Scoped -> generate()
         is TypeResult.Constructor -> generate()
         is TypeResult.Container -> generate()
@@ -19,6 +23,41 @@ fun TypeResult.generate(): CodeBlock {
         is TypeResult.LateInit -> generate()
         is TypeResult.LocalVar -> generate()
     }
+}
+
+fun TypeResult.Provider.generateInto(typeSpec: TypeSpec.Builder) {
+    val codeBlock = CodeBlock.builder().apply {
+        add("return ")
+        add(result.generate())
+        add("\n»")
+    }.build()
+
+    if (isProperty) {
+        typeSpec.addProperty(
+            PropertySpec.builder(name, returnType.asTypeName())
+                .apply {
+                    if (isPrivate) addModifiers(KModifier.PRIVATE)
+                    if (isOverride) addModifiers(KModifier.OVERRIDE)
+                }
+                .getter(FunSpec.getterBuilder().addCode(codeBlock).build()).build()
+        )
+    } else {
+        typeSpec.addFunction(
+            FunSpec.builder(name).returns(returnType.asTypeName())
+                .apply {
+                    if (isPrivate) addModifiers(KModifier.PRIVATE)
+                    if (isOverride) addModifiers(KModifier.OVERRIDE)
+                    if (isSuspend) addModifiers(KModifier.SUSPEND)
+                }
+                .addCode(codeBlock).build()
+        )
+    }
+}
+
+private fun TypeResult.Provider.generate(): CodeBlock {
+    // TODO: allow these to be generated at a local level.
+    return CodeBlock.builder().apply {
+    }.build()
 }
 
 @Suppress("LongMethod")
@@ -59,10 +98,6 @@ private fun TypeResult.Provides.generate(): CodeBlock {
             endControlFlow()
         }
     }.build()
-}
-
-private fun TypeResult.PrivateGetter.generate(): CodeBlock {
-    return CodeBlock.of("%N", name)
 }
 
 private fun TypeResult.Constructor.generate(): CodeBlock {

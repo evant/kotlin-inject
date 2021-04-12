@@ -11,14 +11,14 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     private val cycleDetector = CycleDetector()
     private val types = mutableMapOf<TypeKey, TypeResult>()
 
-    fun resolveMethodEntry(context: Context, method: AstMethod, returnType: AstType): MethodEntry {
-        val key = TypeKey(returnType, method.qualifier(options))
-        val result = withCycleDetection(context.withoutProvider(returnType), key, method) { context ->
-            resolve(context, key).result
+    /**
+     * Resolves all [TypeResult] for provider methods in the given class.
+     */
+    fun resolveAll(context: Context, astClass: AstClass): List<TypeResult.Provider> {
+        return context.collector.providerMethods.map { method ->
+            Provider(context, astClass, method)
         }
-        return MethodEntry.provider(method, returnType, TypeResultRef(key, result))
     }
-
     /**
      * Resolves the given type in this context. This will return a cached result if has already been resolved.
      */
@@ -97,12 +97,33 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         }
     }
 
+    private fun Provider(
+        context: Context,
+        astClass: AstClass,
+        method: AstMethod,
+    ): TypeResult.Provider {
+        val returnType = method.returnTypeFor(astClass)
+        val key = TypeKey(returnType, method.qualifier(options))
+        val result = withCycleDetection(key, method) {
+            resolve(context.withoutProvider(returnType), key).result
+        }
+        return TypeResult.Provider(
+            name = method.name,
+            returnType = returnType,
+            isProperty = method is AstProperty,
+            isPrivate = false,
+            isOverride = true,
+            isSuspend = method is AstFunction && method.isSuspend,
+            result = TypeResultRef(key, result)
+        )
+    }
+
     private fun Provides(
         context: Context,
         accessor: String?,
         method: AstMethod,
         key: TypeKey,
-    ) = withCycleDetection(context, key, method) { context ->
+    ) = withCycleDetection(key, method) {
         TypeResult.Provides(
             className = context.className,
             methodName = method.name,
@@ -133,7 +154,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     )
 
     private fun Constructor(context: Context, constructor: AstConstructor, key: TypeKey) =
-        withCycleDetection(context, key, constructor) { context ->
+        withCycleDetection(key, constructor) {
             val size = constructor.parameters.size
             TypeResult.Constructor(
                 type = constructor.type,
@@ -162,7 +183,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         args: List<AstType>
     ): TypeResult {
         cycleDetector.delayedConstruction()
-        return withCycleDetection(context, key, element) { context ->
+        return withCycleDetection(key, element) {
             val namedArgs = args.mapIndexed { i, arg -> arg to "arg$i" }
             TypeResult.Function(
                 args = namedArgs.map { it.second },
@@ -176,7 +197,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         function: AstFunction,
         key: TypeKey,
         args: List<AstType>
-    ) = withCycleDetection(context, key, function) { context ->
+    ) = withCycleDetection(key, function) {
         val namedArgs = args.mapIndexed { i, arg -> arg to "arg$i" }
         val size = function.parameters.size
         TypeResult.NamedFunction(
@@ -206,14 +227,13 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     }
 
     private fun withCycleDetection(
-        context: Context,
         key: TypeKey,
         source: AstElement,
-        f: (context: Context) -> TypeResult
+        f: () -> TypeResult
     ): TypeResult {
         val result = cycleDetector.check(key, source) { cycleResult ->
             when (cycleResult) {
-                is CycleResult.None -> f(context)
+                is CycleResult.None -> f()
                 is CycleResult.Cycle -> throw FailedToGenerateException(trace("Cycle detected"))
                 is CycleResult.Resolvable -> TypeResult.LocalVar(cycleResult.name)
             }

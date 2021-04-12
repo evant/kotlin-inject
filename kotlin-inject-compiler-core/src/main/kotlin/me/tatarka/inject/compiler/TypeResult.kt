@@ -13,15 +13,31 @@ sealed class TypeResult {
     open val children: Iterator<TypeResultRef> = EmptyIterator
 
     /**
-     * A function or property that can provide the type.
+     * A function or property declaration that provides a type.
+     */
+    class Provider(
+        val name: String,
+        val returnType: AstType,
+        val isProperty: Boolean = false,
+        val isPrivate: Boolean = false,
+        val isOverride: Boolean = false,
+        val isSuspend: Boolean = false,
+        val result: TypeResultRef
+    ) : TypeResult() {
+        override val children: Iterator<TypeResultRef>
+            get() = iterator { yield(result) }
+    }
+
+    /**
+     * Calls a function or property that can provide the type.
      */
     class Provides(
         val className: String,
         val methodName: String,
-        val accessor: String?,
-        val receiver: TypeResultRef?,
-        val isProperty: Boolean,
-        val parameters: List<TypeResultRef>,
+        val accessor: String? = null,
+        val receiver: TypeResultRef? = null,
+        val isProperty: Boolean = false,
+        val parameters: List<TypeResultRef> = emptyList(),
     ) : TypeResult() {
         override val children
             get() = iterator {
@@ -29,11 +45,6 @@ sealed class TypeResult {
                 yieldAll(parameters)
             }
     }
-
-    /**
-     * A generated private getter.
-     */
-    class PrivateGetter(val name: String) : TypeResult()
 
     /**
      * The type is scoped to key.
