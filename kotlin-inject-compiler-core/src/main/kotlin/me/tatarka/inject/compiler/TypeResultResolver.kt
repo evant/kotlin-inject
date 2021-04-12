@@ -161,7 +161,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         key: TypeKey,
         args: List<AstType>
     ): TypeResult {
-        cycleDetector.delayed()
+        cycleDetector.delayedConstruction()
         return withCycleDetection(context, key, element) { context ->
             val namedArgs = args.mapIndexed { i, arg -> arg to "arg$i" }
             TypeResult.Function(
@@ -190,7 +190,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     }
 
     private fun Lazy(context: Context, key: TypeKey): TypeResult {
-        cycleDetector.delayed()
+        cycleDetector.delayedConstruction()
         return maybeLateInit(key, TypeResult.Lazy(resolve(context, key)))
     }
 
@@ -211,10 +211,12 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         source: AstElement,
         f: (context: Context) -> TypeResult
     ): TypeResult {
-        val result = when (val result = cycleDetector.check(key, source)) {
-            is CycleResult.None -> f(context).also { cycleDetector.pop() }
-            is CycleResult.Cycle -> throw FailedToGenerateException(trace("Cycle detected"))
-            is CycleResult.Resolvable -> TypeResult.LocalVar(result.key.type.simpleName.decapitalize())
+        val result = cycleDetector.check(key, source) { cycleResult ->
+            when (cycleResult) {
+                is CycleResult.None -> f(context)
+                is CycleResult.Cycle -> throw FailedToGenerateException(trace("Cycle detected"))
+                is CycleResult.Resolvable -> TypeResult.LocalVar(cycleResult.name)
+            }
         }
         return maybeLateInit(key, result)
     }
@@ -223,18 +225,14 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         // TODO: better way to determine this?
         val validResultType =
             result !is TypeResult.LocalVar && result !is TypeResult.Lazy && result !is TypeResult.Function
-        return if (validResultType && cycleDetector.resolve(key)) {
-            LateInit(key.type.simpleName.decapitalize(), key, result)
-        } else {
-            result
-        }
+        if (!validResultType) return result
+        val name = cycleDetector.hitResolvable(key) ?: return result
+        return LateInit(name, key, result)
     }
 
     /**
      * Produce a trace with the given message prefix. This will show all the lines with
      * elements that were traversed for this context.
      */
-    private fun trace(message: String): String = "$message\n" +
-            cycleDetector.elements.reversed()
-                .joinToString(separator = "\n") { with(provider) { it.toTrace() } }
+    private fun trace(message: String): String = "$message\n" + cycleDetector.trace(provider)
 }

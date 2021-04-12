@@ -1,5 +1,6 @@
 package me.tatarka.inject.test
 
+import assertk.assertAll
 import assertk.assertThat
 import assertk.assertions.isSameAs
 import me.tatarka.inject.annotations.Component
@@ -22,6 +23,25 @@ class CycleFoo(val bar: CycleBar)
 
 @Inject
 class CycleBar(val foo: () -> CycleFoo)
+
+@Inject
+@CustomScope
+data class CycleScopedFoo(val bar: CycleScopedBar)
+
+@Inject
+data class CycleScopedBar(val foo: Lazy<CycleScopedFoo>)
+
+@Inject
+class ScopedCycle(val foo: CycleScopedFoo)
+
+@Inject
+class NestedLazyBar(val baz: NestedLazyBaz)
+
+@Inject
+class NestedLazyBaz(val foo: Lazy<NestedLazyFoo>, val bar: Lazy<NestedLazyBar>)
+
+@Inject
+class NestedLazyFoo(val bar: NestedLazyBar)
 
 @Component
 abstract class CycleComponent {
@@ -50,20 +70,15 @@ abstract class FunctionCycleComponent {
     fun foo(bar: FBar) = FFoo(bar)
 }
 
-@Inject
-@CustomScope
-data class CycleScopedFoo(val bar: CycleScopedBar)
-
-@Inject
-data class CycleScopedBar(val foo: Lazy<CycleScopedFoo>)
-
-@Inject
-class ScopedCycle(val foo: CycleScopedFoo)
-
 @Component
 @CustomScope
 abstract class ScopedCycleComponent {
     abstract val foo: ScopedCycle
+}
+
+@Component
+abstract class NestedLazyCycleComponent {
+    abstract val foo: NestedLazyFoo
 }
 
 class RecursiveTest {
@@ -98,5 +113,17 @@ class RecursiveTest {
         val foo = component.foo.foo
 
         assertThat(foo).isSameAs(foo.bar.foo.value)
+    }
+
+    @Test
+    fun generates_a_component_that_provides_a_nested_lazy_dependency_recursively() {
+        val component = NestedLazyCycleComponent::class.create()
+        val foo = component.foo
+        val bar = foo.bar
+
+        assertAll {
+            assertThat(foo).isSameAs(foo.bar.baz.foo.value)
+            assertThat(bar).isSameAs(foo.bar.baz.bar.value)
+        }
     }
 }
