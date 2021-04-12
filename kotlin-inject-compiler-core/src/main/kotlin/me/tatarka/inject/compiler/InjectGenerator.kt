@@ -115,42 +115,14 @@ class InjectGenerator<Output, Provider>(
                             )
                         }
 
-                        val results = context.collector.providerMethods.map { method ->
-                            val returnType = method.returnTypeFor(astClass)
-                            resolver.resolveMethodEntry(context, method, returnType)
-                        }.apply {
+                        val results = resolver.resolveAll(context, astClass).apply {
                             if (options.dumpGraph) {
                                 messenger.warn(dumpGraph(astClass, this))
                             }
-                        }.optimize()
+                        }.optimize(context)
 
-                        for (entry in results) {
-                            val codeBlock = CodeBlock.builder().apply {
-                                add("return ")
-                                add(entry.typeResult.generate())
-                                add("\n»")
-                            }.build()
-
-                            if (entry.isProperty) {
-                                addProperty(
-                                    PropertySpec.builder(entry.name, entry.returnType.asTypeName())
-                                        .apply {
-                                            if (entry.isPrivate) addModifiers(KModifier.PRIVATE)
-                                            if (entry.isOverride) addModifiers(KModifier.OVERRIDE)
-                                        }
-                                        .getter(FunSpec.getterBuilder().addCode(codeBlock).build()).build()
-                                )
-                            } else {
-                                addFunction(
-                                    FunSpec.builder(entry.name).returns(entry.returnType.asTypeName())
-                                        .apply {
-                                            if (entry.isPrivate) addModifiers(KModifier.PRIVATE)
-                                            if (entry.isOverride) addModifiers(KModifier.OVERRIDE)
-                                            if (entry.isSuspend) addModifiers(KModifier.SUSPEND)
-                                        }
-                                        .addCode(codeBlock).build()
-                                )
-                            }
+                        for (result in results) {
+                            result.generateInto(this)
                         }
                     } catch (e: FailedToGenerateException) {
                         error(e.message.orEmpty(), e.element)
@@ -232,12 +204,12 @@ fun AstMethod.isProvider(): Boolean =
         is AstProperty -> true
     } && receiverParameterType == null && returnType.isNotUnit()
 
-private fun dumpGraph(astClass: AstClass, entries: List<MethodEntry>): String {
+private fun dumpGraph(astClass: AstClass, entries: List<TypeResult.Provider>): String {
     val out = StringBuilder(astClass.name).append("\n")
     for (entry in entries) {
         out.append("* ${entry.name}: ${entry.returnType}\n")
         val seen = mutableSetOf<TypeResult>()
-        out.renderTree(entry.typeResult) { ref ->
+        out.renderTree(entry.result) { ref ->
             val walkChildren = ref.result !in seen
             seen.add(ref.result)
             out.apply {
