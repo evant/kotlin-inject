@@ -19,12 +19,16 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             Provider(context, astClass, method)
         }
     }
+
     /**
      * Resolves the given type in this context. This will return a cached result if has already been resolved.
      */
     private fun resolve(context: Context, key: TypeKey): TypeResultRef {
-        return TypeResultRef(key, types[key] ?: context.findType(key)
-            .also { types[key] = it })
+        return TypeResultRef(key, types[key] ?: context.findType(key).also {
+            if (it.isCacheable) {
+                types[key] = it
+            }
+        })
     }
 
     /**
@@ -255,4 +259,19 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
      * elements that were traversed for this context.
      */
     private fun trace(message: String): String = "$message\n" + cycleDetector.trace(provider)
+
+    private val TypeResult.isCacheable: Boolean
+        // don't cache local vars as the may not be in scope when requesting the type from a different location
+        get() = this !is TypeResult.LocalVar && children.all {
+            it.result is TypeResult.LateInit || it.result.isCacheable
+        }
+
+    private inline fun <T> Iterator<T>.all(predicate: (T) -> Boolean): Boolean {
+        for (item in this) {
+            if (!predicate(item)) {
+                return false
+            }
+        }
+        return true
+    }
 }

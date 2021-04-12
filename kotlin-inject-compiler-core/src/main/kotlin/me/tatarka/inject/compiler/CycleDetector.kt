@@ -50,7 +50,7 @@ class CycleDetector {
         val result = block(cycleResult)
         // Pop back up, removing any Delayed entries as well.
         if (cycleResult == CycleResult.None) {
-            while (entries.removeAt(entries.lastIndex) is Entry.Delayed) {
+            while (entries.removeLastOrNull() is Entry.Delayed) {
                 // ignore
             }
         }

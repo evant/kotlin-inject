@@ -211,7 +211,9 @@ private fun TypeResult.LateInit.generate(): CodeBlock {
         beginControlFlow("run")
         addStatement("lateinit var %N: %T", name, result.key.type.asTypeName())
         add(result.generate())
-        addStatement(".also { %N = it }", name)
+        beginControlFlow(".also")
+        addStatement("%N = it", name)
+        endControlFlow()
         endControlFlow()
     }.build()
 }
