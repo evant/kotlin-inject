@@ -25,6 +25,9 @@ class CycleFoo(val bar: CycleBar)
 class CycleBar(val foo: () -> CycleFoo)
 
 @Inject
+class CycleBaz(val foo: CycleFoo)
+
+@Inject
 @CustomScope
 data class CycleScopedFoo(val bar: CycleScopedBar)
 
@@ -81,6 +84,15 @@ abstract class NestedLazyCycleComponent {
     abstract val foo: NestedLazyFoo
 }
 
+@Component
+abstract class OptimizedCycleComponent {
+    abstract val foo: CycleFoo
+
+    abstract val bar: CycleBar
+
+    abstract val baz: CycleBaz
+}
+
 class RecursiveTest {
 
     @Test
@@ -124,6 +136,20 @@ class RecursiveTest {
         assertAll {
             assertThat(foo).isSameAs(foo.bar.baz.foo.value)
             assertThat(bar).isSameAs(foo.bar.baz.bar.value)
+        }
+    }
+
+    @Test
+    fun generates_a_component_that_provides_date_recursively_in_multiple_places() {
+        val component = OptimizedCycleComponent::class.create()
+        val foo = component.foo
+        val bar = component.bar
+        val baz = component.baz
+
+        assertAll {
+            assertThat(foo).isSameAs(foo.bar.foo())
+            assertThat(bar).isSameAs(bar.foo().bar)
+            assertThat(baz.foo).isSameAs(baz.foo.bar.foo())
         }
     }
 }
