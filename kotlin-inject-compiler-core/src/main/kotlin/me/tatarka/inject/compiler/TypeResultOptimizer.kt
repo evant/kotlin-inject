@@ -3,8 +3,8 @@ package me.tatarka.inject.compiler
 import java.util.Locale
 
 @Suppress("NestedBlockDepth")
-fun List<MethodEntry>.optimize(): List<MethodEntry> {
-    val newEntries = mutableListOf<MethodEntry>()
+fun List<TypeResult.Provider>.optimize(context: Context): List<TypeResult.Provider> {
+    val newResults = mutableListOf<TypeResult.Provider>()
     val visited = mutableSetOf<TypeResult>()
     val parentMap = collectParents()
 
@@ -26,57 +26,65 @@ fun List<MethodEntry>.optimize(): List<MethodEntry> {
         val currentResult = ref.result
         val parents = parentMap[currentResult] ?: emptySet()
         if (currentResult !in visited && parents.size > 1 && currentResult.children.hasNext()) {
-            val topLevel = find { it.typeResult == ref }
-            val newResult = if (topLevel != null) {
-                TypeResult.Provides(
-                    className = "",
-                    methodName = topLevel.name,
-                    accessor = null,
-                    receiver = null,
+            var provider = find { it.result == ref }
+            val name = provider?.name ?: "_${key.type.simpleName.decapitalize(Locale.US)}"
+            val newResult = TypeResult.Provides(
+                className = context.className,
+                methodName = name,
+                isProperty = true,
+            )
+            if (provider == null) {
+                provider = TypeResult.Provider(
+                    name = name,
+                    returnType = key.type,
                     isProperty = true,
-                    parameters = emptyList(),
-                )
-            } else {
-                TypeResult.PrivateGetter(
-                    name = "_${key.type.simpleName.decapitalize(Locale.US)}",
-                ).also { newVar ->
-                    newEntries.add(
-                        MethodEntry.privateGetter(newVar.name, key.type, TypeResultRef(key, currentResult))
-                    )
-                }
+                    isPrivate = true,
+                    result = TypeResultRef(key, currentResult)
+                ).also { newResults.add(it) }
             }
-            for (parent in parents) {
-                for (child in parent.children) {
-                    if (child.result == currentResult) {
-                        child.result = newResult
-                    }
-                }
-            }
+
+            parents.updateRefs(
+                self = provider,
+                oldValue = currentResult,
+                newValue = newResult
+            )
+
             visited.add(currentResult)
         }
         ref.result.children.forEach { visit(it) }
     }
 
     for (entry in this) {
-        visit(entry.typeResult)
+        visit(entry.result)
     }
 
-    return newEntries + this
+    return newResults + this
 }
 
-private fun List<MethodEntry>.collectParents(): Map<TypeResult, Set<TypeResult>> {
+private fun List<TypeResult>.collectParents(): Map<TypeResult, Set<TypeResult>> {
     val parentMap = mutableMapOf<TypeResult, MutableSet<TypeResult>>()
 
-    fun collectParents(ref: TypeResultRef) {
-        val parent = ref.result
-        parent.children.forEach { child ->
-            parentMap.getOrPut(child.result) { mutableSetOf() }.add(parent)
-            collectParents(child)
+    fun collectParents(result: TypeResult) {
+        result.children.forEach { child ->
+            parentMap.getOrPut(child.result) { mutableSetOf() }.add(result)
+            collectParents(child.result)
         }
     }
     for (entry in this) {
-        collectParents(entry.typeResult)
+        collectParents(entry)
     }
 
     return parentMap
+}
+
+private fun Set<TypeResult>.updateRefs(self: TypeResult, oldValue: TypeResult, newValue: TypeResult) {
+    for (result in this) {
+        // skip self to prevent an infinite loop
+        if (result == self) continue
+        for (child in result.children) {
+            if (child.result == oldValue) {
+                child.result = newValue
+            }
+        }
+    }
 }
