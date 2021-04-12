@@ -445,7 +445,7 @@ private class KSAstParam(
         get() = declaration.name!!.asString()
 
     override val type: AstType
-        get() = KSAstType(this, declaration.type!!.resolve())
+        get() = KSAstType(this, declaration.type.resolve())
 
     override val isVal: Boolean
         get() = declaration.isVal
