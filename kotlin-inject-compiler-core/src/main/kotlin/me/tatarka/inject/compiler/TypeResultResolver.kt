@@ -70,7 +70,6 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             val fKey = TypeKey(resolveType.arguments.last(), key.qualifier)
             return Function(
                 this,
-                element = key.type.toAstClass(),
                 key = fKey,
                 args = resolveType.arguments.dropLast(1)
             )
@@ -182,18 +181,15 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
 
     private fun Function(
         context: Context,
-        element: AstElement,
         key: TypeKey,
         args: List<AstType>
     ): TypeResult {
         cycleDetector.delayedConstruction()
-        return withCycleDetection(key, element) {
-            val namedArgs = args.mapIndexed { i, arg -> arg to "arg$i" }
-            TypeResult.Function(
-                args = namedArgs.map { it.second },
-                result = resolve(context.withArgs(namedArgs), key)
-            )
-        }
+        val namedArgs = args.mapIndexed { i, arg -> arg to "arg$i" }
+        return TypeResult.Function(
+            args = namedArgs.map { it.second },
+            result = resolve(context.withArgs(namedArgs), key)
+        )
     }
 
     private fun NamedFunction(
