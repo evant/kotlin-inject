@@ -54,11 +54,16 @@ fun KSDeclaration.simplePackageName(): String {
 }
 
 fun KSDeclaration.asClassName(): ClassName {
-    val name = qualifiedName!!
     val packageName = simplePackageName()
-    val shortName = name.asString().removePrefix("$packageName.")
     return ClassName(packageName, shortName.split('.'))
 }
+
+val KSDeclaration.shortName: String
+    get() {
+        val name = qualifiedName!!
+        val packageName = packageName.asString()
+        return name.asString().removePrefix("$packageName.")
+    }
 
 fun KSType.asTypeName(): TypeName {
     val isFunction = isFunction()

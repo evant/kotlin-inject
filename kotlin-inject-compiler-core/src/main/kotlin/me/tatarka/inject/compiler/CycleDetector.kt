@@ -37,7 +37,7 @@ class CycleDetector {
     fun <T> check(key: TypeKey, element: AstElement, block: (CycleResult) -> T): T {
         val cycleResult = if (entries.any { it is Entry.Element && it.value == element }) {
             if (entries.any { it is Entry.Delayed }) {
-                val name = key.type.simpleName.decapitalize()
+                val name = key.type.toVariableName()
                 resolving.add(Resolving(key, name))
                 CycleResult.Resolvable(name)
             } else {

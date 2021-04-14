@@ -7,6 +7,7 @@ import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
+import java.util.Locale
 
 private const val ANNOTATION_PACKAGE_NAME = "me.tatarka.inject.annotations"
 val COMPONENT = ClassName(ANNOTATION_PACKAGE_NAME, "Component")
@@ -219,6 +220,10 @@ fun AstMethod.isProvider(): Boolean =
 
 fun AstClass.toInjectName(): String =
     "Inject${asClassName().simpleNames.joinToString("_")}"
+
+fun AstType.toVariableName(): String =
+    simpleName.split(".")
+        .joinToString("_") { it.decapitalize(Locale.US) }
 
 private fun dumpGraph(astClass: AstClass, entries: List<TypeResult.Provider>): String {
     val out = StringBuilder(astClass.name).append("\n")
