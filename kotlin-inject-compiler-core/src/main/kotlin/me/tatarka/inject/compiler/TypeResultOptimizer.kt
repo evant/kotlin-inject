@@ -1,7 +1,5 @@
 package me.tatarka.inject.compiler
 
-import java.util.Locale
-
 @Suppress("NestedBlockDepth")
 fun List<TypeResult.Provider>.optimize(context: Context): List<TypeResult.Provider> {
     val newResults = mutableListOf<TypeResult.Provider>()
@@ -27,7 +25,7 @@ fun List<TypeResult.Provider>.optimize(context: Context): List<TypeResult.Provid
         val parents = parentMap[currentResult] ?: emptySet()
         if (currentResult !in visited && parents.size > 1 && currentResult.children.hasNext()) {
             var provider = find { it.result == ref }
-            val name = provider?.name ?: "_${key.type.simpleName.decapitalize(Locale.US)}"
+            val name = provider?.name ?: "_${key.type.toVariableName()}"
             val newResult = TypeResult.Provides(
                 className = context.className,
                 methodName = name,

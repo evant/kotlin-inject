@@ -2,6 +2,7 @@ package me.tatarka.inject.test
 
 import assertk.all
 import assertk.assertThat
+import assertk.assertions.any
 import assertk.assertions.containsOnly
 import assertk.assertions.hasSize
 import assertk.assertions.index
@@ -10,6 +11,7 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isNotNull
 import assertk.assertions.prop
 import me.tatarka.inject.annotations.Component
+import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.IntoSet
 import me.tatarka.inject.annotations.Provides
 import kotlin.reflect.KProperty1
@@ -18,11 +20,23 @@ import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.typeOf
 import kotlin.test.Test
 
+class Inner {
+    @Inject class Bar(val foo: Foo)
+}
+
+@Inject class Bar4(val bar: Inner.Bar)
+
+@Inject class Bar5(val bar: Inner.Bar)
+
 @Component
 abstract class CommonGetterComponent {
     abstract val bar2: Bar2
 
     abstract val bar3: Bar3
+
+    abstract val bar4: Bar4
+
+    abstract val bar5: Bar5
 }
 
 @Component
@@ -84,9 +98,12 @@ class MultipleConstructionTest {
         assertThat(component.bar2).isNotNull()
         assertThat(component.bar3).isNotNull()
         assertThat(privateProperties).apply {
-            hasSize(1)
-            index(0).all {
-                prop(KProperty1<*, *>::returnType).isEqualTo(typeOf<Bar>())
+            hasSize(2)
+            any { item ->
+                item.prop(KProperty1<*, *>::returnType).isEqualTo(typeOf<Bar>())
+            }
+            any { item ->
+                item.prop(KProperty1<*, *>::returnType).isEqualTo(typeOf<Inner.Bar>())
             }
         }
     }
