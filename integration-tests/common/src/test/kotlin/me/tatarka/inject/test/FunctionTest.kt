@@ -38,6 +38,12 @@ import kotlin.test.Test
     abstract val barProvider: (FunctionFoo?) -> NullableFunctionBar
 }
 
+@Inject class FunctionBar(val foo: () -> FunctionFoo)
+
+@Component abstract class NestedFunctionComponent {
+   abstract val bar: () -> FunctionBar
+}
+
 class FunctionTest {
 
     @Test fun generates_a_component_that_provides_a_function_that_returns_a_dep() {
@@ -65,5 +71,11 @@ class FunctionTest {
 
         val foo = FunctionFoo()
         assertThat(component.barProvider(foo).foo).isSameAs(foo)
+    }
+
+    @Test fun generates_a_component_that_provides_a_function_that_provides_a_function() {
+        val component = NestedFunctionComponent::class.create()
+
+        assertThat(component.bar().foo()).isNotNull()
     }
 }
