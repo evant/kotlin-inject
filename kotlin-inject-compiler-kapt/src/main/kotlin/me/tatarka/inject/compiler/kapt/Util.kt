@@ -246,8 +246,8 @@ fun KmType.isFunction(): Boolean {
 
 private fun KmType.isSuspendFunction(): Boolean {
     return isFunction() &&
-        arguments.size >= 2 &&
-        arguments[arguments.size - 2].type?.classifier?.name == "kotlin/coroutines/Continuation"
+            arguments.size >= 2 &&
+            arguments[arguments.size - 2].type?.classifier?.name == "kotlin/coroutines/Continuation"
 }
 
 fun AnnotationMirror.eqv(other: AnnotationMirror): Boolean {
@@ -277,10 +277,11 @@ fun KmType.eqv(other: KmType): Boolean {
         }
     }
     return classifier == other.classifier &&
-        arguments.eqvItr(other.arguments) { a, b ->
-            a.variance == b.variance &&
-                a.type.eqv(b.type, KmType::eqv)
-        }
+            isNullable() == other.isNullable() &&
+            arguments.eqvItr(other.arguments) { a, b ->
+                a.variance == b.variance &&
+                        a.type.eqv(b.type, KmType::eqv)
+            }
 }
 
 fun KmType.eqvHashCode(collector: HashCollector = HashCollector()): Int {
@@ -325,3 +326,5 @@ inline fun KmProperty.isPrivate() = Flag.Common.IS_PRIVATE(flags)
 inline fun KmConstructor.isPrimary() = Flag.Constructor.IS_PRIMARY(flags)
 
 inline fun KmValueParameter.hasDefault() = Flag.ValueParameter.DECLARES_DEFAULT_VALUE(flags)
+
+inline fun KmType.isNullable() = Flag.Type.IS_NULLABLE(flags)
