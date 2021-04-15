@@ -379,6 +379,28 @@ class FailureTest(private val target: Target) {
             contains("as scope: MyScope2 is already applied")
         }
     }
+
+    @Test
+    fun fails_with_missing_binding_with_nullable_provides_and_non_nullable_usage() {
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+               import me.tatarka.inject.annotations.Component
+               import me.tatarka.inject.annotations.Provides
+               
+               @Component abstract class MyComponent() {
+                 abstract val foo: String
+                 @Provides fun provideFoo(): String? = "foo"
+               }
+                """.trimIndent()
+            ).compile()
+        }.isFailure().output().all {
+            contains(
+                "Cannot find an @Inject constructor or provider for: String"
+            )
+        }
+    }
 }
 
 private fun Target.sourceExt() = when (this) {
