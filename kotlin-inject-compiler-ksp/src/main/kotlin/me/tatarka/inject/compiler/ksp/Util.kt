@@ -45,11 +45,19 @@ private fun KSAnnotation.hasName(packageName: String, simpleName: String): Boole
     return declaration.packageName.asString() == packageName
 }
 
+/**
+ * package name except root is "" instead of "<root>"
+ */
+fun KSDeclaration.simplePackageName(): String {
+    val packageName = packageName.asString()
+    return if (packageName == "<root>") "" else packageName
+}
+
 fun KSDeclaration.asClassName(): ClassName {
     val name = qualifiedName!!
-    val packageName = packageName.asString()
+    val packageName = simplePackageName()
     val shortName = name.asString().removePrefix("$packageName.")
-    return ClassName(if (packageName == "<root>") "" else packageName, shortName.split('.'))
+    return ClassName(packageName, shortName.split('.'))
 }
 
 fun KSType.asTypeName(): TypeName {

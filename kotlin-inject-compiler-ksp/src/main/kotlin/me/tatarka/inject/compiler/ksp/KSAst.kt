@@ -152,7 +152,7 @@ private class KSAstClass(provider: KSAstProvider, override val declaration: KSCl
     KSAstProvider by provider {
 
     override val packageName: String
-        get() = declaration.qualifiedName!!.getQualifier()
+        get() = declaration.simplePackageName()
 
     override val name: String
         get() = declaration.simpleName.asString()
@@ -211,7 +211,7 @@ private class KSAstClass(provider: KSAstProvider, override val declaration: KSCl
         }
 
     override fun asClassName(): ClassName {
-        return ClassName(packageName, name)
+        return declaration.asClassName()
     }
 
     override fun equals(other: Any?): Boolean {
@@ -370,7 +370,7 @@ private class KSAstType(provider: KSAstProvider, val type: KSType) : AstType(), 
     override val declaration: KSDeclaration get() = type.declaration
 
     override val packageName: String
-        get() = type.declaration.qualifiedName!!.getQualifier()
+        get() = type.declaration.simplePackageName()
 
     override val simpleName: String
         get() = type.declaration.simpleName.asString()
