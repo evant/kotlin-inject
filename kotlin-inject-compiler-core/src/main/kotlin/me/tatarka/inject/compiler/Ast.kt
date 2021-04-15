@@ -29,17 +29,12 @@ interface Messenger {
     fun error(message: String, element: AstElement? = null)
 }
 
-sealed class AstElement : AstAnnotated {
-    inline fun <reified T : Annotation> hasAnnotation() = hasAnnotation(T::class.qualifiedName!!)
-
-    inline fun <reified T : Annotation> annotationAnnotatedWith(): AstAnnotation? =
-        annotationAnnotatedWith(T::class.qualifiedName!!)
-}
+sealed class AstElement : AstAnnotated
 
 interface AstAnnotated {
-    fun hasAnnotation(className: String): Boolean
+    fun hasAnnotation(packageName: String, simpleName: String): Boolean
 
-    fun annotationAnnotatedWith(className: String): AstAnnotation?
+    fun annotationAnnotatedWith(packageName: String, simpleName: String): AstAnnotation?
 }
 
 abstract class AstBasicElement : AstElement() {

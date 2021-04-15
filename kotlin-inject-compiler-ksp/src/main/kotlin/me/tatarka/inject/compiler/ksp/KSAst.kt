@@ -127,12 +127,12 @@ object KSAstMessenger : Messenger {
 private interface KSAstAnnotated : AstAnnotated, KSAstProvider {
     val declaration: KSAnnotated
 
-    override fun hasAnnotation(className: String): Boolean {
-        return declaration.hasAnnotation(className)
+    override fun hasAnnotation(packageName: String, simpleName: String): Boolean {
+        return declaration.hasAnnotation(packageName, simpleName)
     }
 
-    override fun annotationAnnotatedWith(className: String): AstAnnotation? {
-        return declaration.annotationAnnotatedWith(className)?.let {
+    override fun annotationAnnotatedWith(packageName: String, simpleName: String): AstAnnotation? {
+        return declaration.annotationAnnotatedWith(packageName, simpleName)?.let {
             KSAstAnnotation(this, it)
         }
     }
@@ -278,6 +278,11 @@ private class KSAstFunction(provider: KSAstProvider, override val declaration: K
 
     override fun returnTypeFor(enclosingClass: AstClass): AstType {
         require(enclosingClass is KSAstClass)
+        // resolver.asMemberOf is expensive and only matters if there are generics involved, so check that first.
+        val type = declaration.returnType!!.resolve()
+        if (type.isConcrete()) {
+            return KSAstType(this, type)
+        }
         return KSAstType(
             this,
             resolver.asMemberOf(declaration, enclosingClass.declaration.asStarProjectedType()).returnType!!
@@ -324,6 +329,11 @@ private class KSAstProperty(provider: KSAstProvider, override val declaration: K
 
     override fun returnTypeFor(enclosingClass: AstClass): AstType {
         require(enclosingClass is KSAstClass)
+        // resolver.asMemberOf is expensive and only matters if there are generics involved, so check that first.
+        val type = declaration.type.resolve()
+        if (type.isConcrete()) {
+            return KSAstType(this, type)
+        }
         return KSAstType(
             this,
             resolver.asMemberOf(declaration, enclosingClass.declaration.asStarProjectedType())
@@ -335,12 +345,12 @@ private class KSAstProperty(provider: KSAstProvider, override val declaration: K
         return MemberName(packageName, declaration.simpleName.toString())
     }
 
-    override fun hasAnnotation(className: String): Boolean {
-        return declaration.getter?.hasAnnotation(className) == true
+    override fun hasAnnotation(packageName: String, simpleName: String): Boolean {
+        return declaration.getter?.hasAnnotation(packageName, simpleName) == true
     }
 
-    override fun annotationAnnotatedWith(className: String): AstAnnotation? {
-        return declaration.getter?.annotationAnnotatedWith(className)?.let {
+    override fun annotationAnnotatedWith(packageName: String, simpleName: String): AstAnnotation? {
+        return declaration.getter?.annotationAnnotatedWith(packageName, simpleName)?.let {
             KSAstAnnotation(this, it)
         }
     }
@@ -471,11 +481,11 @@ private class KSAstAnnotation(provider: KSAstProvider, val annotation: KSAnnotat
     override val type: AstType
         get() = KSAstType(this, annotation.annotationType.resolve())
 
-    override fun hasAnnotation(className: String): Boolean {
+    override fun hasAnnotation(packageName: String, simpleName: String): Boolean {
         TODO("Not yet implemented")
     }
 
-    override fun annotationAnnotatedWith(className: String): AstAnnotation? {
+    override fun annotationAnnotatedWith(packageName: String, simpleName: String): AstAnnotation? {
         TODO("Not yet implemented")
     }
 

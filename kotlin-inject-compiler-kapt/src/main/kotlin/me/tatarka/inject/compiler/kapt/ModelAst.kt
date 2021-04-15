@@ -184,12 +184,12 @@ class ModelAstMessenger(private val messager: Messager) : Messenger {
 private interface ModelAstElement : ModelAstProvider, AstAnnotated {
     val element: Element
 
-    override fun hasAnnotation(className: String): Boolean {
-        return element.hasAnnotation(className)
+    override fun hasAnnotation(packageName: String, simpleName: String): Boolean {
+        return element.hasAnnotation(packageName, simpleName)
     }
 
-    override fun annotationAnnotatedWith(className: String): AstAnnotation? {
-        return element.annotationAnnotatedWith(className)?.let {
+    override fun annotationAnnotatedWith(packageName: String, simpleName: String): AstAnnotation? {
+        return element.annotationAnnotatedWith(packageName, simpleName)?.let {
             ModelAstAnnotation(this, it, null)
         }
     }
@@ -235,8 +235,8 @@ private class PrimitiveModelAstClass(
         return type.hashCode()
     }
 
-    override fun hasAnnotation(className: String): Boolean = false
-    override fun annotationAnnotatedWith(className: String): AstAnnotation? = null
+    override fun hasAnnotation(packageName: String, simpleName: String): Boolean = false
+    override fun annotationAnnotatedWith(packageName: String, simpleName: String): AstAnnotation? = null
 }
 
 private class ModelAstClass(

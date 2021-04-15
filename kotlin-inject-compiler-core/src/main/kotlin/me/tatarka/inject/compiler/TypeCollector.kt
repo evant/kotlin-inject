@@ -1,8 +1,5 @@
 package me.tatarka.inject.compiler
 
-import me.tatarka.inject.annotations.Inject
-import me.tatarka.inject.annotations.IntoMap
-import me.tatarka.inject.annotations.IntoSet
 import me.tatarka.inject.compiler.ContainerCreator.mapOf
 import me.tatarka.inject.compiler.ContainerCreator.setOf
 
@@ -56,7 +53,7 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
                 error("@Provides scope:$scopeType must match component scope: ${typeInfo.elementScope}", method)
             }
             val scopedComponent = if (scopeType != null) astClass else null
-            if (method.hasAnnotation<IntoMap>()) {
+            if (method.hasAnnotation(INTO_MAP.packageName, INTO_MAP.simpleName)) {
                 // Pair<A, B> -> Map<A, B>
                 val type = method.returnTypeFor(astClass)
                 if (type.packageName == "kotlin" && type.simpleName == "Pair") {
@@ -67,7 +64,7 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
                 } else {
                     error("@IntoMap must have return type of type Pair", method)
                 }
-            } else if (method.hasAnnotation<IntoSet>()) {
+            } else if (method.hasAnnotation(INTO_SET.packageName, INTO_SET.simpleName)) {
                 // A -> Set<A>
                 val setType = TypeKey(declaredTypeOf(Set::class, method.returnTypeFor(astClass)))
                 addContainerType(setType, setOf, method, accessor, scopedComponent)
@@ -242,7 +239,7 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
                 scopedComponent = scopedComponent?.type
             )
         }
-        if (astClass.hasAnnotation<Inject>() && astClass.isObject) {
+        if (astClass.isInject() && astClass.isObject) {
             return TypeCreator.Object(astClass)
         }
         return null

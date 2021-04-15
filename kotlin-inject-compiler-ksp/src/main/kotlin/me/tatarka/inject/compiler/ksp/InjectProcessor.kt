@@ -5,8 +5,7 @@ import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.symbol.KSAnnotated
-import com.google.devtools.ksp.symbol.KSClassDeclaration
-import me.tatarka.inject.annotations.Component
+import me.tatarka.inject.compiler.COMPONENT
 import me.tatarka.inject.compiler.FailedToGenerateException
 import me.tatarka.inject.compiler.InjectGenerator
 import me.tatarka.inject.compiler.Options
@@ -38,8 +37,7 @@ class InjectProcessor(private val profiler: Profiler? = null) : SymbolProcessor,
 
         val generator = InjectGenerator(this, options)
 
-        for (element in resolver.getSymbolsWithAnnotation(Component::class.qualifiedName!!)) {
-            if (element !is KSClassDeclaration) continue
+        for (element in resolver.getSymbolsWithClassAnnotation(COMPONENT.packageName, COMPONENT.simpleName)) {
             val astClass = element.toAstClass()
 
             try {
