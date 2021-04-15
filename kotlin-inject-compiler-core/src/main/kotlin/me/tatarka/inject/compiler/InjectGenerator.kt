@@ -7,10 +7,18 @@ import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
-import me.tatarka.inject.annotations.Component
-import me.tatarka.inject.annotations.Inject
-import me.tatarka.inject.annotations.Provides
-import me.tatarka.inject.annotations.Scope
+
+private const val ANNOTATION_PACKAGE_NAME = "me.tatarka.inject.annotations"
+val COMPONENT = ClassName(ANNOTATION_PACKAGE_NAME, "Component")
+val PROVIDES = ClassName(ANNOTATION_PACKAGE_NAME, "Provides")
+val SCOPE = ClassName(ANNOTATION_PACKAGE_NAME, "Scope")
+val INJECT = ClassName(ANNOTATION_PACKAGE_NAME, "Inject")
+val INTO_MAP = ClassName(ANNOTATION_PACKAGE_NAME, "IntoMap")
+val INTO_SET = ClassName(ANNOTATION_PACKAGE_NAME, "IntoSet")
+
+val JAVAX_SCOPE = ClassName("javax.inject", "Scope")
+val JAVAX_INJECT = ClassName("javax.inject", "Inject")
+val JAVAX_QUALIFIER = ClassName("javax.inject", "Qualifier")
 
 val SCOPED_COMPONENT = ClassName("me.tatarka.inject.internal", "ScopedComponent")
 val LAZY_MAP = ClassName("me.tatarka.inject.internal", "LazyMap")
@@ -154,33 +162,35 @@ class InjectGenerator<Output, Provider>(
 
 fun AstElement.scopeType(options: Options): AstType? {
     if (options.enableJavaxAnnotations) {
-        val annotation = annotationAnnotatedWith("javax.inject.Scope")
+        val annotation = annotationAnnotatedWith(JAVAX_SCOPE.packageName, JAVAX_SCOPE.simpleName)
         if (annotation != null) {
             return annotation.type
         }
     }
-    return annotationAnnotatedWith<Scope>()?.type
+    return annotationAnnotatedWith(SCOPE.packageName, SCOPE.simpleName)?.type
 }
 
-fun AstElement.isComponent() = hasAnnotation<Component>()
+fun AstElement.isComponent() = hasAnnotation(COMPONENT.packageName, COMPONENT.simpleName)
 
-fun AstMethod.isProvides(): Boolean = hasAnnotation<Provides>()
+fun AstMethod.isProvides() = hasAnnotation(PROVIDES.packageName, PROVIDES.simpleName)
+
+fun AstElement.isInject() = hasAnnotation(INJECT.packageName, INJECT.simpleName)
 
 fun AstClass.findInjectConstructors(messenger: Messenger, options: Options): AstConstructor? {
     val injectCtors = constructors.filter {
         if (options.enableJavaxAnnotations) {
-            it.hasAnnotation("javax.inject.Inject") || it.hasAnnotation<Inject>()
+            it.hasAnnotation(JAVAX_INJECT.packageName, JAVAX_INJECT.simpleName) || it.isInject()
         } else {
-            it.hasAnnotation<Inject>()
+            it.isInject()
         }
     }
 
     return when {
-        hasAnnotation<Inject>() && injectCtors.isNotEmpty() -> {
+        isInject() && injectCtors.isNotEmpty() -> {
             messenger.error("Cannot annotate constructor with @Inject in an @Inject-annotated class", this)
             null
         }
-        hasAnnotation<Inject>() -> primaryConstructor
+        isInject() -> primaryConstructor
         injectCtors.size > 1 -> {
             messenger.error("Class cannot contain multiple @Inject-annotated constructors", this)
             null
@@ -192,14 +202,14 @@ fun AstClass.findInjectConstructors(messenger: Messenger, options: Options): Ast
 
 fun AstElement.qualifier(options: Options): AstAnnotation? {
     return if (options.enableJavaxAnnotations) {
-        annotationAnnotatedWith("javax.inject.Qualifier")
+        annotationAnnotatedWith(JAVAX_QUALIFIER.packageName, JAVAX_QUALIFIER.simpleName)
     } else {
         null
     }
 }
 
 fun AstMethod.isProvider(): Boolean =
-    !hasAnnotation<Provides>() && isAbstract && when (this) {
+    !isProvides() && isAbstract && when (this) {
         is AstFunction -> parameters.isEmpty()
         is AstProperty -> true
     } && receiverParameterType == null && returnType.isNotUnit()

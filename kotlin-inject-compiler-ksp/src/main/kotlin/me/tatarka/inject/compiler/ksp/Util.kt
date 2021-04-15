@@ -1,5 +1,6 @@
 package me.tatarka.inject.compiler.ksp
 
+import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
@@ -23,20 +24,25 @@ import me.tatarka.inject.compiler.collectHash
 import me.tatarka.inject.compiler.eqv
 import me.tatarka.inject.compiler.eqvItr
 
-fun KSAnnotated.annotationAnnotatedWith(className: String): KSAnnotation? {
+fun KSAnnotated.annotationAnnotatedWith(packageName: String, simpleName: String): KSAnnotation? {
     for (annotation in annotations) {
         val t = annotation.annotationType.resolve()
-        if (t.declaration.hasAnnotation(className)) {
+        if (t.declaration.hasAnnotation(packageName, simpleName)) {
             return annotation
         }
     }
     return null
 }
 
-fun KSAnnotated.hasAnnotation(className: String): Boolean {
-    return annotations.any {
-        it.annotationType.resolve().declaration.qualifiedName?.asString() == className
-    }
+fun KSAnnotated.hasAnnotation(packageName: String, simpleName: String): Boolean {
+    return annotations.any { it.hasName(packageName, simpleName) }
+}
+
+private fun KSAnnotation.hasName(packageName: String, simpleName: String): Boolean {
+    // we can skip resolving if the short name doesn't match
+    if (shortName.asString() != simpleName) return false
+    val declaration = annotationType.resolve().declaration
+    return declaration.packageName.asString() == packageName
 }
 
 fun KSDeclaration.asClassName(): ClassName {
@@ -152,4 +158,32 @@ fun KSType.isFunction(): Boolean {
 fun KSType.isSuspendingFunction(): Boolean {
     val name = declaration.qualifiedName ?: return false
     return name.getQualifier() == "kotlin.coroutines" && name.getShortName().matches(SUSPEND_FUNCTION)
+}
+
+fun KSType.isConcrete(): Boolean {
+    if (declaration is KSTypeParameter) return false
+    if (arguments.isEmpty()) return true
+    return arguments.all { it.type?.resolve()?.isConcrete() ?: false }
+}
+
+/**
+ * A 'fast' version of [Resolver.getSymbolsWithAnnotation]. We only care about class annotations so we can skip a lot
+ * of the tree.
+ */
+fun Resolver.getSymbolsWithClassAnnotation(packageName: String, simpleName: String): List<KSClassDeclaration> {
+    val result = mutableListOf<KSClassDeclaration>()
+    fun visit(declarations: List<KSDeclaration>) {
+        for (declaration in declarations) {
+            if (declaration is KSClassDeclaration) {
+                if (declaration.hasAnnotation(packageName, simpleName)) {
+                    result.add(declaration)
+                }
+                visit(declaration.declarations)
+            }
+        }
+    }
+    for (file in getNewFiles()) {
+        visit(file.declarations)
+    }
+    return result
 }

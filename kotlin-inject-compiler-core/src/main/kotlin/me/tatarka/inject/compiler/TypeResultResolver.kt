@@ -1,7 +1,5 @@
 package me.tatarka.inject.compiler
 
-import me.tatarka.inject.annotations.Inject
-
 /**
  * Obtains a [TypeResult] from a given [Context].
  */
@@ -57,7 +55,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             if (key.type.isTypeAlias()) {
                 // Check to see if we have a function matching the type alias
                 val functions = provider.findFunctions(key.type.packageName, key.type.simpleName)
-                val injectedFunction = functions.find { it.hasAnnotation<Inject>() }
+                val injectedFunction = functions.find { it.isInject() }
                 if (injectedFunction != null) {
                     return NamedFunction(
                         this,

@@ -32,13 +32,14 @@ import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeKind
 import javax.lang.model.type.TypeMirror
 
-fun Element.hasAnnotation(className: String): Boolean {
-    return annotationMirrors.any { it.annotationType.toString() == className }
+fun Element.hasAnnotation(packageName: String, simpleName: String): Boolean {
+    val qualifiedName = if (packageName.isNotEmpty()) "$packageName.$simpleName" else simpleName
+    return annotationMirrors.any { it.annotationType.toString() == qualifiedName }
 }
 
-fun Element.annotationAnnotatedWith(className: String) =
+fun Element.annotationAnnotatedWith(packageName: String, simpleName: String) =
     annotationMirrors.find {
-        it.annotationType.asElement().hasAnnotation(className)
+        it.annotationType.asElement().hasAnnotation(packageName, simpleName)
     }
 
 val TypeElement.metadata: KotlinClassMetadata?
