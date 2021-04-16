@@ -22,6 +22,7 @@ dependencies {
 sourceSets {
     test {
         kotlin.srcDir '../common/src/test/kotlin'
+        java.srcDir '../common/src/test/java'
     }
 }
 
