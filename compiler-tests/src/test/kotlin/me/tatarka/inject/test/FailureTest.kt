@@ -401,6 +401,28 @@ class FailureTest(private val target: Target) {
             )
         }
     }
+
+    @Test
+    fun fails_with_missing_binding_with_platform_provides_and_non_nullable_usage() {
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+               import me.tatarka.inject.annotations.Component
+               import me.tatarka.inject.annotations.Provides
+               
+               @Component abstract class MyComponent() {
+                 abstract val foo: String
+                 @Provides fun provideFoo() = System.lineSeparator()
+               }
+                """.trimIndent()
+            ).compile()
+        }.isFailure().output().all {
+            contains(
+                "Cannot find an @Inject constructor or provider for: String"
+            )
+        }
+    }
 }
 
 private fun Target.sourceExt() = when (this) {

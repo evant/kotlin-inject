@@ -279,6 +279,7 @@ fun KmType.eqv(other: KmType): Boolean {
     }
     return classifier == other.classifier &&
             isNullable() == other.isNullable() &&
+            isPlatformType() == other.isPlatformType() &&
             arguments.eqvItr(other.arguments) { a, b ->
                 a.variance == b.variance &&
                         a.type.eqv(b.type, KmType::eqv)
@@ -329,3 +330,5 @@ inline fun KmConstructor.isPrimary() = Flag.Constructor.IS_PRIMARY(flags)
 inline fun KmValueParameter.hasDefault() = Flag.ValueParameter.DECLARES_DEFAULT_VALUE(flags)
 
 inline fun KmType.isNullable() = Flag.Type.IS_NULLABLE(flags)
+
+inline fun KmType.isPlatformType() = flexibleTypeUpperBound?.typeFlexibilityId == "kotlin.jvm.PlatformType"
