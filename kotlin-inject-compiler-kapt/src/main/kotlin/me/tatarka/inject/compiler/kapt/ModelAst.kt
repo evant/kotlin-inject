@@ -309,9 +309,7 @@ private class ModelAstClass(
 
     override val constructors: List<AstConstructor>
         get() {
-            if (kmClass == null) return emptyList()
-
-            val kmCtors = kmClass.constructors.associateBy { it.signature?.simpleSig }
+            val kmCtors = kmClass?.constructors?.associateBy { it.signature?.simpleSig } ?: emptyMap()
             return ElementFilter.constructorsIn(element.enclosedElements).map { constructor ->
                 ModelAstConstructor(
                     this,
