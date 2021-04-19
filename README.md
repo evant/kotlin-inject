@@ -436,3 +436,4 @@ You can provide some additional options to the processor.
 You can find additional docs on specific use-cases in the [docs](docs) folder.
 
 - [Testing](docs/testing.md)
+- [Android](docs/android.md)
