@@ -301,6 +301,18 @@ fun KmType.eqvHashCode(collector: HashCollector = HashCollector()): Int {
     }
 }
 
+/**
+ * Returns the [KmType] without type alias info.
+ */
+fun KmType.resolve(): KmType = KmType(flags).also {
+    it.classifier = classifier
+    it.arguments.clear()
+    it.arguments.addAll(arguments)
+    it.abbreviatedType = null
+    it.outerType = outerType
+    it.flexibleTypeUpperBound = flexibleTypeUpperBound
+}
+
 fun TypeMirror.eqvHashCode(collector: HashCollector = HashCollector()): Int = collectHash(collector) {
     if (this@eqvHashCode is DeclaredType) {
         val element = asElement()

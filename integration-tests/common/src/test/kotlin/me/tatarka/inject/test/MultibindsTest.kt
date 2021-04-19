@@ -10,28 +10,33 @@ import kotlin.test.Test
 
 data class FooValue(val name: String)
 
-@Component abstract class SetComponent {
+@Component
+abstract class SetComponent {
     abstract val items: Set<FooValue>
 
-    @Provides @IntoSet
+    @Provides
+    @IntoSet
     fun fooValue1() = FooValue("1")
 
     val fooValue2
         @Provides @IntoSet get() = FooValue("2")
 }
 
-@Component abstract class DynamicKeyComponent {
+@Component
+abstract class DynamicKeyComponent {
 
     abstract val items: Map<String, FooValue>
 
-    @Provides @IntoMap
+    @Provides
+    @IntoMap
     fun fooValue1() = "1" to FooValue("1")
 
     val fooValue2
         @Provides @IntoMap get() = "2" to FooValue("2")
 }
 
-@Component abstract class ParentSetComponent {
+@Component
+abstract class ParentSetComponent {
     val Foo.bind: IFoo
         @Provides @IntoSet get() = this
 
@@ -43,11 +48,25 @@ data class FooValue(val name: String)
         @Provides get() = this
 }
 
-@Component abstract class ChildSetComponent(@Component val parent: ParentSetComponent) {
+@Component
+abstract class ChildSetComponent(@Component val parent: ParentSetComponent) {
     val Foo3.bind: IFoo
         @Provides @IntoSet get() = this
 
     abstract val items: Set<IFoo>
+}
+
+typealias Entry = Pair<String, FooValue>
+
+@Component
+abstract class TypeAliasMapComponent {
+    abstract val items: Map<String, FooValue>
+
+    val fooValue1: Entry
+        @Provides @IntoMap get() = "1" to FooValue("1")
+
+    val fooValue2: Entry
+        @Provides @IntoMap get() = "2" to FooValue("2")
 }
 
 class MultibindsTest {
@@ -77,6 +96,16 @@ class MultibindsTest {
             Foo(),
             Bar(Foo()),
             Foo3()
+        )
+    }
+
+    @Test
+    fun generates_a_component_that_provides_multiple_items_using_a_type_alias_into_a_map() {
+        val component = TypeAliasMapComponent::class.create()
+
+        assertThat(component.items).containsOnly(
+            "1" to FooValue("1"),
+            "2" to FooValue("2")
         )
     }
 }
