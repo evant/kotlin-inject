@@ -315,7 +315,7 @@ inline fun KmClass.isAbstract() = Flag.Common.IS_ABSTRACT(flags)
 
 inline fun KmClass.isInterface() = Flag.Class.IS_INTERFACE(flags)
 
-inline fun KmClass.isObject() = Flag.Class.IS_OBJECT(flags)
+inline fun KmClass.isObject() = Flag.Class.IS_OBJECT(flags) or Flag.Class.IS_COMPANION_OBJECT(flags)
 
 inline fun KmFunction.isAbstract() = Flag.Common.IS_ABSTRACT(flags)
 
