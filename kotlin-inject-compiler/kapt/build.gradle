@@ -4,8 +4,10 @@ plugins {
 
 dependencies {
     implementation project(':kotlin-inject-runtime')
+    implementation project(':kotlin-inject-compiler:core')
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
-    api 'com.squareup:kotlinpoet:1.5.0'
+    implementation 'org.jetbrains.kotlinx:kotlinx-metadata-jvm:0.1.0'
+    compileOnly 'io.earcam.wrapped:jdk.compiler:1.8.132'
 }
 
 sourceCompatibility = 1.8
@@ -15,4 +17,6 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
     kotlinOptions.jvmTarget = "1.8"
 }
 
-apply from: '../publish.gradle'
+ext.artifactId = 'kotlin-inject-compiler-kapt'
+
+apply from: "$rootProject.projectDir/publish.gradle"

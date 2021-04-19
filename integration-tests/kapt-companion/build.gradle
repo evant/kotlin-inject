@@ -5,14 +5,13 @@ plugins {
 }
 
 dependencies {
-    kapt project(':kotlin-inject-compiler-kapt')
+    kapt project(':kotlin-inject-compiler:kapt')
     implementation project(':kotlin-inject-runtime')
     implementation project(':integration-tests:module')
 
     implementation 'org.jetbrains.kotlin:kotlin-stdlib'
 
-    kaptTest project(':kotlin-inject-compiler-kapt')
-
+    kaptTest project(':kotlin-inject-compiler:kapt')
     testImplementation "org.jetbrains.kotlin:kotlin-test"
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit"
     testImplementation 'org.jetbrains.kotlin:kotlin-reflect'

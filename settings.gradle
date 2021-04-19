@@ -5,10 +5,12 @@ pluginManagement {
     }
 }
 
-include ':kotlin-inject-compiler-core'
-include ':kotlin-inject-compiler-kapt'
-include ':kotlin-inject-compiler-ksp'
+rootProject.name='kotlin-inject'
+
 include ':kotlin-inject-runtime'
+include ':kotlin-inject-compiler:core'
+include ':kotlin-inject-compiler:kapt'
+include ':kotlin-inject-compiler:ksp'
 include ':compiler-tests'
 include ':integration-tests:kapt'
 include ':integration-tests:ksp'
