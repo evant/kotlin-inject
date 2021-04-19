@@ -56,8 +56,9 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
             if (method.hasAnnotation(INTO_MAP.packageName, INTO_MAP.simpleName)) {
                 // Pair<A, B> -> Map<A, B>
                 val type = method.returnTypeFor(astClass)
-                if (type.packageName == "kotlin" && type.simpleName == "Pair") {
-                    val typeArgs = method.returnTypeFor(astClass).arguments
+                val resolvedType = type.resolvedType()
+                if (resolvedType.packageName == "kotlin" && resolvedType.simpleName == "Pair") {
+                    val typeArgs = resolvedType.arguments
                     val mapType =
                         TypeKey(declaredTypeOf(Map::class, typeArgs[0], typeArgs[1]), method.qualifier(options))
                     addContainerType(mapType, mapOf, method, accessor, scopedComponent)

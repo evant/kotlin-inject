@@ -611,7 +611,7 @@ private class ModelAstType(
     override fun resolvedType(): AstType {
         val abbreviatedType = kmType?.abbreviatedType
         return if (abbreviatedType != null) {
-            ModelAstType(this, type, abbreviatedType)
+            ModelAstType(this, type, kmType?.resolve())
         } else {
             this
         }
