@@ -1,9 +1,9 @@
 # Contributing
  
- ## Creating the Pull Request
+## Creating the Pull Request
 
 To contribute, fork our project on GitHub, then submit a pull request to our `main` branch. Take a look at
-[architecture.md](architecture.md) to get a high-level view how the project is structured.
+[architecture.md](docs/architecture.md) to get a high-level view how the project is structured.
 
 ## Static Code Analysis
 

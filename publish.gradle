@@ -23,9 +23,14 @@ nexusPublishing {
     connectTimeout.set(Duration.ofMinutes(5))
 }
 
+def customArtifactId = project.ext.find("artifactId")
+
 publishing {
     publications {
         lib(MavenPublication) {
+            if (customArtifactId != null) {
+                artifactId customArtifactId
+            }
             from components.java
             artifact sourcesJar
             artifact javadocJar

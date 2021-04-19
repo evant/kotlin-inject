@@ -4,7 +4,7 @@ plugins {
 }
 
 dependencies {
-    kspTest project(':kotlin-inject-compiler-ksp')
+    kspTest project(':kotlin-inject-compiler:ksp')
     implementation project(':kotlin-inject-runtime')
     implementation project(':integration-tests:module')
 
