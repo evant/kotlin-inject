@@ -23,6 +23,7 @@ import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.KSTypeAlias
 import com.google.devtools.ksp.symbol.KSValueParameter
 import com.google.devtools.ksp.symbol.Modifier
+import com.google.devtools.ksp.symbol.Nullability
 import com.google.devtools.ksp.symbol.Variance
 import com.google.devtools.ksp.symbol.Visibility
 import com.squareup.kotlinpoet.ClassName
@@ -386,6 +387,8 @@ private class KSAstType(provider: KSAstProvider, val type: KSType) : AstType(), 
     override fun isUnit(): Boolean {
         return type == resolver.builtIns.unitType
     }
+
+    override fun isPlatform(): Boolean = type.nullability == Nullability.PLATFORM
 
     override fun isFunction(): Boolean {
         val actualType = type.actualType()

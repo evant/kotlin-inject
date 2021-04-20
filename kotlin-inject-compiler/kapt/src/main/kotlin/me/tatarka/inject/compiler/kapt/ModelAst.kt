@@ -598,6 +598,8 @@ private class ModelAstType(
 
     override fun isUnit(): Boolean = type is NoType
 
+    override fun isPlatform(): Boolean = kmType?.isPlatformType() ?: false
+
     override fun isFunction(): Boolean {
         return kmType?.isFunction() == true
     }
