@@ -4,6 +4,57 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.3.3] - 2021-04-20
+
+### Added
+- **Allow cycles when there is delayed construction**
+
+  You can now break cycles by using `Lazy` or a function. For example,
+  ```kotlin
+  @Inject class Foo(bar: Bar)
+  @Inject class Bar(foo: Foo)
+  ```
+  will fail with a cycle error, but you can fix it by doing
+  ```kotlin
+  @Inject class Foo(bar: Lazy<Bar>)
+  @Inject class Bar(foo: Foo)
+  ```
+  or
+  ```kotlin
+  @Inject class Foo(bar: () -> Bar)
+  @Inject class Bar(foo: Foo)
+  ```
+  This uses `lateinit` under the hood. You will get a runtime exception if you try to use the dependency before 
+  construction completes.
+ - Added option `me.tatarka.inject.dumpGraph` to print the dependency graph while building. This can be useful for 
+   debugging issues.
+- **Allow type-alias usage with `@IntoMap`.**
+
+  You can now do
+  ```kotlin
+  typealias Entry = Pair<String, MyValue>
+  
+  @Component {
+      @Provides @IntoMap
+      fun entry1(): Entry = "1" to MyValue(1)
+      @Provides @IntoMap
+      fun entry2(): Entry = "2" to MyValue(2)
+  }
+  ```
+
+### Changed
+- Code-gen optimization to reduce code size
+- ksp performance improvements
+- **Made handling of nullable and platform types consistent on the different backends.**
+
+  It is now an error to return a platform type from a `@Provides` methods, you must declare the return type explicitly.
+
+### Fixed
+- Fix using `@Qualifier` on scoped dependencies
+- Fix declaring components as an inner class
+- Fix annotating java class constructors with `@Inject`
+- Fix `@Inject` on a companion object
+
 ## [0.3.2] - 2021-04-05
 
 ### Changed

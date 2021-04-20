@@ -14,7 +14,7 @@ abstract class AppComponent {
     @Provides
     protected fun jsonParser() = JsonParser()
 
-    protected val RealHttp.http: Http
+    protected val RealHttp.bind: Http
         @Provides get() = this
 }
 
@@ -44,8 +44,8 @@ plugins {
 }
 
 dependencies {
-    kapt "me.tatarka.inject:kotlin-inject-compiler-kapt:0.3.2"
-    implementation "me.tatarka.inject:kotlin-inject-runtime:0.3.2"
+    kapt "me.tatarka.inject:kotlin-inject-compiler-kapt:0.3.3"
+    implementation "me.tatarka.inject:kotlin-inject-runtime:0.3.3"
 }
 ```
 
@@ -68,8 +68,8 @@ pluginManagement {
 
 ```groovy
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '1.4.30'
-    id 'com.google.devtools.ksp' version '1.4.30-1.0.0-alpha05'
+    id 'org.jetbrains.kotlin.jvm' version '1.4.32'
+    id 'com.google.devtools.ksp' version '1.4.32-1.0.0-alpha08'
 }
 
 repositories {
@@ -78,8 +78,8 @@ repositories {
 }
 
 dependencies {
-    ksp "me.tatarka.inject:kotlin-inject-compiler-ksp:0.3.2"
-    implementation "me.tatarka.inject:kotlin-inject-runtime:0.3.2"
+    ksp "me.tatarka.inject:kotlin-inject-compiler-ksp:0.3.3"
+    implementation "me.tatarka.inject:kotlin-inject-runtime:0.3.3"
 }
 ```
 
@@ -104,7 +104,7 @@ is where the magic happens. kotlin-inject will figure out how to construct that 
 implementation. How does it know how to do this? There's a few ways:
 
 ```kotlin
-    @Provides
+@Provides
 protected fun jsonParser() = JsonParser()
 ```
 
@@ -112,14 +112,20 @@ For external dependencies, you can declare a function or read-only property in t
 certain type. kotlin-inject will use the return type to provide this instance where it is requested.
 
 ```kotlin
-    protected val RealHttp.http: Http
+protected val RealHttp.bind: Http
     @Provides get() = this
 ```
 
 You can declare arguments to a providing function/property to help you construct your instance. Here we are taking in an
 instance of `RealHttp` and providing it for the interface `Http`. You can see a little sugar with this as the receiver
 type for an extension function/property counts as an argument. Another way to write this would be:
-`fun provides(http: RealHttp): Http = http`.
+
+```kotlin
+@Provides
+fun http(http: RealHttp): Http = http
+```
+
+.
 
 ```kotlin
 @Inject
@@ -430,6 +436,10 @@ You can provide some additional options to the processor.
     companion object
   }
   ```
+
+- `me.tatarka.inject.dumpGraph=true`
+
+  This will print out the dependency graph when building. This can be useful to help debug issues.
 
 ### Additional docs
 
