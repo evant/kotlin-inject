@@ -155,6 +155,8 @@ abstract class AstType : AstElement() {
 
     abstract fun isUnit(): Boolean
 
+    abstract fun isPlatform(): Boolean
+
     abstract fun isFunction(): Boolean
 
     abstract fun isTypeAlias(): Boolean

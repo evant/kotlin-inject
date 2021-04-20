@@ -403,7 +403,7 @@ class FailureTest(private val target: Target) {
     }
 
     @Test
-    fun fails_with_missing_binding_with_platform_provides_and_non_nullable_usage() {
+    fun fails_if_provides_returns_a_platform_type() {
         assertThat {
             projectCompiler.source(
                 "MyComponent.kt",
@@ -412,14 +412,14 @@ class FailureTest(private val target: Target) {
                import me.tatarka.inject.annotations.Provides
                
                @Component abstract class MyComponent() {
-                 abstract val foo: String
                  @Provides fun provideFoo() = System.lineSeparator()
                }
                 """.trimIndent()
             ).compile()
         }.isFailure().output().all {
             contains(
-                "Cannot find an @Inject constructor or provider for: String"
+                "@Provides method must not return a platform type",
+                "You can fix this be explicitly declaring the return type as String or String?",
             )
         }
     }

@@ -144,6 +144,17 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
                             error("@Provides method must return a value", method)
                             continue
                         }
+                        if (method.returnType.isPlatform()) {
+                            val name = method.returnType.simpleName
+                            error(
+                                """@Provides method must not return a platform type
+                                |This can happen when you call a platform method and leave off an explicit return type.
+                                |You can fix this be explicitly declaring the return type as $name or $name?"""
+                                    .trimMargin(), method
+                            )
+                            continue
+                        }
+
                         if (isComponent && abstract) {
                             val providesImpl = concreteMethods.find { it.overrides(method) }
                             if (providesImpl == null) {
