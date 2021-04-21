@@ -402,7 +402,7 @@ private class KSAstType(provider: KSAstProvider, val type: KSType) : AstType(), 
     override fun resolvedType(): AstType {
         val declaration = declaration
         return if (declaration is KSTypeAlias) {
-            KSAstType(this, declaration.type.resolve())
+            KSAstType(this, declaration.type.resolve().replace(type.arguments))
         } else {
             this
         }

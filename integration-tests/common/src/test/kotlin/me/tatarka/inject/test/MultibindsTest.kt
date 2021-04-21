@@ -69,6 +69,16 @@ abstract class TypeAliasMapComponent {
         @Provides @IntoMap get() = "2" to FooValue("2")
 }
 
+typealias Factory<T> = () -> T
+
+@Component
+abstract class TypeAliasIntoMapDependencyComponent {
+    abstract val items: Map<String, () -> Any?>
+
+    @Provides @IntoMap
+    fun foo(f: Factory<Foo>): Pair<String, () -> Any?> = "test" to f
+}
+
 class MultibindsTest {
 
     @Test
