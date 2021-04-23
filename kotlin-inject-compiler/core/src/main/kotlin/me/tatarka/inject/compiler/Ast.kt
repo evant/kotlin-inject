@@ -11,7 +11,7 @@ import kotlin.reflect.KClass
 interface AstProvider {
     val messenger: Messenger
 
-    fun findFunctions(packageName: String, functionName: String): List<AstFunction>
+    fun findFunctions(packageName: String, functionName: String): Sequence<AstFunction>
 
     fun declaredTypeOf(klass: KClass<*>, vararg astTypes: AstType): AstType
 
