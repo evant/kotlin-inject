@@ -4,10 +4,14 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
+import me.tatarka.inject.test.module.externalFunction
 import org.junit.Test
 
-@Component abstract class FunctionInjectionComponent {
+@Component
+abstract class FunctionInjectionComponent {
     abstract val bar: bar
+
+    abstract val externalFunction: externalFunction
 }
 
 typealias F = String
@@ -29,5 +33,6 @@ class InjectFunctionTest {
         val component = FunctionInjectionComponent::class.create()
 
         assertThat(component.bar()).isEqualTo("test")
+        assertThat(component.externalFunction()).isEqualTo("external")
     }
 }

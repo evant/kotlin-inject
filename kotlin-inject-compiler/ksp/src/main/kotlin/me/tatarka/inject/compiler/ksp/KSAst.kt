@@ -67,15 +67,11 @@ interface KSAstProvider : AstProvider, OutputProvider<CodeGenerator> {
         return KSAstClass(this@KSAstProvider, this)
     }
 
-    override fun findFunctions(packageName: String, functionName: String): List<AstFunction> {
-        return resolver.getAllFiles().filter { it.packageName.asString() == packageName }
-            .flatMap { it.declarations }
-            .mapNotNull { declaration ->
-                if (declaration is KSFunctionDeclaration && declaration.simpleName.asString() == functionName) {
-                    KSAstFunction(this, declaration)
-                } else {
-                    null
-                }
+    override fun findFunctions(packageName: String, functionName: String): Sequence<AstFunction> {
+        val name = resolver.getKSNameFromString("$packageName.$functionName")
+        return resolver.getFunctionDeclarationsByName(name, includeTopLevel = true)
+            .map { declaration ->
+                KSAstFunction(this, declaration)
             }
     }
 

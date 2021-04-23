@@ -77,7 +77,7 @@ interface ModelAstProvider : AstProvider {
     }
 
     @Suppress("LoopWithTooManyJumpStatements")
-    override fun findFunctions(packageName: String, functionName: String): List<AstFunction> {
+    override fun findFunctions(packageName: String, functionName: String): Sequence<AstFunction> {
         val packageElement = elements.getPackageElement(packageName)
         val results = mutableListOf<AstFunction>()
         for (element in ElementFilter.typesIn(packageElement.enclosedElements)) {
@@ -92,7 +92,7 @@ interface ModelAstProvider : AstProvider {
                 }
             }
         }
-        return results
+        return results.asSequence()
     }
 
     override fun declaredTypeOf(klass: KClass<*>, vararg astTypes: AstType): AstType {
