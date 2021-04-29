@@ -13,8 +13,7 @@ often fix formatting errors automatically with `./gradlew detekt -Pfix=true`.
 ## Testing
 
 Tests are broken up into two parts. The ones in `integration-test` test the behavior of the generated code is correct
-for various features. The ones in `compiler-test` test the output of the compiler. Currently, these are quite slow as
-they generate a whole gradle project and are only used for testing error messages.
+for various features. The ones in `compiler-test` test the output of the compiler.
  
 To debug the compiler, you can write the code you want to test and then run
  ```
