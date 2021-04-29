@@ -12,7 +12,7 @@ abstract class AppComponent {
     abstract val repo: Repository
 
     @Provides
-    protected fun jsonParser() = JsonParser()
+    protected fun jsonParser(): JsonParser = JsonParser()
 
     protected val RealHttp.bind: Http
         @Provides get() = this
@@ -105,7 +105,7 @@ implementation. How does it know how to do this? There's a few ways:
 
 ```kotlin
 @Provides
-protected fun jsonParser() = JsonParser()
+protected fun jsonParser(): JsonParser = JsonParser()
 ```
 
 For external dependencies, you can declare a function or read-only property in the component to create an instance for a
@@ -203,7 +203,7 @@ abstract class MyComponent {
     fun dep2(): Dep2 = Dep("two")
 
     @Provides
-    fun provides(dep1: Dep1, dep2: Dep2) = Thing(dep1, dep2)
+    fun provides(dep1: Dep1, dep2: Dep2): Thing = Thing(dep1, dep2)
 }
 
 @Inject
@@ -274,7 +274,7 @@ Finally, annotate your provides and `@Inject` classes with that scope.
 abstract class MyComponent {
     @MyScope
     @Provides
-    protected fun provideFoo() = ...
+    protected fun provideFoo(): Foo = ...
 }
 
 @MyScope
