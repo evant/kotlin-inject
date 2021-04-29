@@ -447,3 +447,7 @@ You can find additional docs on specific use-cases in the [docs](docs) folder.
 
 - [Testing](docs/testing.md)
 - [Android](docs/android.md)
+
+## Samples
+
+You can find various samples [here](https://github.com/evant/kotlin-inject-samples)
