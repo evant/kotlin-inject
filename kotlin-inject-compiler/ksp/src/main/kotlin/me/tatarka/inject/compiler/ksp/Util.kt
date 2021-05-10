@@ -34,6 +34,10 @@ fun KSAnnotated.annotationAnnotatedWith(packageName: String, simpleName: String)
     return null
 }
 
+fun KSAnnotated.findAnnotation(packageName: String, simpleName: String): KSAnnotation? {
+    return annotations.first { it.hasName(packageName, simpleName) }
+}
+
 fun KSAnnotated.hasAnnotation(packageName: String, simpleName: String): Boolean {
     return annotations.any { it.hasName(packageName, simpleName) }
 }

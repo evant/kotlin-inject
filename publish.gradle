@@ -23,11 +23,15 @@ nexusPublishing {
     connectTimeout.set(Duration.ofMinutes(5))
 }
 
+def customGroupId = project.ext.find("groupId")
 def customArtifactId = project.ext.find("artifactId")
 
 publishing {
     publications {
         lib(MavenPublication) {
+            if (customGroupId != null) {
+                groupId customGroupId
+            }
             if (customArtifactId != null) {
                 artifactId customArtifactId
             }

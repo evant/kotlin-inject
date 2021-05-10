@@ -1,0 +1,24 @@
+plugins {
+    id("org.jetbrains.kotlin.jvm")
+}
+
+dependencies {
+    implementation(project(":kotlin-inject-compiler:ksp"))
+    implementation("org.jetbrains.kotlin:kotlin-stdlib")
+    implementation("com.squareup:kotlinpoet:1.5.0")
+    // for access to CompilationErrorException until ksp properly fails on errors
+    implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:$kotlin_version")
+    implementation("com.google.devtools.ksp:symbol-processing-api:$ksp_version")
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    kotlinOptions.jvmTarget = "1.8"
+}
+
+ext.groupId = 'me.tatarka.inject.android'
+ext.artifactId = 'kotlin-inject-fragment-factory'
+
+apply from: "$rootProject.projectDir/publish.gradle"

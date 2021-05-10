@@ -117,6 +117,9 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
             var elementScope: AstType? = null
 
             astClass.visitInheritanceChain { parentClass ->
+                if (parentClass.isError) {
+                    throw ErrorTypeException()
+                }
                 val parentScope = parentClass.scopeType(options)
                 if (parentScope != null) {
                     if (scopeClass == null) {

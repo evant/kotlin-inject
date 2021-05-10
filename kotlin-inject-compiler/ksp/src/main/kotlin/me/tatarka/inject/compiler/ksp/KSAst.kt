@@ -26,6 +26,7 @@ import com.google.devtools.ksp.symbol.Modifier
 import com.google.devtools.ksp.symbol.Nullability
 import com.google.devtools.ksp.symbol.Variance
 import com.google.devtools.ksp.symbol.Visibility
+import com.google.devtools.ksp.validate
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.MemberName
@@ -125,7 +126,7 @@ object KSAstMessenger : Messenger {
     }
 }
 
-private interface KSAstAnnotated : AstAnnotated, KSAstProvider {
+interface KSAstAnnotated : AstAnnotated, KSAstProvider {
     val declaration: KSAnnotated
 
     override fun hasAnnotation(packageName: String, simpleName: String): Boolean {
@@ -157,6 +158,9 @@ private class KSAstClass(provider: KSAstProvider, override val declaration: KSCl
 
     override val name: String
         get() = declaration.simpleName.asString()
+
+    override val isError: Boolean
+        get() = !declaration.validate()
 
     override val visibility: AstVisibility
         get() = declaration.getVisibility().astVisibility()

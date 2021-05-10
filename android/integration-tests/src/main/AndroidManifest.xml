@@ -1,0 +1,5 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="me.tatarka.inject.android.test">
+    <application>
+        <activity android:name="me.tatarka.inject.android.TestViewModelActivity"/>
+    </application>
+</manifest>

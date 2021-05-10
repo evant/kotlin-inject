@@ -5,7 +5,10 @@ import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.symbol.KSAnnotated
+import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.google.devtools.ksp.validate
 import me.tatarka.inject.compiler.COMPONENT
+import me.tatarka.inject.compiler.ErrorTypeException
 import me.tatarka.inject.compiler.FailedToGenerateException
 import me.tatarka.inject.compiler.InjectGenerator
 import me.tatarka.inject.compiler.Options
@@ -37,7 +40,12 @@ class InjectProcessor(private val profiler: Profiler? = null) : SymbolProcessor,
 
         val generator = InjectGenerator(this, options)
 
-        for (element in resolver.getSymbolsWithClassAnnotation(COMPONENT.packageName, COMPONENT.simpleName)) {
+        val (elements, failedToValidate) = resolver.getSymbolsWithClassAnnotation(
+            COMPONENT.packageName,
+            COMPONENT.simpleName
+        ).partition { it.validate() }
+
+        for (element in elements) {
             val astClass = element.toAstClass()
 
             try {
@@ -52,7 +60,9 @@ class InjectProcessor(private val profiler: Profiler? = null) : SymbolProcessor,
 
         profiler?.onStop()
 
-        return emptyList()
+        logger.warn("failed to process: ${failedToValidate.joinToString(", ")}")
+
+        return failedToValidate
     }
 
     override fun finish() {

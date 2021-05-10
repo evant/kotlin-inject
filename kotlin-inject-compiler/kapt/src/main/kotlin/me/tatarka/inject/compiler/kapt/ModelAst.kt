@@ -215,6 +215,7 @@ private class PrimitiveModelAstClass(
 
     override val packageName: String = "kotlin"
     override val name: String = type.toString()
+    override val isError: Boolean = false
     override val visibility: AstVisibility = AstVisibility.PUBLIC
     override val isAbstract: Boolean = false
     override val isInterface: Boolean = false
@@ -256,6 +257,8 @@ private class ModelAstClass(
         }
 
     override val name: String get() = element.simpleName.toString()
+
+    override val isError: Boolean = false
 
     override val visibility: AstVisibility
         get() = astVisibility(element, kmClass?.flags)

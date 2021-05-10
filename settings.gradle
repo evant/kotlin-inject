@@ -3,6 +3,13 @@ pluginManagement {
         gradlePluginPortal()
         google()
     }
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.id.startsWith("com.android")) {
+                useModule("com.android.tools.build:gradle:${requested.version}")
+            }
+        }
+    }
 }
 
 rootProject.name='kotlin-inject'
@@ -17,3 +24,7 @@ include ':integration-tests:ksp'
 include ':integration-tests:module'
 include ':integration-tests:kapt-companion'
 include ':integration-tests:ksp-companion'
+include ':android:activity'
+include ':android:fragment'
+include ':android:fragment-factory-compiler'
+include ':android:integration-tests'

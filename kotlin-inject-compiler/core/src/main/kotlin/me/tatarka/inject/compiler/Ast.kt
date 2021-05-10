@@ -47,6 +47,8 @@ abstract class AstClass : AstElement(), AstHasModifiers {
 
     abstract val name: String
 
+    abstract val isError: Boolean
+
     abstract val companion: AstClass?
 
     abstract val isObject: Boolean
