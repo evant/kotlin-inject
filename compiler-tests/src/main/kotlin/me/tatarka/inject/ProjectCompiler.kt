@@ -3,17 +3,15 @@ package me.tatarka.inject
 import com.tschuchort.compiletesting.KotlinCompilation
 import com.tschuchort.compiletesting.SourceFile
 import com.tschuchort.compiletesting.kspArgs
-import com.tschuchort.compiletesting.symbolProcessors
+import com.tschuchort.compiletesting.symbolProcessorProviders
 import me.tatarka.inject.compiler.Options
-import me.tatarka.inject.compiler.Profiler
 import me.tatarka.inject.compiler.kapt.InjectCompiler
-import me.tatarka.inject.compiler.ksp.InjectProcessor
+import me.tatarka.inject.compiler.ksp.InjectProcessorProvider
 import java.io.File
 
 class ProjectCompiler(
     private val target: Target,
     private val root: File? = null,
-    private val profiler: Profiler? = null
 ) {
 
     private val sourceFiles = mutableListOf<SourceFile>()
@@ -39,13 +37,13 @@ class ProjectCompiler(
                     options?.let {
                         kaptArgs.putAll(it.toMap())
                     }
-                    annotationProcessors = listOf(InjectCompiler(profiler))
+                    annotationProcessors = listOf(InjectCompiler())
                 }
                 Target.KSP -> {
                     options?.let {
                         kspArgs.putAll(it.toMap())
                     }
-                    symbolProcessors = listOf(InjectProcessor(profiler))
+                    symbolProcessorProviders = listOf(InjectProcessorProvider())
                 }
             }
         }.compile()
