@@ -19,7 +19,6 @@ import kotlinx.metadata.KmType
 import kotlinx.metadata.KmTypeProjection
 import kotlinx.metadata.KmValueParameter
 import kotlinx.metadata.KmVariance
-import kotlinx.metadata.jvm.annotations
 import kotlinx.metadata.jvm.getterSignature
 import kotlinx.metadata.jvm.signature
 import me.tatarka.inject.compiler.AstAnnotated
@@ -67,13 +66,12 @@ interface ModelAstProvider : AstProvider {
 
     val types: Types get() = env.typeUtils
     val elements: Elements get() = env.elementUtils
-    val messager: Messager get() = env.messager
 
     override val messenger: Messenger
-        get() = ModelAstMessenger(messager)
+        get() = ModelAstMessenger(env.messager)
 
     fun TypeElement.toAstClass(): AstClass {
-        return ModelAstClass(this@ModelAstProvider, this, metadata?.toKmClass())
+        return ModelAstClass(this@ModelAstProvider, this)
     }
 
     @Suppress("LoopWithTooManyJumpStatements")
@@ -147,7 +145,6 @@ interface ModelAstProvider : AstProvider {
         )
 
     override fun AstElement.toTrace(): String {
-        require(this is ModelAstElement)
         return when (this) {
             is ModelAstMethod -> "${parent.type}.${toString()}"
             else -> toString()
@@ -181,8 +178,12 @@ class ModelAstMessenger(private val messager: Messager) : Messenger {
     }
 }
 
-private interface ModelAstElement : ModelAstProvider, AstAnnotated {
+private interface ModelAstElement {
     val element: Element
+}
+
+private interface ModelAstAnnotated : ModelAstElement, AstAnnotated {
+    val provider: ModelAstProvider
 
     override fun hasAnnotation(packageName: String, simpleName: String): Boolean {
         return element.hasAnnotation(packageName, simpleName)
@@ -190,28 +191,24 @@ private interface ModelAstElement : ModelAstProvider, AstAnnotated {
 
     override fun annotationAnnotatedWith(packageName: String, simpleName: String): AstAnnotation? {
         return element.annotationAnnotatedWith(packageName, simpleName)?.let {
-            ModelAstAnnotation(this, it, null)
+            ModelAstAnnotation(provider, it, null)
         }
     }
 }
 
-private interface ModelAstMethod : ModelAstElement {
+private interface ModelAstMethod : ModelAstAnnotated {
     val name: String
     val parent: AstClass
     override val element: ExecutableElement
 }
 
-private class ModelBasicElement(provider: ModelAstProvider, override val element: Element) :
-    AstBasicElement(),
-    ModelAstElement,
-    ModelAstProvider by provider {
+private class ModelBasicElement(override val element: Element) : AstBasicElement(), ModelAstElement {
     override val simpleName: String get() = element.simpleName.toString()
 }
 
 private class PrimitiveModelAstClass(
     override val type: ModelAstType
-) : AstClass(),
-    ModelAstProvider by type {
+) : AstClass() {
 
     override val packageName: String = "kotlin"
     override val name: String = type.toString()
@@ -240,19 +237,18 @@ private class PrimitiveModelAstClass(
 }
 
 private class ModelAstClass(
-    provider: ModelAstProvider,
+    override val provider: ModelAstProvider,
     override val element: TypeElement,
-    val kmClass: KmClass?
-) : AstClass(),
-    ModelAstElement,
-    ModelAstProvider by provider {
+) : AstClass(), ModelAstAnnotated {
+
+    val kmClass: KmClass? = element.metadata?.toKmClass()
 
     override val packageName: String
         get() {
             if (kmClass != null) {
                 return kmClass.packageName
             }
-            return elements.getPackageOf(element).qualifiedName.toString()
+            return provider.elements.getPackageOf(element).qualifiedName.toString()
         }
 
     override val name: String get() = element.simpleName.toString()
@@ -275,7 +271,7 @@ private class ModelAstClass(
             val companionType = ElementFilter.typesIn(element.enclosedElements).firstOrNull { type ->
                 type.simpleName.contentEquals(companionName)
             }
-            return companionType?.toAstClass()
+            return companionType?.let { ModelAstClass(provider, it) }
         }
 
     override val superTypes: Sequence<AstClass>
@@ -283,12 +279,12 @@ private class ModelAstClass(
             return sequence {
                 val superclassType = element.superclass
                 if (superclassType !is NoType) {
-                    val superclass = types.asElement(superclassType) as TypeElement
-                    yield(superclass.toAstClass())
+                    val superclass = provider.types.asElement(superclassType) as TypeElement
+                    yield(ModelAstClass(provider, superclass))
                 }
                 for (ifaceType in element.interfaces) {
-                    val iface = types.asElement(ifaceType) as TypeElement
-                    yield(iface.toAstClass())
+                    val iface = provider.types.asElement(ifaceType) as TypeElement
+                    yield(ModelAstClass(provider, iface))
                 }
             }
         }
@@ -302,7 +298,7 @@ private class ModelAstClass(
 
             return ElementFilter.constructorsIn(element.enclosedElements)
                 .find { it.simpleSig == primaryKmCtorSignature }
-                ?.let { ModelAstConstructor(this, this, it, primaryKmCtor) }
+                ?.let { ModelAstConstructor(provider, this, it, primaryKmCtor) }
         }
 
     override val constructors: Sequence<AstConstructor>
@@ -310,7 +306,7 @@ private class ModelAstClass(
             val kmCtors = kmClass?.constructors?.associateBy { it.signature?.simpleSig } ?: emptyMap()
             return ElementFilter.constructorsIn(element.enclosedElements).asSequence().map { constructor ->
                 ModelAstConstructor(
-                    this,
+                    provider,
                     this,
                     constructor,
                     kmCtors[constructor.simpleSig]
@@ -333,7 +329,7 @@ private class ModelAstClass(
                 val method = methods[property.getterSignature?.simpleSig] ?: continue
                 result.add(
                     ModelAstProperty(
-                        this,
+                        provider,
                         this,
                         method,
                         property
@@ -344,7 +340,7 @@ private class ModelAstClass(
                 val method = methods[function.signature?.simpleSig] ?: continue
                 result.add(
                     ModelAstFunction(
-                        this,
+                        provider,
                         this,
                         method,
                         function
@@ -357,23 +353,21 @@ private class ModelAstClass(
 
     override val type: AstType
         get() {
-            return ModelAstType(this, element.asType(), kmClass?.type)
+            return ModelAstType(provider, element.asType(), kmClass?.type)
         }
 
     override fun asClassName(): ClassName = element.asClassName()
 
-    override fun equals(other: Any?): Boolean = other is ModelAstElement && element == other.element
+    override fun equals(other: Any?): Boolean = other is ModelAstAnnotated && element == other.element
     override fun hashCode(): Int = element.hashCode()
 }
 
 private class ModelAstConstructor(
-    provider: ModelAstProvider,
+    override val provider: ModelAstProvider,
     private val parent: ModelAstClass,
     override val element: ExecutableElement,
     private val kmConstructor: KmConstructor?
-) : AstConstructor(parent),
-    ModelAstElement,
-    ModelAstProvider by provider {
+) : AstConstructor(parent), ModelAstAnnotated {
 
     override val parameters: List<AstParam>
         get() {
@@ -382,7 +376,7 @@ private class ModelAstConstructor(
             return params.mapIndexed { index, param ->
                 val kmParam = kmParams.getOrNull(index)
                 ModelAstParam(
-                    this,
+                    provider,
                     param,
                     parent.kmClass,
                     kmParam
@@ -400,13 +394,11 @@ private class ModelAstConstructor(
 }
 
 private class ModelAstFunction(
-    provider: ModelAstProvider,
+    override val provider: ModelAstProvider,
     override val parent: AstClass,
     override val element: ExecutableElement,
     private val kmFunction: KmFunction
-) : AstFunction(),
-    ModelAstMethod,
-    ModelAstProvider by provider {
+) : AstFunction(), ModelAstMethod {
 
     override val name: String get() = kmFunction.name
 
@@ -421,7 +413,7 @@ private class ModelAstFunction(
 
     override val returnType: AstType
         get() = ModelAstType(
-            this,
+            provider,
             element.returnType,
             kmFunction.returnType
         )
@@ -429,9 +421,9 @@ private class ModelAstFunction(
     override fun returnTypeFor(enclosingClass: AstClass): AstType {
         require(enclosingClass is ModelAstClass)
         val declaredType = enclosingClass.element.asType() as DeclaredType
-        val methodType = types.asMemberOf(declaredType, element) as ExecutableType
+        val methodType = provider.types.asMemberOf(declaredType, element) as ExecutableType
         return ModelAstType(
-            this,
+            provider,
             methodType.returnType,
             kmFunction.returnType
         )
@@ -439,7 +431,7 @@ private class ModelAstFunction(
 
     override val receiverParameterType: AstType?
         get() = kmFunction.receiverParameterType?.let {
-            ModelAstType(this, element.parameters[0].asType(), it)
+            ModelAstType(provider, element.parameters[0].asType(), it)
         }
 
     override val parameters: List<AstParam>
@@ -459,7 +451,7 @@ private class ModelAstFunction(
             return params.mapIndexed { index, param ->
                 val kmParam = kmParams.getOrNull(index)
                 ModelAstParam(
-                    this,
+                    provider,
                     param,
                     null,
                     kmParam
@@ -469,11 +461,11 @@ private class ModelAstFunction(
 
     override fun overrides(other: AstMethod): Boolean {
         require(other is ModelAstMethod)
-        return elements.overrides(element, other.element, parent.element)
+        return provider.elements.overrides(element, other.element, parent.element)
     }
 
     override fun asMemberName(): MemberName {
-        return MemberName(elements.getPackageOf(element).qualifiedName.toString(), name)
+        return MemberName(provider.elements.getPackageOf(element).qualifiedName.toString(), name)
     }
 
     override fun equals(other: Any?): Boolean {
@@ -486,13 +478,11 @@ private class ModelAstFunction(
 }
 
 private class ModelAstProperty(
-    provider: ModelAstProvider,
+    override val provider: ModelAstProvider,
     override val parent: AstClass,
     override val element: ExecutableElement,
     private val kmProperty: KmProperty
-) : AstProperty(),
-    ModelAstMethod,
-    ModelAstProvider by provider {
+) : AstProperty(), ModelAstMethod {
 
     override val name: String get() = kmProperty.name
 
@@ -504,7 +494,7 @@ private class ModelAstProperty(
 
     override val returnType: AstType
         get() = ModelAstType(
-            this,
+            provider,
             element.returnType,
             kmProperty.returnType
         )
@@ -512,9 +502,9 @@ private class ModelAstProperty(
     override fun returnTypeFor(enclosingClass: AstClass): AstType {
         require(enclosingClass is ModelAstClass)
         val declaredType = enclosingClass.element.asType() as DeclaredType
-        val methodType = types.asMemberOf(declaredType, element) as ExecutableType
+        val methodType = provider.types.asMemberOf(declaredType, element) as ExecutableType
         return ModelAstType(
-            this,
+            provider,
             methodType.returnType,
             kmProperty.returnType
         )
@@ -522,20 +512,20 @@ private class ModelAstProperty(
 
     override val receiverParameterType: AstType?
         get() = kmProperty.receiverParameterType?.let {
-            ModelAstType(this, element.parameters[0].asType(), it)
+            ModelAstType(provider, element.parameters[0].asType(), it)
         }
 
     override fun overrides(other: AstMethod): Boolean {
         require(other is ModelAstMethod)
-        return elements.overrides(element, other.element, parent.element)
+        return provider.elements.overrides(element, other.element, parent.element)
     }
 
     override fun asMemberName(): MemberName {
-        return MemberName(elements.getPackageOf(element).qualifiedName.toString(), name)
+        return MemberName(provider.elements.getPackageOf(element).qualifiedName.toString(), name)
     }
 
     override fun equals(other: Any?): Boolean {
-        return other is ModelAstProperty && element == other.elements
+        return other is ModelAstProperty && element == other.element
     }
 
     override fun hashCode(): Int {
@@ -544,21 +534,19 @@ private class ModelAstProperty(
 }
 
 private class ModelAstType(
-    provider: ModelAstProvider,
+    private val provider: ModelAstProvider,
     val type: TypeMirror,
     val kmType: KmType?
-) : AstType(),
-    ModelAstElement,
-    ModelAstProvider by provider {
+) : AstType(), ModelAstElement {
 
-    override val element: Element get() = types.asElement(type)
+    override val element: Element by lazy { provider.types.asElement(type) }
 
     override val packageName: String
         get() {
             if (kmType != null) {
                 return kmType.packageName
             }
-            return elements.getPackageOf(element).qualifiedName.toString()
+            return provider.elements.getPackageOf(element).qualifiedName.toString()
         }
 
     override val simpleName: String
@@ -569,28 +557,14 @@ private class ModelAstType(
             return element.simpleName.toString()
         }
 
-    override val annotations: List<AstAnnotation>
-        get() {
-            val typeAnnotations = type.annotationMirrors
-            val kmTypeAnnotations = kmType?.annotations
-            return typeAnnotations.mapIndexed { index, annotation ->
-                val kmAnnotation = kmTypeAnnotations?.get(index)
-                ModelAstAnnotation(
-                    this,
-                    annotation,
-                    kmAnnotation
-                )
-            }
-        }
-
     override val arguments: List<AstType>
         get() {
             val kmArgs: List<KmType?> = kmType?.arguments?.map { it.type } ?: emptyList()
             val args: List<TypeMirror> = (type as DeclaredType).typeArguments
             return if (args.size == kmArgs.size) {
-                args.zip(kmArgs) { a1, a2 -> ModelAstType(this, a1, a2) }
+                args.zip(kmArgs) { a1, a2 -> ModelAstType(provider, a1, a2) }
             } else {
-                args.map { ModelAstType(this, it, null) }
+                args.map { ModelAstType(provider, it, null) }
             }
         }
 
@@ -609,20 +583,19 @@ private class ModelAstType(
     override fun resolvedType(): AstType {
         val abbreviatedType = kmType?.abbreviatedType
         return if (abbreviatedType != null) {
-            ModelAstType(this, type, kmType?.resolve())
+            ModelAstType(provider, type, kmType?.resolve())
         } else {
             this
         }
     }
 
-    override fun asElement(): AstBasicElement =
-        ModelBasicElement(this, element)
+    override fun asElement(): AstBasicElement = ModelBasicElement(element)
 
     override fun toAstClass(): AstClass {
         return when (type) {
             is PrimitiveType -> PrimitiveModelAstClass(this)
             is ArrayType -> PrimitiveModelAstClass(this)
-            is DeclaredType, is TypeVariable -> (types.asElement(type) as TypeElement).toAstClass()
+            is DeclaredType, is TypeVariable -> ModelAstClass(provider, provider.types.asElement(type) as TypeElement)
             else -> kotlin.error("unknown type: $type")
         }
     }
@@ -633,7 +606,7 @@ private class ModelAstType(
 
     override fun isAssignableFrom(other: AstType): Boolean {
         require(other is ModelAstType)
-        return types.isAssignable(other.type, type)
+        return provider.types.isAssignable(other.type, type)
     }
 
     override fun equals(other: Any?): Boolean {
@@ -641,7 +614,7 @@ private class ModelAstType(
         return if (kmType != null && other.kmType != null) {
             kmType.eqv(other.kmType)
         } else {
-            types.isSameType(type, other.type)
+            provider.types.isSameType(type, other.type)
         }
     }
 
@@ -651,16 +624,15 @@ private class ModelAstType(
 }
 
 private class ModelAstAnnotation(
-    provider: ModelAstProvider,
+    private val provider: ModelAstProvider,
     val mirror: AnnotationMirror,
     private val kmAnnotation: KmAnnotation?
-) : AstAnnotation(),
-    ModelAstElement,
-    ModelAstProvider by provider {
-    override val element: Element get() = types.asElement(mirror.annotationType)
+) : AstAnnotation(), ModelAstElement {
+
+    override val element: Element get() = provider.types.asElement(mirror.annotationType)
 
     override val type: AstType
-        get() = ModelAstType(this, mirror.annotationType, kmAnnotation?.type)
+        get() = ModelAstType(provider, mirror.annotationType, kmAnnotation?.type)
 
     override fun equals(other: Any?): Boolean {
         if (other !is ModelAstAnnotation) return false
@@ -689,13 +661,11 @@ private class ModelAstAnnotation(
 }
 
 private class ModelAstParam(
-    provider: ModelAstProvider,
+    override val provider: ModelAstProvider,
     override val element: VariableElement,
     val kmParent: KmClass?,
     val kmValueParameter: KmValueParameter?
-) : AstParam(),
-    ModelAstElement,
-    ModelAstProvider by provider {
+) : AstParam(), ModelAstAnnotated {
 
     override val name: String
         get() {
@@ -703,7 +673,7 @@ private class ModelAstParam(
         }
 
     override val type: AstType
-        get() = ModelAstType(this, element.asType(), kmValueParameter?.type)
+        get() = ModelAstType(provider, element.asType(), kmValueParameter?.type)
 
     override val isVal: Boolean
         get() {

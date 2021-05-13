@@ -164,7 +164,7 @@ class InjectGenerator<Output, Provider>(
     }
 }
 
-fun AstElement.scopeType(options: Options): AstType? {
+fun AstAnnotated.scopeType(options: Options): AstType? {
     if (options.enableJavaxAnnotations) {
         val annotation = annotationAnnotatedWith(JAVAX_SCOPE.packageName, JAVAX_SCOPE.simpleName)
         if (annotation != null) {
@@ -174,11 +174,11 @@ fun AstElement.scopeType(options: Options): AstType? {
     return annotationAnnotatedWith(SCOPE.packageName, SCOPE.simpleName)?.type
 }
 
-fun AstElement.isComponent() = hasAnnotation(COMPONENT.packageName, COMPONENT.simpleName)
+fun AstAnnotated.isComponent() = hasAnnotation(COMPONENT.packageName, COMPONENT.simpleName)
 
 fun AstMethod.isProvides() = hasAnnotation(PROVIDES.packageName, PROVIDES.simpleName)
 
-fun AstElement.isInject() = hasAnnotation(INJECT.packageName, INJECT.simpleName)
+fun AstAnnotated.isInject() = hasAnnotation(INJECT.packageName, INJECT.simpleName)
 
 fun AstClass.findInjectConstructors(messenger: Messenger, options: Options): AstConstructor? {
     val injectCtors = constructors.filter {
@@ -205,7 +205,7 @@ fun AstClass.findInjectConstructors(messenger: Messenger, options: Options): Ast
     }
 }
 
-fun AstElement.qualifier(options: Options): AstAnnotation? {
+fun AstAnnotated.qualifier(options: Options): AstAnnotation? {
     return if (options.enableJavaxAnnotations) {
         annotationAnnotatedWith(JAVAX_QUALIFIER.packageName, JAVAX_QUALIFIER.simpleName)
     } else {
