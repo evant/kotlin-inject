@@ -29,7 +29,7 @@ interface Messenger {
     fun error(message: String, element: AstElement? = null)
 }
 
-sealed class AstElement : AstAnnotated
+sealed class AstElement
 
 interface AstAnnotated {
     fun hasAnnotation(packageName: String, simpleName: String): Boolean
@@ -41,7 +41,7 @@ abstract class AstBasicElement : AstElement() {
     abstract val simpleName: String
 }
 
-abstract class AstClass : AstElement(), AstHasModifiers {
+abstract class AstClass : AstElement(), AstAnnotated, AstHasModifiers {
 
     abstract val packageName: String
 
@@ -79,7 +79,7 @@ abstract class AstClass : AstElement(), AstHasModifiers {
     }
 }
 
-sealed class AstMethod : AstElement(), AstHasModifiers {
+sealed class AstMethod : AstElement(), AstAnnotated, AstHasModifiers {
     abstract val name: String
 
     abstract val receiverParameterType: AstType?
@@ -93,7 +93,7 @@ sealed class AstMethod : AstElement(), AstHasModifiers {
     abstract fun asMemberName(): MemberName
 }
 
-abstract class AstConstructor(private val parent: AstClass) : AstElement() {
+abstract class AstConstructor(private val parent: AstClass) : AstElement(), AstAnnotated {
     val type: AstType get() = parent.type
 
     abstract val parameters: List<AstParam>
@@ -149,8 +149,6 @@ abstract class AstType : AstElement() {
 
     abstract val simpleName: String
 
-    abstract val annotations: List<AstAnnotation>
-
     abstract val arguments: List<AstType>
 
     abstract fun isUnit(): Boolean
@@ -188,7 +186,7 @@ abstract class AstAnnotation : AstElement() {
     abstract val type: AstType
 }
 
-abstract class AstParam : AstElement() {
+abstract class AstParam : AstElement(), AstAnnotated {
 
     abstract val name: String
 
