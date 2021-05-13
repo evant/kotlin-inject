@@ -171,7 +171,7 @@ private class KSAstClass(provider: KSAstProvider, override val declaration: KSCl
     override val isObject: Boolean
         get() = declaration.classKind == ClassKind.OBJECT
 
-    override val superTypes: List<AstClass>
+    override val superTypes: Sequence<AstClass>
         get() {
             return declaration
                 .superTypes
@@ -183,7 +183,7 @@ private class KSAstClass(provider: KSAstProvider, override val declaration: KSCl
             return declaration.primaryConstructor?.let { KSAstConstructor(this, this, it) }
         }
 
-    override val constructors: List<AstConstructor>
+    override val constructors: Sequence<AstConstructor>
         get() = declaration.getConstructors().map { KSAstConstructor(this, this, it) }
 
     override val methods: List<AstMethod>
@@ -282,7 +282,7 @@ private class KSAstFunction(provider: KSAstProvider, override val declaration: K
         }
         return KSAstType(
             this,
-            resolver.asMemberOf(declaration, enclosingClass.declaration.asStarProjectedType()).returnType!!
+            declaration.asMemberOf(enclosingClass.declaration.asStarProjectedType()).returnType!!
         )
     }
 
@@ -333,7 +333,7 @@ private class KSAstProperty(provider: KSAstProvider, override val declaration: K
         }
         return KSAstType(
             this,
-            resolver.asMemberOf(declaration, enclosingClass.declaration.asStarProjectedType())
+            declaration.asMemberOf(enclosingClass.declaration.asStarProjectedType())
         )
     }
 
@@ -387,8 +387,7 @@ private class KSAstType(provider: KSAstProvider, val type: KSType) : AstType(), 
     override fun isPlatform(): Boolean = type.nullability == Nullability.PLATFORM
 
     override fun isFunction(): Boolean {
-        val actualType = type.actualType()
-        return actualType.isFunction() || actualType.isSuspendingFunction()
+        return type.isFunctionType || type.isSuspendFunctionType
     }
 
     override fun isTypeAlias(): Boolean {

@@ -53,11 +53,11 @@ abstract class AstClass : AstElement(), AstHasModifiers {
 
     abstract val isInterface: Boolean
 
-    abstract val superTypes: List<AstClass>
+    abstract val superTypes: Sequence<AstClass>
 
     abstract val primaryConstructor: AstConstructor?
 
-    abstract val constructors: List<AstConstructor>
+    abstract val constructors: Sequence<AstConstructor>
 
     abstract val methods: List<AstMethod>
 

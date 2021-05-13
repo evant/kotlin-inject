@@ -220,9 +220,9 @@ private class PrimitiveModelAstClass(
     override val isInterface: Boolean = false
     override val companion: AstClass? = null
     override val isObject: Boolean = false
-    override val superTypes: List<AstClass> = emptyList()
+    override val superTypes: Sequence<AstClass> = emptySequence()
     override val primaryConstructor: AstConstructor? = null
-    override val constructors: List<AstConstructor> = emptyList()
+    override val constructors: Sequence<AstConstructor> = emptySequence()
     override val methods: List<AstMethod> = emptyList()
 
     override fun asClassName(): ClassName = throw UnsupportedOperationException()
@@ -278,20 +278,18 @@ private class ModelAstClass(
             return companionType?.toAstClass()
         }
 
-    override val superTypes: List<AstClass>
+    override val superTypes: Sequence<AstClass>
         get() {
-            return mutableListOf<AstClass>().apply {
+            return sequence {
                 val superclassType = element.superclass
                 if (superclassType !is NoType) {
                     val superclass = types.asElement(superclassType) as TypeElement
-                    add(superclass.toAstClass())
+                    yield(superclass.toAstClass())
                 }
-                addAll(
-                    element.interfaces.mapNotNull { ifaceType ->
-                        val iface = types.asElement(ifaceType) as TypeElement
-                        iface.toAstClass()
-                    }
-                )
+                for (ifaceType in element.interfaces) {
+                    val iface = types.asElement(ifaceType) as TypeElement
+                    yield(iface.toAstClass())
+                }
             }
         }
 
@@ -307,10 +305,10 @@ private class ModelAstClass(
                 ?.let { ModelAstConstructor(this, this, it, primaryKmCtor) }
         }
 
-    override val constructors: List<AstConstructor>
+    override val constructors: Sequence<AstConstructor>
         get() {
             val kmCtors = kmClass?.constructors?.associateBy { it.signature?.simpleSig } ?: emptyMap()
-            return ElementFilter.constructorsIn(element.enclosedElements).map { constructor ->
+            return ElementFilter.constructorsIn(element.enclosedElements).asSequence().map { constructor ->
                 ModelAstConstructor(
                     this,
                     this,

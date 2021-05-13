@@ -187,14 +187,15 @@ fun AstClass.findInjectConstructors(messenger: Messenger, options: Options): Ast
         } else {
             it.isInject()
         }
-    }
+    }.toList()
 
+    val isInject = isInject()
     return when {
-        isInject() && injectCtors.isNotEmpty() -> {
+        isInject && injectCtors.isNotEmpty() -> {
             messenger.error("Cannot annotate constructor with @Inject in an @Inject-annotated class", this)
             null
         }
-        isInject() -> primaryConstructor
+        isInject -> primaryConstructor
         injectCtors.size > 1 -> {
             messenger.error("Class cannot contain multiple @Inject-annotated constructors", this)
             null

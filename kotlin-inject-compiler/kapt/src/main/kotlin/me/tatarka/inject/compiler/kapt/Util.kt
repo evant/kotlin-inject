@@ -337,7 +337,7 @@ inline fun KmProperty.isAbstract() = Flag.Common.IS_ABSTRACT(flags)
 
 inline fun KmProperty.isPrivate() = Flag.Common.IS_PRIVATE(flags)
 
-inline fun KmConstructor.isPrimary() = Flag.Constructor.IS_PRIMARY(flags)
+inline fun KmConstructor.isPrimary() = !Flag.Constructor.IS_SECONDARY(flags)
 
 inline fun KmValueParameter.hasDefault() = Flag.ValueParameter.DECLARES_DEFAULT_VALUE(flags)
 
