@@ -66,8 +66,8 @@ val KSDeclaration.shortName: String
     }
 
 fun KSType.asTypeName(): TypeName {
-    val isFunction = isFunction()
-    val isSuspending = isSuspendingFunction()
+    val isFunction = isFunctionType
+    val isSuspending = isSuspendFunctionType
     if (isFunction || isSuspending) {
         val returnType = arguments.last()
         val parameters = arguments.dropLast(1)
@@ -97,7 +97,7 @@ fun KSType.asTypeName(): TypeName {
             override fun visitTypeParameter(typeParameter: KSTypeParameter, data: Unit): TypeName {
                 return TypeVariableName(
                     name = typeParameter.name.asString(),
-                    bounds = typeParameter.bounds.map { it.resolve().asTypeName() },
+                    bounds = typeParameter.bounds.map { it.resolve().asTypeName() }.toList(),
                     variance = when (typeParameter.variance) {
                         Variance.COVARIANT -> KModifier.IN
                         Variance.CONTRAVARIANT -> KModifier.OUT
@@ -160,19 +160,6 @@ fun KSTypeReference.eqvHashCode(collector: HashCollector): Int = collectHash(col
     resolve().eqvHashCode(collector)
 }
 
-private val FUNCTION = Regex("Function[0-9]+")
-private val SUSPEND_FUNCTION = Regex("SuspendFunction[0-9]+")
-
-fun KSType.isFunction(): Boolean {
-    val name = declaration.qualifiedName ?: return false
-    return name.getQualifier() == "kotlin" && name.getShortName().matches(FUNCTION)
-}
-
-fun KSType.isSuspendingFunction(): Boolean {
-    val name = declaration.qualifiedName ?: return false
-    return name.getQualifier() == "kotlin.coroutines" && name.getShortName().matches(SUSPEND_FUNCTION)
-}
-
 fun KSType.isConcrete(): Boolean {
     if (declaration is KSTypeParameter) return false
     if (arguments.isEmpty()) return true
@@ -183,20 +170,20 @@ fun KSType.isConcrete(): Boolean {
  * A 'fast' version of [Resolver.getSymbolsWithAnnotation]. We only care about class annotations so we can skip a lot
  * of the tree.
  */
-fun Resolver.getSymbolsWithClassAnnotation(packageName: String, simpleName: String): List<KSClassDeclaration> {
-    val result = mutableListOf<KSClassDeclaration>()
-    fun visit(declarations: List<KSDeclaration>) {
+fun Resolver.getSymbolsWithClassAnnotation(packageName: String, simpleName: String): Sequence<KSClassDeclaration> {
+    suspend fun SequenceScope<KSClassDeclaration>.visit(declarations: Sequence<KSDeclaration>) {
         for (declaration in declarations) {
             if (declaration is KSClassDeclaration) {
                 if (declaration.hasAnnotation(packageName, simpleName)) {
-                    result.add(declaration)
+                    yield(declaration)
                 }
                 visit(declaration.declarations)
             }
         }
     }
-    for (file in getNewFiles()) {
-        visit(file.declarations)
+    return sequence {
+        for (file in getNewFiles()) {
+            visit(file.declarations)
+        }
     }
-    return result
 }
