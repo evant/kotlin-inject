@@ -4,6 +4,7 @@ import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
+import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
 import com.google.devtools.ksp.processing.SymbolProcessorProvider
 import com.google.devtools.ksp.symbol.KSAnnotated
 import me.tatarka.inject.compiler.COMPONENT
@@ -43,12 +44,7 @@ class InjectProcessor(
 }
 
 class InjectProcessorProvider : SymbolProcessorProvider {
-    override fun create(
-        options: Map<String, String>,
-        kotlinVersion: KotlinVersion,
-        codeGenerator: CodeGenerator,
-        logger: KSPLogger
-    ): SymbolProcessor {
-        return InjectProcessor(Options.from(options), codeGenerator, logger)
+    override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor {
+        return InjectProcessor(Options.from(environment.options), environment.codeGenerator, environment.logger)
     }
 }
