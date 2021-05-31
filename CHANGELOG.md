@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.3.4] - 2021-05-30
+
+### Fixed
+- Fix metata parsing issue with kapt on kotlin 1.5.0
+- Fix declaring function injection in another module in ksp
+
+### Changed
+- Updated kotlin to 1.5.0
+- Updated ksp to alpha10
+
 ## [0.3.3] - 2021-04-20
 
 ### Added
