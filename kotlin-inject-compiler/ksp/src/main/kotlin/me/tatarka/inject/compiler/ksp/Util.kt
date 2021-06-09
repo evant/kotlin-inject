@@ -68,7 +68,7 @@ val KSDeclaration.shortName: String
 fun KSType.asTypeName(): TypeName {
     val isFunction = isFunctionType
     val isSuspending = isSuspendFunctionType
-    if (isFunction || isSuspending) {
+    if ((isFunction || isSuspending) && declaration !is KSTypeAlias) {
         val returnType = arguments.last()
         val parameters = arguments.dropLast(1)
         return LambdaTypeName.get(
