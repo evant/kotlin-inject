@@ -47,6 +47,16 @@ abstract class FunctionAnnotationInjectComponent {
     abstract val baz: baz
 }
 
+typealias receiverFun = String.(arg: NamedFoo) -> String
+
+@Inject
+fun String.receiverFun(dep: Foo, arg: NamedFoo): String = this
+
+@Component
+abstract class ReceiverFunctionInjectionComponent {
+    abstract val receiverFun: receiverFun
+}
+
 class InjectFunctionTest {
 
     @Test
@@ -65,5 +75,12 @@ class InjectFunctionTest {
 
         assertThat(annotations).extracting { it.annotationClass }
             .containsExactly(FunctionAnnotation::class)
+    }
+
+    @Test
+    fun generates_a_component_that_provides_a_function_with_receiver() {
+        val component = ReceiverFunctionInjectionComponent::class.create()
+
+        assertThat(with(component) { "test".receiverFun(NamedFoo("arg")) }).isEqualTo("test")
     }
 }

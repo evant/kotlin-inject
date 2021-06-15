@@ -196,10 +196,15 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         key: TypeKey,
         args: List<AstType>
     ) = withCycleDetection(key, function) {
-        val namedArgs = args.mapIndexed { i, arg -> arg to "arg$i" }
+        // Drop receiver from args
+        val namedArgs = if (function.receiverParameterType != null) {
+            args.drop(1)
+        } else {
+            args
+        }.mapIndexed { i, arg -> arg to "arg$i" }
         val size = function.parameters.size
         TypeResult.NamedFunction(
-            name = function.asMemberName().toString(),
+            name = function.asMemberName(),
             args = namedArgs.map { it.second },
             parameters = function.parameters.mapIndexed { i, param ->
                 val key = TypeKey(param.type, param.qualifier(options))
