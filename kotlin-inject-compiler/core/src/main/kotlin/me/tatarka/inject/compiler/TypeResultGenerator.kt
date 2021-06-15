@@ -172,7 +172,7 @@ private fun TypeResult.NamedFunction.generate(): CodeBlock {
             add(" ->")
         }
 
-        add("%L(", name)
+        add("%M(", name)
         parameters.forEachIndexed { i, param ->
             if (i != 0) {
                 add(",")

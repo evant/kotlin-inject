@@ -1,5 +1,7 @@
 package me.tatarka.inject.compiler
 
+import com.squareup.kotlinpoet.MemberName
+
 /**
  * [TypeResult] wrapper that allows updating it's value.
  */
@@ -95,7 +97,7 @@ sealed class TypeResult {
      * A named function that returns the type.
      */
     class NamedFunction(
-        val name: String,
+        val name: MemberName,
         val args: List<String>,
         val parameters: List<TypeResultRef>,
     ) : TypeResult() {
