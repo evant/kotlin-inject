@@ -16,10 +16,20 @@ var fooConstructorCount = 0
     init {
         fooConstructorCount++
     }
+    private val value = 2
 
-    override fun equals(other: Any?) = other is Foo
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Foo) return false
+        if (value != other.value) return false
+        return true
+    }
 
-    override fun hashCode() = 0
+    override fun hashCode(): Int {
+        return value
+    }
+
+    override fun toString() = "Foo"
 }
 
 @Inject data class Bar(val foo: Foo) : IFoo

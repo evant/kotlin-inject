@@ -1,7 +1,7 @@
 package me.tatarka.inject.test
 
 import me.tatarka.inject.annotations.Component
-import org.junit.Test
+import kotlin.test.Test
 
 class Inner1 {
     @Component

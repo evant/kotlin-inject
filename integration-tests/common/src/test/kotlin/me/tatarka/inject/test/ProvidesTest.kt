@@ -22,7 +22,7 @@ class ProvidesFoo(val bar: ProvidesBar? = null)
     abstract val foo: ProvidesFoo
 
     @Provides
-    fun foo() = ProvidesFoo().also { providesCalled = true }
+    fun foo2() = ProvidesFoo().also { providesCalled = true }
 }
 
 @Component abstract class ProvidesFunctionArgComponent {
@@ -31,7 +31,7 @@ class ProvidesFoo(val bar: ProvidesBar? = null)
     abstract val foo: ProvidesFoo
 
     @Provides
-    fun foo(bar: ProvidesBar) = ProvidesFoo(bar).also { providesCalled = true }
+    fun foo2(bar: ProvidesBar) = ProvidesFoo(bar).also { providesCalled = true }
 }
 
 @Component abstract class ProvidesValComponent {
@@ -69,9 +69,20 @@ class Foo1
 class Foo2
 
 @Inject class Foo3 : IFoo {
-    override fun equals(other: Any?) = other is Foo
+    private val value = 1
 
-    override fun hashCode() = 0
+    override fun toString(): String = "Foo3"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Foo3) return false
+        if (value != other.value) return false
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return value
+    }
 }
 
 @Component abstract class ProvidesOverloadsComponent {
@@ -81,10 +92,10 @@ class Foo2
     abstract val foo4: IFoo
 
     @Provides
-    fun foo() = Foo1()
+    fun foo2a() = Foo1()
 
     @Provides
-    fun foo(bar: ProvidesBar) = Foo2()
+    fun foo2a(bar: ProvidesBar) = Foo2()
 
     val foo
         @Provides get() = Foo3()

@@ -17,13 +17,13 @@ abstract class AbstractParentComponent {
 @Component abstract class ParentComponentImpl1 : AbstractParentComponent() {
     override fun foo(): NamedFoo = NamedFoo("parent1")
 
-    @Provides fun bar(): INamedBar = NamedBar("parent1")
+    @Provides fun bar2(): INamedBar = NamedBar("parent1")
 }
 
 @Component abstract class ParentComponentImpl2 : AbstractParentComponent() {
     override fun foo(): NamedFoo = NamedFoo("parent2")
 
-    @Provides fun bar(): INamedBar = NamedBar("parent2")
+    @Provides fun bar2(): INamedBar = NamedBar("parent2")
 }
 
 @Component abstract class AbstractParentChildComponent(@Component val parent: AbstractParentComponent) {

@@ -16,8 +16,8 @@ typealias NamedFoo2 = NamedFoo
 
     abstract val foo2: NamedFoo2
 
-    @Provides fun foo1(): NamedFoo1 = NamedFoo("1")
-    @Provides fun foo2(): NamedFoo2 = NamedFoo("2")
+    @Provides fun foo1a(): NamedFoo1 = NamedFoo("1")
+    @Provides fun foo2a(): NamedFoo2 = NamedFoo("2")
 }
 
 @Inject class AliasedFoo(val foo1: NamedFoo1, val foo2: NamedFoo2)
@@ -46,7 +46,7 @@ typealias AnnotatedAliasedFoo<T> = @FooAnnotation GenericFoo<T>
 @Component abstract class AliasedProvidesComponent {
     abstract val foo: AnnotatedAliasedFoo<String>
 
-    @Provides fun foo(): AnnotatedAliasedFoo<String> = GenericFoo("1")
+    @Provides fun foo2(): AnnotatedAliasedFoo<String> = GenericFoo("1")
 }
 
 class QualifierTest {

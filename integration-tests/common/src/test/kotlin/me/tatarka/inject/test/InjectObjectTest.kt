@@ -6,7 +6,7 @@ import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Provides
 import me.tatarka.inject.test.different.DifferentPackageFoo
-import org.junit.Test
+import kotlin.test.Test
 
 @Inject
 object FooObject
@@ -18,8 +18,8 @@ class DependsOnFooObject(val foo: FooObject)
 abstract class ObjectComponent {
     abstract val injectObject: FooObject
     abstract val differentPackageObject: DifferentPackageFoo.MyObject
-    abstract fun injectObject(): FooObject
-    abstract fun dependsOnFooObject(): DependsOnFooObject
+    abstract fun injectObject2(): FooObject
+    abstract fun dependsOnFooObject2(): DependsOnFooObject
 }
 
 interface CompanionFooInterface
@@ -45,7 +45,7 @@ class InjectObjectTest {
     @Test
     fun inject_annotated_object_can_be_provided_in_component_function() {
         val component = ObjectComponent::class.create()
-        assertThat(component.injectObject()).isSameAs(FooObject)
+        assertThat(component.injectObject2()).isSameAs(FooObject)
     }
 
     @Test
@@ -57,7 +57,7 @@ class InjectObjectTest {
     @Test
     fun inject_annotated_object_can_be_provided_to_class_constructors() {
         val component = ObjectComponent::class.create()
-        assertThat(component.dependsOnFooObject().foo).isSameAs(FooObject)
+        assertThat(component.dependsOnFooObject2().foo).isSameAs(FooObject)
     }
 
     @Test

@@ -1,14 +1,11 @@
 package me.tatarka.inject.test
 
 import assertk.assertThat
-import assertk.assertions.containsExactly
-import assertk.assertions.extracting
 import assertk.assertions.isEqualTo
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.test.module.externalFunction
-import org.junit.Test
-import kotlin.reflect.full.declaredMembers
+import kotlin.test.Test
 
 @Component
 abstract class FunctionInjectionComponent {
@@ -29,24 +26,6 @@ typealias bar = () -> String
 @Inject
 fun bar(foo: foo): String = foo("test")
 
-@Target(AnnotationTarget.TYPE, AnnotationTarget.FUNCTION)
-@Retention(AnnotationRetention.RUNTIME)
-annotation class FunctionAnnotation
-
-typealias baz = @FunctionAnnotation () -> String
-
-@Inject
-@FunctionAnnotation
-@Suppress("FunctionOnlyReturningConstant")
-fun baz(): String {
-    return "test"
-}
-
-@Component
-abstract class FunctionAnnotationInjectComponent {
-    abstract val baz: baz
-}
-
 typealias receiverFun = String.(arg: NamedFoo) -> String
 
 @Inject
@@ -65,16 +44,6 @@ class InjectFunctionTest {
 
         assertThat(component.bar()).isEqualTo("test")
         assertThat(component.externalFunction()).isEqualTo("external")
-    }
-
-    @Test
-    fun generates_a_component_that_provides_a_function_with_an_annotation() {
-        val component = FunctionAnnotationInjectComponent::class.create()
-        val member = component::class.declaredMembers.first { it.name == "baz" }
-        val annotations = member.returnType.annotations
-
-        assertThat(annotations).extracting { it.annotationClass }
-            .containsExactly(FunctionAnnotation::class)
     }
 
     @Test
