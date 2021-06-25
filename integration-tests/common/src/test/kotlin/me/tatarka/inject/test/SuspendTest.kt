@@ -2,7 +2,6 @@ package me.tatarka.inject.test
 
 import assertk.assertThat
 import assertk.assertions.isInstanceOf
-import kotlinx.coroutines.runBlocking
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Provides
 import kotlin.test.Test
@@ -27,14 +26,14 @@ import kotlin.test.Test
 
 class SuspendTest {
     @Test
-    fun generates_a_component_that_provides_a_suspend_function(): Unit = runBlocking {
+    fun generates_a_component_that_provides_a_suspend_function() = runTest {
         val component = SuspendFunctionComponent::class.create()
 
         assertThat(component.suspendFoo()).isInstanceOf(Foo::class)
     }
 
     @Test
-    fun generates_a_component_that_has_a_suspending_provides(): Unit = runBlocking {
+    fun generates_a_component_that_has_a_suspending_provides() = runTest {
         val component = SuspendProviderComponent::class.create()
 
         assertThat(component.suspendFoo()).isInstanceOf(Foo::class)

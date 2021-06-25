@@ -60,12 +60,15 @@ fun KSDeclaration.asClassName(): ClassName {
 
 val KSDeclaration.shortName: String
     get() {
-        val name = qualifiedName!!
+        val name = requireNotNull(qualifiedName) { "expected qualifiedName for '$this' but got null" }
         val packageName = packageName.asString()
         return name.asString().removePrefix("$packageName.")
     }
 
 fun KSType.asTypeName(): TypeName {
+    if (isError) {
+        throw IllegalArgumentException("Cannot convert error type: $this to a TypeName")
+    }
     val isFunction = isFunctionType
     val isSuspending = isSuspendFunctionType
     if ((isFunction || isSuspending) && declaration !is KSTypeAlias) {
