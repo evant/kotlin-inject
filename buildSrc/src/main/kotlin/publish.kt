@@ -12,8 +12,6 @@ import org.gradle.plugins.signing.SigningExtension
 import java.time.Duration
 
 fun MavenPublication.mavenCentralPom(artifactId: String? = null) {
-    groupId = "me.tatarka.inject"
-    version = Versions.kotlinInject
     if (artifactId != null) {
         this.artifactId = artifactId
     }
@@ -44,6 +42,9 @@ fun MavenPublication.mavenCentralPom(artifactId: String? = null) {
 private const val PUBLISH_TIMEOUT = 5L
 
 fun Project.publishToMavenCentral(artifactId: String? = null) {
+    group = "me.tatarka.inject"
+    version = Versions.kotlinInject
+
     extensions.configure<NexusPublishExtension> {
         repositories {
             sonatype()
