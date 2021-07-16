@@ -39,13 +39,13 @@ val repo = appComponent.repo
 
 ```groovy
 plugins {
-    id("org.jetbrains.kotlin.jvm") version "1.5.10"
-    id("org.jetbrains.kotlin.kapt") version "1.5.10"
+    id("org.jetbrains.kotlin.jvm") version "1.5.20"
+    id("org.jetbrains.kotlin.kapt") version "1.5.20"
 }
 
 dependencies {
-    kapt("me.tatarka.inject:kotlin-inject-compiler-kapt:0.3.5")
-    implementation("me.tatarka.inject:kotlin-inject-runtime:0.3.5")
+    kapt("me.tatarka.inject:kotlin-inject-compiler-kapt:0.3.6")
+    implementation("me.tatarka.inject:kotlin-inject-runtime:0.3.6")
 }
 ```
 
@@ -68,8 +68,8 @@ pluginManagement {
 
 ```groovy
 plugins {
-    id("org.jetbrains.kotlin.jvm") version "1.5.10"
-    id("com.google.devtools.ksp") version "1.5.10-1.0.0-beta01"
+    id("org.jetbrains.kotlin.jvm") version "1.5.21"
+    id("com.google.devtools.ksp") version "1.5.21-1.0.0-beta05"
 }
 
 repositories {
@@ -78,8 +78,8 @@ repositories {
 }
 
 dependencies {
-    ksp("me.tatarka.inject:kotlin-inject-compiler-ksp:0.3.5")
-    implementation("me.tatarka.inject:kotlin-inject-runtime:0.3.5")
+    ksp("me.tatarka.inject:kotlin-inject-compiler-ksp:0.3.6")
+    implementation("me.tatarka.inject:kotlin-inject-runtime:0.3.6")
 }
 ```
 
