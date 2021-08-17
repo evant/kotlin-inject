@@ -1,8 +1,6 @@
 plugins {
     kotlin("jvm")
-    `maven-publish`
-    signing
-    id("de.marcphilipp.nexus-publish")
+    id("kotlin-inject.publish")
 }
 
 dependencies {
@@ -12,5 +10,3 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:${Versions.kotlin}")
     implementation("com.google.devtools.ksp:symbol-processing-api:${Versions.ksp}")
 }
-
-publishToMavenCentral("kotlin-inject-compiler-ksp")

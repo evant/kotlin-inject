@@ -14,7 +14,7 @@ jobs:
           steps:
             - run:
                 name: Run Tests and Checks
-                command: ./gradlew check
+                command: ./gradlew test detekt
             - run:
                 name: Collect Detekt Reports
                 command: cp -vr build/reports detekt

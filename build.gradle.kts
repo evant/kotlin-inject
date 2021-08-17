@@ -2,20 +2,17 @@ import io.gitlab.arturbosch.detekt.Detekt
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    kotlin("jvm") version Versions.kotlin apply false
     id("com.google.devtools.ksp") version Versions.ksp apply false
-    id("io.gitlab.arturbosch.detekt") version "1.17.1"
+    id("io.gitlab.arturbosch.detekt") version "1.18.0"
 }
 
-repositories {
-    mavenCentral()
+buildscript {
+    dependencies {
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${Versions.kotlin}")
+    }
 }
 
 subprojects {
-    repositories {
-        google()
-        mavenCentral()
-    }
     afterEvaluate {
         tasks.findByName("check")?.dependsOn(rootProject.tasks["detekt"])
     }
@@ -48,5 +45,8 @@ tasks.withType<Detekt>().configureEach {
 }
 
 dependencies {
-    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.14.2")
+    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.17.1")
+}
+repositories {
+    mavenCentral()
 }

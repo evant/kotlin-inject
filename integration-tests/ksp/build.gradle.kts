@@ -1,16 +1,10 @@
 plugins {
-    kotlin("multiplatform")
+    id("kotlin-inject.multiplatform")
     id("com.google.devtools.ksp")
 }
 
 kotlin {
-    jvm {
-        withJava()
-    }
-    js {
-        browser()
-        nodejs()
-    }
+    jvm { withJava() }
 
     sourceSets {
         val commonMain by getting {
@@ -24,7 +18,7 @@ kotlin {
             dependencies {
                 implementation(kotlin("test"))
                 configurations["ksp"].dependencies.add(project(":kotlin-inject-compiler:ksp"))
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.9")
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.1")
                 implementation("com.willowtreeapps.assertk:assertk:0.24")
             }
         }
@@ -48,8 +42,4 @@ java {
 
 ksp {
     arg("me.tatarka.inject.enableJavaxAnnotations", "true")
-}
-
-tasks.named("test").configure {
-    dependsOn("jvmTest", "jsTest")
 }
