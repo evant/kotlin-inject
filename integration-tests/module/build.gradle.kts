@@ -1,14 +1,8 @@
 plugins {
-    kotlin("multiplatform")
+    id("kotlin-inject.multiplatform")
 }
 
 kotlin {
-    jvm()
-    js {
-        browser()
-        nodejs()
-    }
-
     sourceSets {
         val commonMain by getting {
             dependencies {

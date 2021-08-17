@@ -1,16 +1,4 @@
 plugins {
-    kotlin("multiplatform")
-    `maven-publish`
-    signing
-    id("de.marcphilipp.nexus-publish")
+    id("kotlin-inject.multiplatform")
+    id("kotlin-inject.publish")
 }
-
-kotlin {
-    jvm()
-    js(BOTH) {
-        browser()
-        nodejs()
-    }
-}
-
-publishToMavenCentral()
