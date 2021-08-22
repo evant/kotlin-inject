@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 
 plugins {
     kotlin("jvm")
-    kotllin("kapt")
+    kotlin("kapt")
     id("me.champeau.gradle.jmh") version "0.5.1"
 }
 
