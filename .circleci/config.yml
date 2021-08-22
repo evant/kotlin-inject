@@ -13,7 +13,7 @@ _gradle_checksum: &gradle_checksum
 jobs:
   build-linux:
     docker:
-      - image: circleci/openjdk:8-jdk-browsers@sha256:65fc6dd997c64ee63b68b27f27cd67b6a70649c71a86ae7500947158c49ac67c
+      - image: circleci/openjdk:11-jdk-browsers@sha256:7b75688697171176f4eef37ce4bcd678d0748f703195d7e45f11e0a02e126dfa
     <<: *defaults
     steps:
       - checkout
