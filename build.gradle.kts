@@ -12,18 +12,17 @@ buildscript {
     }
 }
 
-subprojects {
-    afterEvaluate {
-        tasks.findByName("check")?.dependsOn(rootProject.tasks["detekt"])
-    }
-    tasks.withType<KotlinCompile>().configureEach {
-        kotlinOptions.jvmTarget = "1.8"
-    }
+val testReport = tasks.register<TestReport>("testReport") {
+    destinationDir = file("$buildDir/reports")
+    reportOn(subprojects.mapNotNull { it.tasks.findByPath("test") })
+}
 
-    tasks.withType<JavaCompile>().configureEach {
-        sourceCompatibility = "1.8"
-        targetCompatibility = "1.8"
+val copyTestResults = tasks.register<Copy>("copyTestResults") {
+    from(files(subprojects.map { file("${it.buildDir}/test-results") })) {
+        include("**/*.xml")
     }
+    destinationDir = file("$buildDir/test-results")
+    includeEmptyDirs = false
 }
 
 tasks.withType<Detekt>().configureEach {
@@ -49,4 +48,27 @@ dependencies {
 }
 repositories {
     mavenCentral()
+}
+
+subprojects {
+    afterEvaluate {
+        tasks.findByName("check")?.dependsOn(rootProject.tasks["detekt"])
+    }
+
+    tasks.withType<KotlinCompile>().configureEach {
+        kotlinOptions.jvmTarget = "1.8"
+    }
+
+    tasks.withType<JavaCompile>().configureEach {
+        sourceCompatibility = "1.8"
+        targetCompatibility = "1.8"
+    }
+
+    tasks.withType<Test>().configureEach {
+        finalizedBy(testReport, copyTestResults)
+        ignoreFailures = true
+        testLogging {
+            events("passed", "skipped", "failed")
+        }
+    }
 }
