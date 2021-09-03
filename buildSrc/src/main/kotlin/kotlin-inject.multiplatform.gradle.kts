@@ -1,6 +1,6 @@
 import org.jetbrains.kotlin.gradle.dsl.KotlinJsCompile
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTargetWithTests
 import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
-import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest
 
 plugins {
     kotlin("multiplatform")
@@ -52,9 +52,12 @@ kotlin {
 }
 
 // Run only the native tests
-val nativeTest by tasks.registering
-tasks.withType<KotlinNativeTest>().configureEach {
-    nativeTest.get().dependsOn(this)
+val nativeTest by tasks.registering {
+    kotlin.targets.all {
+        if (this is KotlinNativeTargetWithTests<*>) {
+            dependsOn("${name}Test")
+        }
+    }
 }
 
 // Disable as ksp doesn't support js ir

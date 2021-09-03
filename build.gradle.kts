@@ -23,6 +23,7 @@ val copyTestResults = tasks.register<Copy>("copyTestResults") {
     for (project in subprojects) {
         project.tasks.withType<KotlinTest>().all {
             val kotlinTest = this
+            reports.junitXml.required.set(true)
             copy.dependsOn(this)
             copy.from(reports.junitXml.outputLocation.get()) {
                 include("**/*.xml")
