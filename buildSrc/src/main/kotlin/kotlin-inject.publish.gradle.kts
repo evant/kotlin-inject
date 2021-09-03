@@ -1,5 +1,6 @@
 import de.marcphilipp.gradle.nexus.NexusPublishExtension
 import java.time.Duration
+import java.util.Locale
 
 plugins {
     `maven-publish`
@@ -52,16 +53,25 @@ publishing {
             from("javadoc")
             archiveClassifier.set("javadoc")
         }
-        publishing.publications.all {
+        publications.all {
             (this as MavenPublication).artifact(javadocJar)
             mavenCentralPom()
+        }
+        // create task to publish all apple (macos, ios, tvos, watchos) artifacts
+        @Suppress("UNUSED_VARIABLE")
+        val publishApple by tasks.registering {
+            publications.all {
+                if (name.contains(Regex("macos|ios|tvos|watchos"))) {
+                    dependsOn("publish${name.capitalize(Locale.ROOT)}ToSonatypeRepository")
+                }
+            }
         }
     } else {
         // Need to create source, javadoc & publication
         val java = extensions.getByType<JavaPluginExtension>()
         java.withSourcesJar()
         java.withJavadocJar()
-        publishing.publications {
+        publications {
             create<MavenPublication>("lib") {
                 from(components["java"])
                 mavenCentralPom()
