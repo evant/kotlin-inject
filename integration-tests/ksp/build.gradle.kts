@@ -18,7 +18,7 @@ kotlin {
             dependencies {
                 implementation(kotlin("test"))
                 configurations["ksp"].dependencies.add(project(":kotlin-inject-compiler:ksp"))
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.1")
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2")
                 implementation("com.willowtreeapps.assertk:assertk:0.24")
             }
         }
