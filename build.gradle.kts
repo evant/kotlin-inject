@@ -1,5 +1,6 @@
 import io.gitlab.arturbosch.detekt.Detekt
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.gradle.tasks.KotlinTest
 
 plugins {
     id("com.google.devtools.ksp") version Versions.ksp apply false
@@ -18,10 +19,20 @@ val testReport = tasks.register<TestReport>("testReport") {
 }
 
 val copyTestResults = tasks.register<Copy>("copyTestResults") {
-    from(files(subprojects.map { file("${it.buildDir}/test-results") })) {
-        include("**/*.xml")
+    val copy = this
+    for (project in subprojects) {
+        project.tasks.withType<KotlinTest>().all {
+            val kotlinTest = this
+            copy.dependsOn(this)
+            copy.from(reports.junitXml.outputLocation.get()) {
+                include("**/*.xml")
+                rename { name ->
+                    "${File(name).nameWithoutExtension}[${kotlinTest.targetName}].xml"
+                }
+            }
+        }
     }
-    destinationDir = file("$buildDir/test-results")
+    destinationDir = file("${rootProject.buildDir}/test-results")
     includeEmptyDirs = false
 }
 

@@ -1,11 +1,17 @@
+import org.jetbrains.kotlin.gradle.dsl.KotlinJsCompile
+import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
+import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest
+
 plugins {
     kotlin("multiplatform")
 }
 
 val nativeTargets = arrayOf(
-    "linux",
-    "macos",
-    "ios"
+    "linuxX64",
+    "macosX64", "macosArm64",
+    "iosArm32", "iosArm64", "iosX64", "iosSimulatorArm64",
+    "tvosArm64", "tvosX64", "tvosSimulatorArm64",
+    "watchosArm32", "watchosArm64", "watchosX86", "watchosX64", "watchosSimulatorArm64",
 )
 
 kotlin {
@@ -20,9 +26,10 @@ kotlin {
             }
         }
     }
-    linuxX64("linux")
-    macosX64("macos")
-    ios()
+
+    for (target in nativeTargets) {
+       targets.add(presets.getByName(target).createTarget(target))
+    }
 
     sourceSets {
         val commonMain by getting
@@ -44,16 +51,25 @@ kotlin {
     }
 }
 
-val nativeTest by tasks.registering {
-    dependsOn(*nativeTargets.map { "${it}Test" }.toTypedArray())
+// Run only the native tests
+val nativeTest by tasks.registering
+tasks.withType<KotlinNativeTest>().configureEach {
+    nativeTest.get().dependsOn(this)
 }
 
-// Wait in case the test task gets created later
-afterEvaluate {
-    tasks.maybeCreate("test").apply {
-        // TODO: this can become 'allTests' after a couple of issues are resolved:
-        // 1. targets that cannot be run on the current platform are not skipped https://github.com/google/ksp/issues/570
-        // 2. ksp does not support js ir backend https://github.com/JetBrains/kotlin/pull/4264
-        dependsOn("jvmTest", "jsLegacyTest", "linuxTest")
+// Disable as ksp doesn't support js ir
+tasks.withType<KotlinJsCompile>().configureEach {
+    if (name.contains("Test") && name.contains("Ir")) {
+        disableAndWarn()
     }
+}
+tasks.withType<KotlinJsTest>().configureEach {
+    if (name.contains("Ir")) {
+        disableAndWarn()
+    }
+}
+
+fun Task.disableAndWarn() {
+    enabled = false
+    logger.warn("disabling: $name as ksp does not support js ir https://github.com/JetBrains/kotlin/pull/4264")
 }

@@ -30,7 +30,7 @@ jobs:
           command: sudo apt update && sudo apt install -y libtinfo5
       - run:
           name: Run Tests
-          command: ./gradlew test detekt
+          command: ./gradlew check
       - gradle/collect_test_results:
           test_results_path: build/test-results
           reports_path: build/reports
@@ -63,12 +63,12 @@ jobs:
             ".circleci/config.yml" }}-macos
       - run:
           name: Run Tests
-          command: ./gradlew macosTest iosX64Test
+          command: ./gradlew check
       - deploy:
           command: |
             if [ "${CIRCLE_BRANCH}" == "main" ]; then
               echo "$MAVEN_CENTRAL_SEC_RING" | base64 -D -o $HOME/secring.gpg
-              ./gradlew publishIosArm64PublicationToSonatypeRepository publishIosX64PublicationToSonatypeRepository publishIosX64PublicationToSonatypeRepository publishMacosPublicationToSonatypeRepository -PsonatypeUsername="$SONATYPE_USERNAME" -PsonatypePassword="$SONATYPE_PASSWORD" -Psigning.keyId=0E7A8B89 -Psigning.password="$MAVEN_CENTRAL_KEY_PASSPHRASE" -Psigning.secretKeyRingFile=$HOME/secring.gpg --no-parallel
+              ./gradlew publishApple -PsonatypeUsername="$SONATYPE_USERNAME" -PsonatypePassword="$SONATYPE_PASSWORD" -Psigning.keyId=0E7A8B89 -Psigning.password="$MAVEN_CENTRAL_KEY_PASSPHRASE" -Psigning.secretKeyRingFile=$HOME/secring.gpg --no-parallel
             fi
       - save_cache:
           paths:
