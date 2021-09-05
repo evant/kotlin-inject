@@ -32,13 +32,11 @@ kotlin {
     }
 
     sourceSets {
-        val commonMain by getting
-        val commonTest by getting
-        val nativeMain = create("nativeMain") {
-            dependsOn(commonMain)
+        val nativeMain by creating {
+            dependsOn(commonMain.get())
         }
-        val nativeTest = create("nativeTest") {
-            dependsOn(commonTest)
+        val nativeTest by creating {
+            dependsOn(commonTest.get())
         }
         for (sourceSet in nativeTargets) {
             getByName("${sourceSet}Main") {

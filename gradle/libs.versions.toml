@@ -1,0 +1,29 @@
+[versions]
+kotlin-inject = "0.3.7-SNAPSHOT"
+kotlin = "1.5.30"
+ksp = "1.5.30-1.0.0-beta09"
+[libraries]
+kotiln-gradle = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+detekt-gradle = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version = "1.18.0" }
+ksp = { module = "com.google.devtools.ksp:symbol-processing-api", version.ref = "ksp" }
+kotlin-compile-testing = { module = "com.github.tschuchortdev:kotlin-compile-testing-ksp", version = "1.4.3" }
+kotlin-compiler-embeddable = { module = "org.jetbrains.kotlin:kotlin-compiler-embeddable", version.ref = "kotlin" }
+kotlin-annotation-processing-embeddable = { module = "org.jetbrains.kotlin:kotlin-annotation-processing-embeddable", version.ref = "kotlin" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version = "1.5.2" }
+kotlinx-metadata-jvm = { module = "org.jetbrains.kotlinx:kotlinx-metadata-jvm", version = "0.2.0" }
+jdk-compiler = { module = "io.earcam.wrapped:jdk.compiler", version = "1.8.132" }
+assertk = { module = "com.willowtreeapps.assertk:assertk", version = "0.25-SNAPSHOT" }
+burst-junit4 = { module = "com.squareup.burst:burst-junit4", version = "1.2.0" }
+javax-inject = { module = "javax.inject:javax.inject", version = "1" }
+kotlinpoet = { module = "com.squareup:kotlinpoet", version = "1.5.0" }
+detekt-formatting = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", version = "1.17.1" }
+[bundles]
+kotlin-compile-testing = [
+    "kotlin-compile-testing",
+    "kotlin-compiler-embeddable",
+    "kotlin-annotation-processing-embeddable"
+]
+[plugins]
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+nexus-publish = { id = "io.github.gradle-nexus.publish-plugin", version = "1.1.0" }
+jmh = { id = "me.champeau.gradle.jmh", version = "0.5.1" }
