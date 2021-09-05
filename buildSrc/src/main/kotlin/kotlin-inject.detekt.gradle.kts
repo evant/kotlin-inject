@@ -32,3 +32,7 @@ tasks.withType<Test>().configureEach {
     }
 }
 
+val checkApple by rootProject.tasks.getting {
+    val detekt by tasks.getting
+    dependsOn(detekt)
+}

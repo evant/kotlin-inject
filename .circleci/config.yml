@@ -63,7 +63,7 @@ jobs:
             ".circleci/config.yml" }}-macos
       - run:
           name: Run Tests
-          command: ./gradlew detekt nativeTest
+          command: ./gradlew checkApple
       - deploy:
           command: |
             if [ "${CIRCLE_BRANCH}" == "main" ]; then

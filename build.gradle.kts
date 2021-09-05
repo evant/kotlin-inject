@@ -20,3 +20,14 @@ val copyTestResults by tasks.registering(Copy::class) {
     destinationDir = buildDir.resolve("test-results")
     includeEmptyDirs = false
 }
+
+val testReportApple by tasks.registering(TestReport::class) {
+    destinationDir = buildDir.resolve("reports")
+}
+
+val copyTestResultsApple by tasks.registering(Copy::class) {
+    destinationDir = buildDir.resolve("test-results")
+    includeEmptyDirs = false
+}
+
+val checkApple by tasks.creating
