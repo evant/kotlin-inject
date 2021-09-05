@@ -1,5 +1,7 @@
 plugins {
     id("kotlin-inject.multiplatform")
+    id("kotlin-inject.detekt")
+    id("kotlin-inject.merge-tests")
     id("com.google.devtools.ksp")
 }
 
@@ -7,26 +9,26 @@ kotlin {
     jvm { withJava() }
 
     sourceSets {
-        val commonMain by getting {
+        commonMain {
             dependencies {
                 implementation(project(":kotlin-inject-runtime"))
                 implementation(project(":integration-tests:module"))
             }
         }
-        val commonTest by getting {
+        commonTest {
             kotlin.srcDir("../common/src/test/kotlin")
             dependencies {
                 implementation(kotlin("test"))
                 configurations["ksp"].dependencies.add(project(":kotlin-inject-compiler:ksp"))
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2")
-                implementation("com.willowtreeapps.assertk:assertk:0.24")
+                implementation(libs.kotlinx.coroutines.core)
+                implementation(libs.assertk)
             }
         }
-        val jvmTest by getting {
+        jvmTest {
             kotlin.srcDir("../common-jvm/src/test/kotlin")
             dependencies {
                 implementation("org.jetbrains.kotlin:kotlin-reflect")
-                implementation("javax.inject:javax.inject:1")
+                implementation(libs.javax.inject)
             }
         }
     }

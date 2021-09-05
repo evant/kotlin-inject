@@ -1,15 +1,12 @@
-import de.marcphilipp.gradle.nexus.NexusPublishExtension
-import java.time.Duration
 import java.util.Locale
 
 plugins {
     `maven-publish`
     signing
-    id("de.marcphilipp.nexus-publish")
 }
 
-group = "me.tatarka.inject"
-version = Versions.kotlinInject
+group = rootProject.group
+version = rootProject.version
 
 fun MavenPublication.mavenCentralPom() {
     pom {
@@ -36,26 +33,18 @@ fun MavenPublication.mavenCentralPom() {
     }
 }
 
-extensions.configure<NexusPublishExtension> {
-    repositories {
-        sonatype()
-    }
-    @Suppress("MagicNumber")
-    val publishTimeout = Duration.ofMinutes(5L)
-    clientTimeout.set(publishTimeout)
-    connectTimeout.set(publishTimeout)
-}
-
 publishing {
     if (plugins.hasPlugin("org.jetbrains.kotlin.multiplatform")) {
         // already has publications, just need to add javadoc task
-        val javadocJar = tasks.create<Jar>("javadocJar") {
+        val javadocJar by tasks.creating(Jar::class) {
             from("javadoc")
             archiveClassifier.set("javadoc")
         }
         publications.all {
-            (this as MavenPublication).artifact(javadocJar)
-            mavenCentralPom()
+            if (this is MavenPublication) {
+                artifact(javadocJar)
+                mavenCentralPom()
+            }
         }
         // create task to publish all apple (macos, ios, tvos, watchos) artifacts
         @Suppress("UNUSED_VARIABLE")

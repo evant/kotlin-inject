@@ -1,10 +1,10 @@
 plugins {
     `kotlin-dsl`
 }
-repositories {
-    gradlePluginPortal()
-}
+
 dependencies {
-    implementation("de.marcphilipp.gradle:nexus-publish-plugin:0.4.0")
-    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:1.5.30")
+    implementation(libs.kotiln.gradle)
+    implementation(libs.detekt.gradle)
+    // hack to access version catelouge https://github.com/gradle/gradle/issues/15383
+    implementation(files(libs.javaClass.superclass.protectionDomain.codeSource.location))
 }

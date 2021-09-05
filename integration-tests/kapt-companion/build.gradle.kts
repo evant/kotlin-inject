@@ -1,9 +1,11 @@
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 
 plugins {
+    id("kotlin-inject.detekt")
+    id("kotlin-inject.merge-tests")
     kotlin("jvm")
     kotlin("kapt")
-    id("me.champeau.gradle.jmh") version "0.5.1"
+    alias(libs.plugins.jmh)
 }
 
 dependencies {
@@ -15,9 +17,9 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
     testImplementation("org.jetbrains.kotlin:kotlin-reflect")
-    testImplementation("javax.inject:javax.inject:1")
+    testImplementation(libs.javax.inject)
 
-    testImplementation("com.willowtreeapps.assertk:assertk-jvm:0.24")
+    testImplementation(libs.assertk)
 }
 
 sourceSets {
