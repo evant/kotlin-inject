@@ -50,7 +50,7 @@ jobs:
             ".circleci/config.yml" }}-linux
   build-macos:
     macos:
-      xcode: "11.7.0"
+      xcode: "13.0.0"
     <<: *defaults
     steps:
       - checkout
