@@ -64,6 +64,9 @@ jobs:
       - run:
           name: Run Tests
           command: ./gradlew checkApple
+      - gradle/collect_test_results:
+          test_results_path: build/test-results
+          reports_path: build/reports
       - deploy:
           command: |
             if [ "${CIRCLE_BRANCH}" == "main" ]; then
