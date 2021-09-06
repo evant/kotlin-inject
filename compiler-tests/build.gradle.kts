@@ -23,3 +23,8 @@ dependencies {
     testImplementation(libs.assertk)
     testImplementation(libs.burst.junit4)
 }
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
