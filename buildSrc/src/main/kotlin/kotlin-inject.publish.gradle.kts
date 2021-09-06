@@ -51,7 +51,7 @@ publishing {
         val publishApple by tasks.registering {
             publications.all {
                 if (name.contains(Regex("macos|ios|tvos|watchos"))) {
-                    dependsOn("publish${name.capitalize(Locale.ROOT)}ToSonatypeRepository")
+                    dependsOn("publish${name.capitalize(Locale.ROOT)}PublicationToSonatypeRepository")
                 }
             }
         }

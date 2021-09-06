@@ -4,6 +4,10 @@ plugins {
     id("kotlin-inject.merge-tests")
 }
 
+java {
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
 dependencies {
     implementation(project(":kotlin-inject-compiler:core"))
     implementation(project(":kotlin-inject-compiler:kapt"))

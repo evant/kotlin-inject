@@ -22,6 +22,10 @@ dependencies {
     testImplementation(libs.assertk)
 }
 
+java {
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
 sourceSets {
     val test by getting {
         kotlin.srcDir("../common-companion/src/test/kotlin")

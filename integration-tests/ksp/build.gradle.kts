@@ -35,6 +35,8 @@ kotlin {
 }
 
 java {
+    targetCompatibility = JavaVersion.VERSION_1_8
+
     sourceSets {
         val test by getting {
             java.srcDir("../common-jvm/src/test/java")
