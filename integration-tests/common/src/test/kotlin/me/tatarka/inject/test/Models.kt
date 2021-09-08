@@ -10,6 +10,8 @@ interface IFoo
 
 interface IBar
 
+interface IBaz
+
 var fooConstructorCount = 0
 
 @Inject class Foo : IFoo {
@@ -38,7 +40,7 @@ var fooConstructorCount = 0
 
 @Inject data class BarImpl2(val foo: IFoo) : IFoo
 
-@Inject class Baz : IFoo
+@Inject class Baz : IFoo, IBaz
 
 @Inject data class Bar2(val bar: Bar) : IFoo
 

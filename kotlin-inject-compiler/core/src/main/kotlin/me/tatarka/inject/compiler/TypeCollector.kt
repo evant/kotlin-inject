@@ -37,7 +37,7 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
     var providerMethods: List<AstMethod> = emptyList()
         private set
 
-    @Suppress("ComplexMethod")
+    @Suppress("ComplexMethod", "LongMethod", "NestedBlockDepth")
     private fun collectTypes(
         astClass: AstClass,
         accessor: String? = null,
@@ -45,6 +45,11 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
     ) {
         if (typeInfo.elementScope != null) {
             scopedAccessors[typeInfo.elementScope] = ScopedComponent(astClass, accessor)
+        }
+
+        val providerMethods = typeInfo.providerMethods.associateBy { method ->
+            val returnType = method.returnTypeFor(astClass)
+            TypeKey(returnType, method.qualifier(options))
         }
 
         for (method in typeInfo.providesMethods) {
@@ -72,13 +77,20 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
             } else {
                 val returnType = method.returnTypeFor(astClass)
                 val key = TypeKey(returnType, method.qualifier(options))
-                addMethod(key, method, accessor, scopedComponent)
+                // Can't access protected provides in another class
+                if (method.visibility == AstVisibility.PROTECTED && accessor != null) {
+                    // First check if there's a provides we can use instead.
+                    val compatibleProvider = providerMethods[key]
+                    if (compatibleProvider != null) {
+                        addMethod(key, compatibleProvider, accessor, scopedComponent = null)
+                    }
+                } else {
+                    addMethod(key, method, accessor, scopedComponent)
+                }
             }
         }
 
-        for (method in typeInfo.providerMethods) {
-            val returnType = method.returnTypeFor(astClass)
-            val key = TypeKey(returnType, method.qualifier(options))
+        for ((key, method) in providerMethods) {
             if (typeInfo.isComponent) {
                 addProviderMethod(key, method, accessor)
             } else {

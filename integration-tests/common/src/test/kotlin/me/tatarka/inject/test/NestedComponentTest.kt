@@ -10,10 +10,15 @@ import kotlin.test.Test
 @Component abstract class ParentComponent {
     abstract val parentNamedFoo: NamedFoo
 
+    abstract val parentBaz: IBaz
+
     @Provides
     fun foo() = NamedFoo("parent")
 
     val Foo.binds: IFoo
+        @Provides get() = this
+
+    protected val Baz.bind: IBaz
         @Provides get() = this
 }
 
@@ -24,6 +29,8 @@ import kotlin.test.Test
         @Provides get() = this
 
     abstract val foo: IFoo
+
+    abstract val baz: IBaz
 }
 
 @Component abstract class SimpleChildComponent2(@Component val parent: SimpleChildComponent1) {
@@ -43,6 +50,7 @@ class NestedComponentTest {
         assertThat(component.parent.parentNamedFoo.name).isEqualTo("parent")
         assertThat(component.namedFoo.name).isEqualTo("parent")
         assertThat(component.foo).isNotNull()
+        assertThat(component.baz).isNotNull()
     }
 
     @Test
