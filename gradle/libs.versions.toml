@@ -1,7 +1,7 @@
 [versions]
 kotlin-inject = "0.3.7-SNAPSHOT"
 kotlin = "1.5.30"
-ksp = "1.5.30-1.0.0-beta09"
+ksp = "1.5.30-1.0.0"
 [libraries]
 kotiln-gradle = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 detekt-gradle = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version = "1.18.0" }

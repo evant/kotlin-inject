@@ -5,6 +5,10 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
+dependencies {
+    ksp(project(":kotlin-inject-compiler:ksp"))
+}
+
 kotlin {
     jvm { withJava() }
 
@@ -19,7 +23,6 @@ kotlin {
             kotlin.srcDir("../common/src/test/kotlin")
             dependencies {
                 implementation(kotlin("test"))
-                configurations["ksp"].dependencies.add(project(":kotlin-inject-compiler:ksp"))
                 implementation(libs.kotlinx.coroutines.core)
                 implementation(libs.assertk)
             }
