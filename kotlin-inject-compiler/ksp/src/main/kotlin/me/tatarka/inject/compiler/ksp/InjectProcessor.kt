@@ -26,7 +26,7 @@ class InjectProcessor(
 
         val generator = InjectGenerator(this, options)
 
-        for (element in resolver.getSymbolsWithClassAnnotation(COMPONENT.packageName, COMPONENT.simpleName)) {
+        for (element in resolver.getSymbolsWithClassAnnotation(COMPONENT.packageName, COMPONENT.simpleName, logger)) {
             val astClass = element.toAstClass()
 
             try {
