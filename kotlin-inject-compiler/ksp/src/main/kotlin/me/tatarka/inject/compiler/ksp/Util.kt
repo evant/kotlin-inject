@@ -6,20 +6,9 @@ import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSDeclaration
-import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.symbol.KSType
-import com.google.devtools.ksp.symbol.KSTypeAlias
 import com.google.devtools.ksp.symbol.KSTypeParameter
 import com.google.devtools.ksp.symbol.KSTypeReference
-import com.google.devtools.ksp.symbol.Nullability
-import com.google.devtools.ksp.symbol.Variance
-import com.google.devtools.ksp.visitor.KSDefaultVisitor
-import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.KModifier
-import com.squareup.kotlinpoet.LambdaTypeName
-import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import com.squareup.kotlinpoet.TypeName
-import com.squareup.kotlinpoet.TypeVariableName
 import me.tatarka.inject.compiler.HashCollector
 import me.tatarka.inject.compiler.collectHash
 import me.tatarka.inject.compiler.eqv
@@ -61,82 +50,12 @@ fun KSDeclaration.simplePackageName(): String {
     return if (packageName == "<root>") "" else packageName
 }
 
-fun KSDeclaration.asClassName(): ClassName {
-    val packageName = simplePackageName()
-    return ClassName(packageName, shortName.split('.'))
-}
-
 val KSDeclaration.shortName: String
     get() {
         val name = requireNotNull(qualifiedName) { "expected qualifiedName for '$this' but got null" }
         val packageName = packageName.asString()
         return name.asString().removePrefix("$packageName.")
     }
-
-fun KSType.asTypeName(): TypeName {
-    if (isError) {
-        throw IllegalArgumentException("Cannot convert error type: $this to a TypeName")
-    }
-    val isFunction = isFunctionType
-    val isSuspending = isSuspendFunctionType
-    if ((isFunction || isSuspending) && declaration !is KSTypeAlias) {
-        val returnType = arguments.last()
-        val parameters = arguments.dropLast(1)
-        return LambdaTypeName.get(
-            parameters = parameters.map { it.type!!.resolve().asTypeName() }.toTypedArray(),
-            returnType = returnType.type!!.resolve().asTypeName()
-        ).let {
-            if (isSuspending) {
-                it.copy(suspending = true)
-            } else {
-                it
-            }
-        }
-    }
-
-    return declaration.accept(
-        object : KSDefaultVisitor<Unit, TypeName>() {
-
-            override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: Unit): TypeName {
-                return fromDeclaration(classDeclaration)
-            }
-
-            override fun visitTypeAlias(typeAlias: KSTypeAlias, data: Unit): TypeName {
-                return fromDeclaration(typeAlias)
-            }
-
-            override fun visitTypeParameter(typeParameter: KSTypeParameter, data: Unit): TypeName {
-                return TypeVariableName(
-                    name = typeParameter.name.asString(),
-                    bounds = typeParameter.bounds.map { it.resolve().asTypeName() }.toList(),
-                    variance = when (typeParameter.variance) {
-                        Variance.COVARIANT -> KModifier.IN
-                        Variance.CONTRAVARIANT -> KModifier.OUT
-                        else -> null
-                    }
-                )
-            }
-
-            private fun fromDeclaration(declaration: KSDeclaration): TypeName {
-                val rawType =
-                    declaration.asClassName().copy(nullable = nullability == Nullability.NULLABLE) as ClassName
-                if (declaration.typeParameters.isEmpty()) {
-                    return rawType
-                }
-                val typeArgumentNames = mutableListOf<TypeName>()
-                for (typeArgument in arguments) {
-                    typeArgumentNames += typeArgument.type!!.resolve().asTypeName()
-                }
-                return rawType.parameterizedBy(typeArgumentNames)
-            }
-
-            override fun defaultHandler(node: KSNode, data: Unit): TypeName {
-                throw IllegalArgumentException("Unexpected node: $node")
-            }
-        },
-        Unit
-    )
-}
 
 fun KSAnnotation.eqv(other: KSAnnotation): Boolean {
     return annotationType.resolve() == other.annotationType.resolve() &&

@@ -1,5 +1,6 @@
 package me.tatarka.inject.compiler
 
+import com.squareup.kotlinpoet.KModifier
 import me.tatarka.inject.compiler.ContainerCreator.mapOf
 import me.tatarka.inject.compiler.ContainerCreator.setOf
 
@@ -137,7 +138,7 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
                         concreteMethods.add(method)
                     }
                     if (method.isProvides()) {
-                        if (method.visibility == AstVisibility.PRIVATE) {
+                        if (method.visibility == KModifier.PRIVATE) {
                             error("@Provides method must not be private", method)
                             continue
                         }

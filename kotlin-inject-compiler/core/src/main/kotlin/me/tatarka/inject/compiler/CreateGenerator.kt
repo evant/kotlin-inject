@@ -48,7 +48,7 @@ class CreateGenerator(private val astProvider: AstProvider, private val options:
     ): FunSpec {
         return FunSpec.builder("create")
             .apply {
-                addModifiers(element.visibility.toModifier())
+                addModifiers(element.visibility)
                 if (constructor != null) {
                     for (param in params) {
                         addParameter(param.asParameterSpec())

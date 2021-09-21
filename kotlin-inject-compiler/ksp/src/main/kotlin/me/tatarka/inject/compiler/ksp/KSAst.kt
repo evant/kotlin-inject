@@ -7,8 +7,6 @@ import com.google.devtools.ksp.getDeclaredProperties
 import com.google.devtools.ksp.getVisibility
 import com.google.devtools.ksp.isAbstract
 import com.google.devtools.ksp.isPrivate
-import com.google.devtools.ksp.processing.CodeGenerator
-import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.symbol.ClassKind
@@ -21,37 +19,39 @@ import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.KSTypeAlias
+import com.google.devtools.ksp.symbol.KSTypeReference
 import com.google.devtools.ksp.symbol.KSValueParameter
 import com.google.devtools.ksp.symbol.Modifier
 import com.google.devtools.ksp.symbol.Nullability
 import com.google.devtools.ksp.symbol.Variance
-import com.google.devtools.ksp.symbol.Visibility
 import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.ksp.addOriginatingKSFile
+import com.squareup.kotlinpoet.ksp.toClassName
+import com.squareup.kotlinpoet.ksp.toKModifier
+import com.squareup.kotlinpoet.ksp.toTypeName
 import me.tatarka.inject.compiler.AstAnnotated
 import me.tatarka.inject.compiler.AstAnnotation
 import me.tatarka.inject.compiler.AstBasicElement
 import me.tatarka.inject.compiler.AstClass
 import me.tatarka.inject.compiler.AstConstructor
 import me.tatarka.inject.compiler.AstElement
-import me.tatarka.inject.compiler.AstFileSpec
 import me.tatarka.inject.compiler.AstFunction
+import me.tatarka.inject.compiler.AstHasModifiers
 import me.tatarka.inject.compiler.AstMethod
 import me.tatarka.inject.compiler.AstParam
 import me.tatarka.inject.compiler.AstProperty
 import me.tatarka.inject.compiler.AstProvider
 import me.tatarka.inject.compiler.AstType
-import me.tatarka.inject.compiler.AstTypeSpec
-import me.tatarka.inject.compiler.AstVisibility
 import me.tatarka.inject.compiler.Messenger
 import me.tatarka.inject.compiler.OutputProvider
 import kotlin.reflect.KClass
 
-interface KSAstProvider : AstProvider, OutputProvider<CodeGenerator> {
+interface KSAstProvider : AstProvider, OutputProvider {
 
     val resolver: Resolver
 
@@ -97,14 +97,11 @@ interface KSAstProvider : AstProvider, OutputProvider<CodeGenerator> {
         }
     }
 
-    override fun astTypeSpec(typeSpecBuilder: TypeSpec.Builder, originatingElement: AstClass): AstTypeSpec {
+    override fun buildTypeSpec(typeSpecBuilder: TypeSpec.Builder, originatingElement: AstClass): TypeSpec {
         require(originatingElement is KSAstClass)
-        return KSAstTypeSpec(typeSpecBuilder, originatingElement)
-    }
-
-    override fun astFileSpec(fileSpecBuilder: FileSpec.Builder, astTypeSpec: AstTypeSpec): AstFileSpec<CodeGenerator> {
-        require(astTypeSpec is KSAstTypeSpec)
-        return KSAstFileSpec(fileSpecBuilder, astTypeSpec)
+        return typeSpecBuilder
+            .addOriginatingKSFile(originatingElement.declaration.containingFile!!)
+            .build()
     }
 }
 
@@ -135,22 +132,26 @@ private interface KSAstAnnotated : AstAnnotated {
     }
 }
 
+private interface KSAstHasModifiers : AstHasModifiers, KSAstAnnotated {
+    override val declaration: KSDeclaration
+
+    override val visibility: KModifier
+        get() = declaration.getVisibility().toKModifier() ?: KModifier.PUBLIC
+}
+
 private class KSAstBasicElement(private val declaration: KSDeclaration) : AstBasicElement() {
     override val simpleName: String
         get() = declaration.simpleName.asString()
 }
 
 private class KSAstClass(override val resolver: Resolver, override val declaration: KSClassDeclaration) :
-    AstClass(), KSAstAnnotated {
+    AstClass(), KSAstHasModifiers {
 
     override val packageName: String
-        get() = declaration.simplePackageName()
+        get() = declaration.packageName.asString()
 
     override val name: String
         get() = declaration.simpleName.asString()
-
-    override val visibility: AstVisibility
-        get() = declaration.getVisibility().astVisibility()
 
     override val isAbstract: Boolean
         get() = declaration.isAbstract()
@@ -205,7 +206,7 @@ private class KSAstClass(override val resolver: Resolver, override val declarati
         }
 
     override fun asClassName(): ClassName {
-        return declaration.asClassName()
+        return declaration.toClassName()
     }
 
     override fun equals(other: Any?): Boolean {
@@ -239,7 +240,7 @@ private class KSAstConstructor(
 
 private class KSAstFunction(override val resolver: Resolver, override val declaration: KSFunctionDeclaration) :
     AstFunction(),
-    KSAstAnnotated {
+    KSAstHasModifiers {
 
     override val parameters: List<AstParam>
         get() = declaration.parameters.map { param ->
@@ -249,9 +250,6 @@ private class KSAstFunction(override val resolver: Resolver, override val declar
     override val name: String
         get() = declaration.simpleName.asString()
 
-    override val visibility: AstVisibility
-        get() = declaration.getVisibility().astVisibility()
-
     override val isAbstract: Boolean
         get() = declaration.isAbstract
 
@@ -259,7 +257,7 @@ private class KSAstFunction(override val resolver: Resolver, override val declar
         get() = declaration.modifiers.contains(Modifier.SUSPEND)
 
     override val receiverParameterType: AstType?
-        get() = declaration.extensionReceiver?.let { KSAstType(resolver, it.resolve()) }
+        get() = declaration.extensionReceiver?.let { KSAstType(resolver, it) }
 
     override fun overrides(other: AstMethod): Boolean {
         if (other !is KSAstFunction) return false
@@ -267,13 +265,13 @@ private class KSAstFunction(override val resolver: Resolver, override val declar
     }
 
     override val returnType: AstType
-        get() = KSAstType(resolver, declaration.returnType!!.resolve())
+        get() = KSAstType(resolver, declaration.returnType!!)
 
     override fun returnTypeFor(enclosingClass: AstClass): AstType {
         require(enclosingClass is KSAstClass)
         // resolver.asMemberOf is expensive and only matters if there are generics involved, so check that first.
-        val type = declaration.returnType!!.resolve()
-        if (type.isConcrete()) {
+        val type = declaration.returnType!!
+        if (type.resolve().isConcrete()) {
             return KSAstType(resolver, type)
         }
         return KSAstType(
@@ -297,19 +295,16 @@ private class KSAstFunction(override val resolver: Resolver, override val declar
 }
 
 private class KSAstProperty(override val resolver: Resolver, override val declaration: KSPropertyDeclaration) :
-    AstProperty(), KSAstAnnotated {
+    AstProperty(), KSAstHasModifiers {
 
     override val name: String
         get() = declaration.simpleName.asString()
-
-    override val visibility: AstVisibility
-        get() = declaration.getVisibility().astVisibility()
 
     override val isAbstract: Boolean
         get() = declaration.isAbstract()
 
     override val receiverParameterType: AstType?
-        get() = declaration.extensionReceiver?.let { KSAstType(resolver, it.resolve()) }
+        get() = declaration.extensionReceiver?.let { KSAstType(resolver, it) }
 
     override fun overrides(other: AstMethod): Boolean {
         if (other !is KSAstProperty) return false
@@ -317,13 +312,13 @@ private class KSAstProperty(override val resolver: Resolver, override val declar
     }
 
     override val returnType: AstType
-        get() = KSAstType(resolver, declaration.type.resolve())
+        get() = KSAstType(resolver, declaration.type)
 
     override fun returnTypeFor(enclosingClass: AstClass): AstType {
         require(enclosingClass is KSAstClass)
         // resolver.asMemberOf is expensive and only matters if there are generics involved, so check that first.
-        val type = declaration.type.resolve()
-        if (type.isConcrete()) {
+        val type = declaration.type
+        if (type.resolve().isConcrete()) {
             return KSAstType(resolver, type)
         }
         return KSAstType(
@@ -356,7 +351,15 @@ private class KSAstProperty(override val resolver: Resolver, override val declar
     }
 }
 
-private class KSAstType(private val resolver: Resolver, val type: KSType) : AstType() {
+private class KSAstType private constructor(
+    private val resolver: Resolver,
+    private val typeRef: KSTypeReference,
+    val type: KSType
+) : AstType() {
+
+    constructor(resolver: Resolver, typeRef: KSTypeReference) : this(resolver, typeRef, typeRef.resolve())
+
+    constructor(resolver: Resolver, type: KSType) : this(resolver, resolver.createKSTypeReferenceFromKSType(type), type)
 
     override val packageName: String
         get() = type.declaration.simplePackageName()
@@ -366,7 +369,7 @@ private class KSAstType(private val resolver: Resolver, val type: KSType) : AstT
 
     override val arguments: List<AstType>
         get() = type.arguments.map {
-            KSAstType(resolver, it.type!!.resolve())
+            KSAstType(resolver, it.type!!)
         }
 
     override fun isUnit(): Boolean {
@@ -405,7 +408,7 @@ private class KSAstType(private val resolver: Resolver, val type: KSType) : AstT
     }
 
     override fun asTypeName(): TypeName {
-        return type.asTypeName()
+        return typeRef.toTypeName()
     }
 
     override fun isAssignableFrom(other: AstType): Boolean {
@@ -435,7 +438,7 @@ private class KSAstParam(
         get() = declaration.name!!.asString()
 
     override val type: AstType
-        get() = KSAstType(resolver, declaration.type.resolve())
+        get() = KSAstType(resolver, declaration.type)
 
     override val isVal: Boolean
         get() = declaration.isVal
@@ -457,7 +460,7 @@ private class KSAstParam(
 private class KSAstAnnotation(private val resolver: Resolver, val annotation: KSAnnotation) : AstAnnotation() {
 
     override val type: AstType
-        get() = KSAstType(resolver, annotation.annotationType.resolve())
+        get() = KSAstType(resolver, annotation.annotationType)
 
     override fun equals(other: Any?): Boolean {
         return other is KSAstAnnotation && annotation.eqv(other.annotation)
@@ -471,33 +474,5 @@ private class KSAstAnnotation(private val resolver: Resolver, val annotation: KS
         return "$annotation(${
             annotation.arguments.joinToString(", ") { arg -> "${arg.name?.asString()}=${arg.value}" }
         })"
-    }
-}
-
-private fun Visibility.astVisibility(): AstVisibility =
-    when (this) {
-        Visibility.PUBLIC, Visibility.JAVA_PACKAGE -> AstVisibility.PUBLIC
-        Visibility.PRIVATE -> AstVisibility.PRIVATE
-        Visibility.PROTECTED -> AstVisibility.PROTECTED
-        Visibility.INTERNAL -> AstVisibility.INTERNAL
-        else -> throw UnsupportedOperationException("unsupported visibility: $this")
-    }
-
-private class KSAstTypeSpec(typeSpecBuilder: TypeSpec.Builder, val astClass: KSAstClass) : AstTypeSpec {
-    override val typeSpec: TypeSpec = typeSpecBuilder.build()
-}
-
-private class KSAstFileSpec(fileSpecBuilder: FileSpec.Builder, val typeSpec: KSAstTypeSpec) :
-    AstFileSpec<CodeGenerator> {
-    private val fileSpec: FileSpec = fileSpecBuilder
-        .addType(typeSpec.typeSpec)
-        .build()
-
-    override fun writeTo(output: CodeGenerator) {
-        output.createNewFile(
-            Dependencies(true, typeSpec.astClass.declaration.containingFile!!),
-            fileSpec.packageName,
-            fileSpec.name
-        ).bufferedWriter().use { fileSpec.writeTo(it) }
     }
 }

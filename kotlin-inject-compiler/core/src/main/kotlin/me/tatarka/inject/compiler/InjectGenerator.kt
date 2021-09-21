@@ -24,21 +24,21 @@ val JAVAX_QUALIFIER = ClassName("javax.inject", "Qualifier")
 val SCOPED_COMPONENT = ClassName("me.tatarka.inject.internal", "ScopedComponent")
 val LAZY_MAP = ClassName("me.tatarka.inject.internal", "LazyMap")
 
-class InjectGenerator<Output, Provider>(
+class InjectGenerator<Provider>(
     private val provider: Provider,
     private val options: Options,
 ) : AstProvider by provider
-        where Provider : AstProvider, Provider : OutputProvider<Output> {
+        where Provider : AstProvider, Provider : OutputProvider {
 
     private val createGenerator = CreateGenerator(provider, options)
 
     var scopeType: AstType? = null
         private set
 
-    fun generate(astClass: AstClass): AstFileSpec<Output> {
+    fun generate(astClass: AstClass): FileSpec {
         if (!astClass.isAbstract) {
             throw FailedToGenerateException("@Component class: $astClass must be abstract", astClass)
-        } else if (astClass.visibility == AstVisibility.PRIVATE) {
+        } else if (astClass.visibility == KModifier.PRIVATE) {
             throw FailedToGenerateException("@Component class: $astClass must not be private", astClass)
         }
 
@@ -46,14 +46,12 @@ class InjectGenerator<Output, Provider>(
 
         val injectName = astClass.toInjectName()
         val injectComponent = generateInjectComponent(astClass, injectName, constructor)
-        val createFunction = createGenerator.create(astClass, constructor, injectComponent.typeSpec)
+        val createFunction = createGenerator.create(astClass, constructor, injectComponent)
 
-        return provider.astFileSpec(
-            FileSpec.builder(astClass.packageName, injectName)
-                .apply {
-                    createFunction.forEach { addFunction(it) }
-                }, injectComponent
-        )
+        return FileSpec.builder(astClass.packageName, injectName).apply {
+            createFunction.forEach { addFunction(it) }
+            addType(injectComponent)
+        }.build()
     }
 
     @Suppress("ComplexMethod", "LongMethod", "NestedBlockDepth")
@@ -61,13 +59,13 @@ class InjectGenerator<Output, Provider>(
         astClass: AstClass,
         injectName: String,
         constructor: AstConstructor?
-    ): AstTypeSpec {
+    ): TypeSpec {
         val context = collectTypes(astClass, injectName)
         val resolver = TypeResultResolver(this, options)
         val scope = context.collector.scopeClass
         scopeType = scope?.scopeType(options)
 
-        return provider.astTypeSpec(
+        return provider.buildTypeSpec(
             TypeSpec.classBuilder(context.className)
                 .apply {
                     if (astClass.isInterface) {
@@ -78,7 +76,7 @@ class InjectGenerator<Output, Provider>(
                     if (scope != null) {
                         addSuperinterface(SCOPED_COMPONENT)
                     }
-                    addModifiers(astClass.visibility.toModifier())
+                    addModifiers(astClass.visibility)
                     if (constructor != null) {
                         val funSpec = FunSpec.constructorBuilder()
                         val params = constructor.parameters

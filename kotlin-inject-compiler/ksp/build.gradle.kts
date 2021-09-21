@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
     kotlin("jvm")
     id("kotlin-inject.detekt")
@@ -10,9 +12,14 @@ dependencies {
     // for access to CompilationErrorException until ksp properly fails on errors
     implementation(libs.kotlin.compiler.embeddable)
     implementation(libs.ksp)
+    implementation(libs.kotlinpoet.ksp)
 }
 
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+tasks.withType<KotlinCompile>().configureEach {
+    kotlinOptions.freeCompilerArgs += "-Xopt-in=com.squareup.kotlinpoet.ksp.KotlinPoetKspPreview"
 }
