@@ -6,7 +6,7 @@ plugins {
 
 dependencies {
     implementation(project(":kotlin-inject-runtime"))
-    api(libs.kotlinpoet)
+    api(libs.kotlinpoet.core)
 }
 
 java {

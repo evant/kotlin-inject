@@ -7,6 +7,7 @@ import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
 import com.google.devtools.ksp.processing.SymbolProcessorProvider
 import com.google.devtools.ksp.symbol.KSAnnotated
+import com.squareup.kotlinpoet.ksp.writeTo
 import me.tatarka.inject.compiler.COMPONENT
 import me.tatarka.inject.compiler.FailedToGenerateException
 import me.tatarka.inject.compiler.InjectGenerator
@@ -31,7 +32,7 @@ class InjectProcessor(
 
             try {
                 val file = generator.generate(astClass)
-                file.writeTo(codeGenerator)
+                file.writeTo(codeGenerator, aggregating = true)
             } catch (e: FailedToGenerateException) {
                 error(e.message.orEmpty(), e.element)
                 // Continue so we can see all errors

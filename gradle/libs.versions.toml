@@ -2,6 +2,7 @@
 kotlin-inject = "0.3.7-SNAPSHOT"
 kotlin = "1.5.30"
 ksp = "1.5.30-1.0.0"
+kotlinpoet = "1.10.1"
 [libraries]
 kotiln-gradle = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 detekt-gradle = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version = "1.18.0" }
@@ -15,7 +16,8 @@ jdk-compiler = { module = "io.earcam.wrapped:jdk.compiler", version = "1.8.132" 
 assertk = { module = "com.willowtreeapps.assertk:assertk", version = "0.25" }
 burst-junit4 = { module = "com.squareup.burst:burst-junit4", version = "1.2.0" }
 javax-inject = { module = "javax.inject:javax.inject", version = "1" }
-kotlinpoet = { module = "com.squareup:kotlinpoet", version = "1.5.0" }
+kotlinpoet-core = { module = "com.squareup:kotlinpoet", version.ref = "kotlinpoet" }
+kotlinpoet-ksp = { module = "com.squareup:kotlinpoet-ksp", version.ref = "kotlinpoet" }
 detekt-formatting = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", version = "1.17.1" }
 [bundles]
 kotlin-compile-testing = [

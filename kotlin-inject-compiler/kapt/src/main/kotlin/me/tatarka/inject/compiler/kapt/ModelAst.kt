@@ -1,7 +1,7 @@
 package me.tatarka.inject.compiler.kapt
 
 import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.TypeName
@@ -27,18 +27,14 @@ import me.tatarka.inject.compiler.AstBasicElement
 import me.tatarka.inject.compiler.AstClass
 import me.tatarka.inject.compiler.AstConstructor
 import me.tatarka.inject.compiler.AstElement
-import me.tatarka.inject.compiler.AstFileSpec
 import me.tatarka.inject.compiler.AstFunction
 import me.tatarka.inject.compiler.AstMethod
 import me.tatarka.inject.compiler.AstParam
 import me.tatarka.inject.compiler.AstProperty
 import me.tatarka.inject.compiler.AstProvider
 import me.tatarka.inject.compiler.AstType
-import me.tatarka.inject.compiler.AstTypeSpec
-import me.tatarka.inject.compiler.AstVisibility
 import me.tatarka.inject.compiler.Messenger
 import me.tatarka.inject.compiler.OutputProvider
-import javax.annotation.processing.Filer
 import javax.annotation.processing.Messager
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.AnnotationMirror
@@ -152,15 +148,13 @@ interface ModelAstProvider : AstProvider {
     }
 }
 
-interface ModelOutputProvider : OutputProvider<Filer> {
+interface ModelOutputProvider : OutputProvider {
 
-    override fun astTypeSpec(typeSpecBuilder: TypeSpec.Builder, originatingElement: AstClass): AstTypeSpec {
+    override fun buildTypeSpec(typeSpecBuilder: TypeSpec.Builder, originatingElement: AstClass): TypeSpec {
         require(originatingElement is ModelAstClass)
-        return ModelAstTypeSpec(typeSpecBuilder, originatingElement)
-    }
-
-    override fun astFileSpec(fileSpecBuilder: FileSpec.Builder, astTypeSpec: AstTypeSpec): AstFileSpec<Filer> {
-        return ModelAstFileSpec(fileSpecBuilder, astTypeSpec)
+        return typeSpecBuilder
+            .addOriginatingElement(originatingElement.element)
+            .build()
     }
 }
 
@@ -212,7 +206,7 @@ private class PrimitiveModelAstClass(
 
     override val packageName: String = "kotlin"
     override val name: String = type.toString()
-    override val visibility: AstVisibility = AstVisibility.PUBLIC
+    override val visibility: KModifier = KModifier.PUBLIC
     override val isAbstract: Boolean = false
     override val isInterface: Boolean = false
     override val companion: AstClass? = null
@@ -253,8 +247,8 @@ private class ModelAstClass(
 
     override val name: String get() = element.simpleName.toString()
 
-    override val visibility: AstVisibility
-        get() = astVisibility(element, kmClass?.flags)
+    override val visibility: KModifier
+        get() = toKModifier(element, kmClass?.flags)
 
     override val isAbstract: Boolean
         get() = kmClass?.isAbstract() ?: false
@@ -402,8 +396,8 @@ private class ModelAstFunction(
 
     override val name: String get() = kmFunction.name
 
-    override val visibility: AstVisibility
-        get() = astVisibility(element, kmFunction.flags)
+    override val visibility: KModifier
+        get() = toKModifier(element, kmFunction.flags)
 
     override val isAbstract: Boolean
         get() = kmFunction.isAbstract()
@@ -486,8 +480,8 @@ private class ModelAstProperty(
 
     override val name: String get() = kmProperty.name
 
-    override val visibility: AstVisibility
-        get() = astVisibility(element, kmProperty.flags)
+    override val visibility: KModifier
+        get() = toKModifier(element, kmProperty.flags)
 
     override val isAbstract: Boolean
         get() = kmProperty.isAbstract()
@@ -716,20 +710,20 @@ private fun String.toKmType(args: List<KmTypeProjection>): KmType = KmType(0).ap
     }
 }
 
-private fun astVisibility(element: Element, flags: Flags?): AstVisibility {
+private fun toKModifier(element: Element, flags: Flags?): KModifier {
     return if (flags != null) {
         when {
-            Flag.Common.IS_INTERNAL(flags) -> AstVisibility.INTERNAL
-            Flag.Common.IS_PRIVATE(flags) -> AstVisibility.PRIVATE
-            Flag.Common.IS_PROTECTED(flags) -> AstVisibility.PROTECTED
-            else -> AstVisibility.PUBLIC
+            Flag.Common.IS_INTERNAL(flags) -> KModifier.INTERNAL
+            Flag.Common.IS_PRIVATE(flags) -> KModifier.PRIVATE
+            Flag.Common.IS_PROTECTED(flags) -> KModifier.PROTECTED
+            else -> KModifier.PUBLIC
         }
     } else {
         val modifiers = element.modifiers
         when {
-            Modifier.PROTECTED in modifiers -> AstVisibility.PROTECTED
-            Modifier.PRIVATE in modifiers -> AstVisibility.PRIVATE
-            else -> AstVisibility.PUBLIC
+            Modifier.PROTECTED in modifiers -> KModifier.PROTECTED
+            Modifier.PRIVATE in modifiers -> KModifier.PRIVATE
+            else -> KModifier.PUBLIC
         }
     }
 }
@@ -739,19 +733,3 @@ val AstClass.element: TypeElement
         require(this is ModelAstClass)
         return element
     }
-
-private class ModelAstTypeSpec(typeSpecBuilder: TypeSpec.Builder, astClass: ModelAstClass) : AstTypeSpec {
-    override val typeSpec: TypeSpec = typeSpecBuilder
-        .addOriginatingElement(astClass.element)
-        .build()
-}
-
-private class ModelAstFileSpec(fileSpecBuilder: FileSpec.Builder, typeSpec: AstTypeSpec) : AstFileSpec<Filer> {
-    private val fileSpec: FileSpec = fileSpecBuilder
-        .addType(typeSpec.typeSpec)
-        .build()
-
-    override fun writeTo(output: Filer) {
-        fileSpec.writeTo(output)
-    }
-}

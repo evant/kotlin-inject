@@ -1,7 +1,7 @@
 package me.tatarka.inject.compiler
 
 import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.TypeName
@@ -207,22 +207,11 @@ abstract class AstParam : AstElement(), AstAnnotated {
 
 interface AstHasModifiers {
 
-    val visibility: AstVisibility
+    val visibility: KModifier
 
     val isAbstract: Boolean
 }
 
-interface OutputProvider<Output> {
-
-    fun astTypeSpec(typeSpecBuilder: TypeSpec.Builder, originatingElement: AstClass): AstTypeSpec
-
-    fun astFileSpec(fileSpecBuilder: FileSpec.Builder, astTypeSpec: AstTypeSpec): AstFileSpec<Output>
-}
-
-interface AstTypeSpec {
-    val typeSpec: TypeSpec
-}
-
-interface AstFileSpec<Output> {
-    fun writeTo(output: Output)
+interface OutputProvider {
+    fun buildTypeSpec(typeSpecBuilder: TypeSpec.Builder, originatingElement: AstClass): TypeSpec
 }
