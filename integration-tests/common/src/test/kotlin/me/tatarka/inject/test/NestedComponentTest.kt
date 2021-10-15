@@ -11,7 +11,7 @@ import kotlin.test.Test
     abstract val parentNamedFoo: NamedFoo
 
     @Provides
-    fun foo() = NamedFoo("parent")
+    protected fun foo() = NamedFoo("parent")
 
     val Foo.binds: IFoo
         @Provides get() = this

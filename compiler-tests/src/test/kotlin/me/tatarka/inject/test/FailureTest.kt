@@ -423,6 +423,31 @@ class FailureTest(private val target: Target) {
             )
         }
     }
+
+    @Test
+    fun fails_if_provides_in_parent_component_is_protected() {
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+               import me.tatarka.inject.annotations.Component
+               import me.tatarka.inject.annotations.Provides
+
+               @Component abstract class MyParentComponent {
+                 @Provides protected fun providesFoo() = "foo"
+               }
+
+               @Component abstract class MyChildComponent(@Component val parent: MyParentComponent) {
+                 abstract val foo: String
+               }
+                """.trimIndent()
+            ).compile()
+        }.isFailure().output().all {
+            contains(
+                "@Provides method is not accessible"
+            )
+        }
+    }
 }
 
 private fun Target.sourceExt() = when (this) {
