@@ -36,7 +36,7 @@ sealed class TypeResult {
     class Provides(
         val className: String,
         val methodName: String,
-        val accessor: String? = null,
+        val accessor: String = "",
         val receiver: TypeResultRef? = null,
         val isProperty: Boolean = false,
         val parameters: List<TypeResultRef> = emptyList(),
@@ -53,7 +53,7 @@ sealed class TypeResult {
      */
     class Scoped(
         val key: String,
-        val accessor: String?,
+        val accessor: String,
         val result: TypeResultRef,
     ) : TypeResult() {
         override val children

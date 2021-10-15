@@ -6,16 +6,16 @@ import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 
-fun TypeResultRef.generate() = result.generate()
+fun TypeResultRef.generate(changedScope: Boolean = false) = result.generate(changedScope)
 
-fun TypeResult.generate(): CodeBlock {
+fun TypeResult.generate(changedScope: Boolean): CodeBlock {
     return when (this) {
         is TypeResult.Provider -> generate()
-        is TypeResult.Provides -> generate()
-        is TypeResult.Scoped -> generate()
-        is TypeResult.Constructor -> generate()
-        is TypeResult.Container -> generate()
-        is TypeResult.Function -> generate()
+        is TypeResult.Provides -> generate(changedScope)
+        is TypeResult.Scoped -> generate(changedScope)
+        is TypeResult.Constructor -> generate(changedScope)
+        is TypeResult.Container -> generate(changedScope)
+        is TypeResult.Function -> generate(changedScope)
         is TypeResult.NamedFunction -> generate()
         is TypeResult.Object -> generate()
         is TypeResult.Arg -> generate()
@@ -60,23 +60,30 @@ private fun TypeResult.Provider.generate(): CodeBlock {
     }.build()
 }
 
-@Suppress("LongMethod")
-private fun TypeResult.Provides.generate(): CodeBlock {
+@Suppress("LongMethod", "NestedBlockDepth")
+private fun TypeResult.Provides.generate(changedScope: Boolean): CodeBlock {
     return CodeBlock.builder().apply {
 
-        val changeScope = accessor != null && receiver != null
+        val changeScope = accessor.isNotEmpty() && receiver != null
 
-        if (accessor != null) {
+        if (accessor.isNotEmpty()) {
             if (changeScope) {
-                add("with(this@%L.%L)", className, accessor)
+                add("with(")
+                if (changedScope) {
+                    add("this@%L.", className)
+                }
+                add("%L)", accessor)
                 beginControlFlow("")
             } else {
+                if (changedScope) {
+                    add("this@%L.", className)
+                }
                 add("%L.", accessor)
             }
         }
 
         if (receiver != null) {
-            add(receiver.generate())
+            add(receiver.generate(changeScope))
             add(".")
         }
 
@@ -88,7 +95,7 @@ private fun TypeResult.Provides.generate(): CodeBlock {
                 if (i != 0) {
                     add(",")
                 }
-                add(param.generate())
+                add(param.generate(changeScope))
             }
             add(")")
         }
@@ -100,22 +107,22 @@ private fun TypeResult.Provides.generate(): CodeBlock {
     }.build()
 }
 
-private fun TypeResult.Constructor.generate(): CodeBlock {
+private fun TypeResult.Constructor.generate(changedScope: Boolean): CodeBlock {
     return CodeBlock.builder().apply {
         add("%T(", type.asTypeName())
         parameters.forEachIndexed { i, param ->
             if (i != 0) {
                 add(",")
             }
-            add(param.generate())
+            add(param.generate(changedScope))
         }
         add(")")
     }.build()
 }
 
-private fun TypeResult.Scoped.generate(): CodeBlock {
+private fun TypeResult.Scoped.generate(changedScope: Boolean): CodeBlock {
     return CodeBlock.builder().apply {
-        if (accessor != null) {
+        if (accessor.isNotEmpty()) {
             add(
                 "(%L as %T).",
                 accessor,
@@ -123,26 +130,26 @@ private fun TypeResult.Scoped.generate(): CodeBlock {
             )
         }
         add("_scoped.get(%S)", key).beginControlFlow("")
-        add(result.generate())
+        add(result.generate(changedScope))
         add("\n")
         endControlFlow()
     }.build()
 }
 
-private fun TypeResult.Container.generate(): CodeBlock {
+private fun TypeResult.Container.generate(changedScope: Boolean): CodeBlock {
     return CodeBlock.builder().apply {
         add("$creator(")
         args.forEachIndexed { index, arg ->
             if (index != 0) {
                 add(", ")
             }
-            add(arg.generate())
+            add(arg.generate(changedScope))
         }
         add(")")
     }.build()
 }
 
-private fun TypeResult.Function.generate(): CodeBlock {
+private fun TypeResult.Function.generate(changedScope: Boolean): CodeBlock {
     return CodeBlock.builder().apply {
         beginControlFlow("")
         args.forEachIndexed { index, arg ->
@@ -154,7 +161,7 @@ private fun TypeResult.Function.generate(): CodeBlock {
         if (args.isNotEmpty()) {
             add(" ->")
         }
-        add(result.generate())
+        add(result.generate(changedScope))
         endControlFlow()
     }.build()
 }

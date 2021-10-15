@@ -121,7 +121,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
 
     private fun Provides(
         context: Context,
-        accessor: String?,
+        accessor: String,
         method: AstMethod,
         key: TypeKey,
     ) = withCycleDetection(key, method) {
@@ -146,7 +146,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
 
     private fun Scoped(
         context: Context,
-        accessor: String?,
+        accessor: String,
         key: TypeKey,
     ) = TypeResult.Scoped(
         key = key.toString(),

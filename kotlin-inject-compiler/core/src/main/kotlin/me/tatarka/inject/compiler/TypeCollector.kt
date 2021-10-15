@@ -14,7 +14,7 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
             provider: AstProvider,
             options: Options,
             astClass: AstClass,
-            accessor: String? = null,
+            accessor: String = "",
         ): TypeCollector = TypeCollector(provider, options).apply {
             val typeInfo = collectTypeInfo(astClass)
             collectTypes(astClass, accessor, typeInfo)
@@ -23,11 +23,12 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
         }
     }
 
-    // Map of types to inject and how to obtain them
+    // Map of types to inject and how to obtain them.
     private val types = mutableMapOf<TypeKey, TypeCreator>()
 
-    // Map of types that can be provided from abstract methods
-    private val _providerMethods = mutableMapOf<TypeKey, TypeCreator.Method>()
+    // Map of types obtained from generated provider methods. This can be used for lookup when the underlying method
+    // is not available (ex: because we only see an interface, or it's marked protected).
+    private val providerTypes = mutableMapOf<TypeKey, TypeCreator>()
 
     // Map of scoped components and the accessors to obtain them
     private val scopedAccessors = mutableMapOf<AstType, ScopedComponent>()
@@ -38,14 +39,22 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
     var providerMethods: List<AstMethod> = emptyList()
         private set
 
-    @Suppress("ComplexMethod")
+    @Suppress("ComplexMethod", "NestedBlockDepth")
     private fun collectTypes(
         astClass: AstClass,
-        accessor: String? = null,
+        accessor: String = "",
         typeInfo: TypeInfo,
     ) {
         if (typeInfo.elementScope != null) {
             scopedAccessors[typeInfo.elementScope] = ScopedComponent(astClass, accessor)
+        }
+
+        if (accessor.isNotEmpty()) {
+            for (method in typeInfo.providerMethods) {
+                val returnType = method.returnTypeFor(astClass)
+                val key = TypeKey(returnType, method.qualifier(options))
+                addProviderMethod(key, method, accessor)
+            }
         }
 
         for (method in typeInfo.providesMethods) {
@@ -73,19 +82,15 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
             } else {
                 val returnType = method.returnTypeFor(astClass)
                 val key = TypeKey(returnType, method.qualifier(options))
+                if (accessor.isNotEmpty()) {
+                    // May have already added from a resolvable provider
+                    if (providerTypes.containsKey(key)) continue
+                    // We out outside the current class, so complain if not accessible
+                    if (method.visibility == KModifier.PROTECTED) {
+                        error("@Provides method is not accessible", method)
+                    }
+                }
                 addMethod(key, method, accessor, scopedComponent)
-            }
-        }
-
-        for (method in typeInfo.providerMethods) {
-            val returnType = method.returnTypeFor(astClass)
-            val key = TypeKey(returnType, method.qualifier(options))
-            if (typeInfo.isComponent) {
-                addProviderMethod(key, method, accessor)
-            } else {
-                // If we aren't a component ourselves, allow obtaining types from providers as these may be contributed
-                // from the eventual implementation
-                addMethod(key, method, accessor, scopedComponent = null)
             }
         }
 
@@ -97,7 +102,7 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
                     val elemTypeInfo = collectTypeInfo(elemAstClass)
                     collectTypes(
                         astClass = elemAstClass,
-                        accessor = if (accessor != null) "$accessor.${parameter.name}" else parameter.name,
+                        accessor = if (accessor.isNotEmpty()) "$accessor.${parameter.name}" else parameter.name,
                         typeInfo = elemTypeInfo
                     )
                 }
@@ -189,7 +194,7 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
         key: TypeKey,
         creator: ContainerCreator,
         method: AstMethod,
-        accessor: String?,
+        accessor: String,
         scopedComponent: AstClass?
     ) {
         val current = types[key]
@@ -206,7 +211,7 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
         }
     }
 
-    private fun addMethod(key: TypeKey, method: AstMethod, accessor: String?, scopedComponent: AstClass?) {
+    private fun addMethod(key: TypeKey, method: AstMethod, accessor: String, scopedComponent: AstClass?) {
         val oldValue = types[key]
         if (oldValue == null) {
             types[key] = method(method, accessor, scopedComponent)
@@ -215,13 +220,14 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
         }
     }
 
-    private fun addProviderMethod(key: TypeKey, method: AstMethod, accessor: String?) {
-        if (!_providerMethods.containsKey(key)) {
-            _providerMethods[key] = method(method, accessor, scopedComponent = null)
+    private fun addProviderMethod(key: TypeKey, method: AstMethod, accessor: String) {
+        // Skip adding if already provided by child component.
+        if (!providerTypes.containsKey(key)) {
+            providerTypes[key] = method(method, accessor, scopedComponent = null)
         }
     }
 
-    private fun method(method: AstMethod, accessor: String?, scopedComponent: AstClass?) = TypeCreator.Method(
+    private fun method(method: AstMethod, accessor: String, scopedComponent: AstClass?) = TypeCreator.Method(
         method = method,
         accessor = accessor,
         scopedComponent = scopedComponent
@@ -233,6 +239,10 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
     }
 
     fun resolve(key: TypeKey): TypeCreator? {
+        val providerResult = providerTypes[key]
+        if (providerResult != null) {
+            return providerResult
+        }
         val result = types[key]
         if (result != null) {
             return result
@@ -248,7 +258,7 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
             }
             return TypeCreator.Constructor(
                 injectCtor,
-                accessor = scopedComponent?.accessor,
+                accessor = scopedComponent?.accessor.orEmpty(),
                 scopedComponent = scopedComponent?.type
             )
         }
@@ -273,13 +283,13 @@ sealed class TypeCreator(val source: AstElement) {
 
     class Constructor(
         val constructor: AstConstructor,
-        val accessor: String? = null,
+        val accessor: String = "",
         val scopedComponent: AstClass? = null
     ) : TypeCreator(constructor)
 
     class Method(
         val method: AstMethod,
-        val accessor: String? = null,
+        val accessor: String = "",
         val scopedComponent: AstClass? = null
     ) : TypeCreator(method)
 
