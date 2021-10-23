@@ -13,30 +13,15 @@ import com.squareup.kotlinpoet.tags.TypeAliasTag
 
 data class TypeResultGenerator(val options: Options, val changedScope: Boolean = false) {
 
-    fun TypeResultRef.generate() = result.generate()
-
-    fun TypeResult.generate(): CodeBlock {
-        return when (this) {
-            is TypeResult.Provider -> generate()
-            is TypeResult.Provides -> generate()
-            is TypeResult.Scoped -> generate()
-            is TypeResult.Constructor -> generate()
-            is TypeResult.Container -> generate()
-            is TypeResult.Function -> generate()
-            is TypeResult.NamedFunction -> generate()
-            is TypeResult.Object -> generate()
-            is TypeResult.Arg -> generate()
-            is TypeResult.Lazy -> generate()
-            is TypeResult.LateInit -> generate()
-            is TypeResult.LocalVar -> generate()
-        }
-    }
-
     fun TypeResult.Provider.generateInto(typeSpec: TypeSpec.Builder) {
         val codeBlock = CodeBlock.builder().apply {
+            val accessTypes = mutableMapOf<String, TypeName>()
+            collectCheckAccessTypes(accessTypes)
+            for ((accessor, type) in accessTypes) {
+                addStatement("require(%L is %T)", accessor, type)
+            }
             add("return ")
             add(result.generate())
-            add("\n»")
         }.build()
 
         if (isProperty) {
@@ -58,6 +43,35 @@ data class TypeResultGenerator(val options: Options, val changedScope: Boolean =
                     }
                     .addCode(codeBlock).build()
             )
+        }
+    }
+
+    private fun TypeResult.collectCheckAccessTypes(result: MutableMap<String, TypeName>) {
+        if (this is TypeResult.Scoped && accessor.isNotEmpty()) {
+            result[this.accessor] = SCOPED_COMPONENT
+        }
+        val children = children
+        while (children.hasNext()) {
+            children.next().result.collectCheckAccessTypes(result)
+        }
+    }
+
+    private fun TypeResultRef.generate() = result.generate()
+
+    private fun TypeResult.generate(): CodeBlock {
+        return when (this) {
+            is TypeResult.Provider -> generate()
+            is TypeResult.Provides -> generate()
+            is TypeResult.Scoped -> generate()
+            is TypeResult.Constructor -> generate()
+            is TypeResult.Container -> generate()
+            is TypeResult.Function -> generate()
+            is TypeResult.NamedFunction -> generate()
+            is TypeResult.Object -> generate()
+            is TypeResult.Arg -> generate()
+            is TypeResult.Lazy -> generate()
+            is TypeResult.LateInit -> generate()
+            is TypeResult.LocalVar -> generate()
         }
     }
 
@@ -134,11 +148,7 @@ data class TypeResultGenerator(val options: Options, val changedScope: Boolean =
     private fun TypeResult.Scoped.generate(): CodeBlock {
         return CodeBlock.builder().apply {
             if (accessor.isNotEmpty()) {
-                add(
-                    "(%L as %T).",
-                    accessor,
-                    SCOPED_COMPONENT
-                )
+                add("%L.", accessor)
             }
             add("_scoped.get(")
             if (key.qualifier != null) {
