@@ -11,7 +11,7 @@ import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.tags.TypeAliasTag
 
-data class TypeResultGenerator(val options: Options, val changedScope: Boolean = false) {
+data class TypeResultGenerator(val options: Options, val implicitAccessor: String = "") {
 
     fun TypeResult.Provider.generateInto(typeSpec: TypeSpec.Builder) {
         val codeBlock = CodeBlock.builder().apply {
@@ -81,22 +81,22 @@ data class TypeResultGenerator(val options: Options, val changedScope: Boolean =
         }.build()
     }
 
-    @Suppress("LongMethod", "NestedBlockDepth")
+    @Suppress("LongMethod", "NestedBlockDepth", "ComplexMethod")
     private fun TypeResult.Provides.generate(): CodeBlock {
         return CodeBlock.builder().apply {
 
-            val changeScope = accessor.isNotEmpty() && receiver != null
+            val changeScope = accessor.isNotEmpty() && receiver != null && accessor != implicitAccessor
 
             if (accessor.isNotEmpty()) {
                 if (changeScope) {
                     add("with(")
-                    if (changedScope) {
+                    if (implicitAccessor.isNotEmpty()) {
                         add("this@%L.", className)
                     }
                     add("%L)", accessor)
                     beginControlFlow("")
-                } else {
-                    if (changedScope) {
+                } else if (accessor != implicitAccessor) {
+                    if (implicitAccessor.isNotEmpty()) {
                         add("this@%L.", className)
                     }
                     add("%L.", accessor)
@@ -104,7 +104,7 @@ data class TypeResultGenerator(val options: Options, val changedScope: Boolean =
             }
 
             if (receiver != null) {
-                with(copy(changedScope = changeScope)) {
+                with(if (changeScope) copy(implicitAccessor = accessor) else this@TypeResultGenerator) {
                     add(receiver.generate())
                 }
                 add(".")
@@ -118,7 +118,7 @@ data class TypeResultGenerator(val options: Options, val changedScope: Boolean =
                     if (i != 0) {
                         add(",")
                     }
-                    with(copy(changedScope = changeScope)) {
+                    with(if (changeScope) copy(implicitAccessor = accessor) else this@TypeResultGenerator) {
                         add(param.generate())
                     }
                 }
@@ -147,7 +147,7 @@ data class TypeResultGenerator(val options: Options, val changedScope: Boolean =
 
     private fun TypeResult.Scoped.generate(): CodeBlock {
         return CodeBlock.builder().apply {
-            if (accessor.isNotEmpty()) {
+            if (accessor.isNotEmpty() && accessor != implicitAccessor) {
                 add("%L.", accessor)
             }
             add("_scoped.get(")
