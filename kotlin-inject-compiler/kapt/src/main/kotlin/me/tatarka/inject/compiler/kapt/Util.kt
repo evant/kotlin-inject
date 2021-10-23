@@ -7,6 +7,7 @@ import com.squareup.kotlinpoet.LambdaTypeName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.asTypeName
+import com.squareup.kotlinpoet.tags.TypeAliasTag
 import kotlinx.metadata.Flag
 import kotlinx.metadata.KmClass
 import kotlinx.metadata.KmClassifier
@@ -211,7 +212,12 @@ fun KmType.asTypeName(): TypeName? {
     val abbreviatedType = abbreviatedType
     if (abbreviatedType != null) {
         return abbreviatedType.asTypeName()
+            ?.copy(tags = mapOf(TypeAliasTag::class to TypeAliasTag(asActualTypeName()!!)))
     }
+    return asActualTypeName()
+}
+
+private fun KmType.asActualTypeName(): TypeName? {
     val isNullable = Flag.Type.IS_NULLABLE(flags)
     return if (isFunction()) {
         if (isSuspendFunction()) {

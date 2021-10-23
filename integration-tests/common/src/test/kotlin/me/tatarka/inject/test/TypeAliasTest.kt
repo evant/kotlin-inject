@@ -39,7 +39,7 @@ typealias NamedFoo2 = NamedFoo
 @Target(AnnotationTarget.TYPE)
 annotation class FooAnnotation
 
-class GenericFoo<T>(val value: T)
+data class GenericFoo<T>(val value: T)
 
 typealias AnnotatedAliasedFoo<T> = @FooAnnotation GenericFoo<T>
 

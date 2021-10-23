@@ -1,5 +1,7 @@
 package me.tatarka.inject.internal
 
+import kotlin.reflect.KClass
+
 private val NULL = Any()
 
 actual class LazyMap {

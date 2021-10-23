@@ -1,14 +1,13 @@
-package me.tatarka.inject.internal
+package me.tatarka.inject.benchmark
 
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.reflect.KClass
 
 private val NULL = Any()
 
-actual class LazyMap {
+class LazyMapString {
     private val map = ConcurrentHashMap<String, Any>()
 
-    actual fun <T> get(key: String, init: () -> T): T {
+    fun <T> get(key: String, init: () -> T): T {
         val result = map[key]
         if (result == null) {
             synchronized(map) {

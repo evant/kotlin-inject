@@ -149,7 +149,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         accessor: String,
         key: TypeKey,
     ) = TypeResult.Scoped(
-        key = key.toString(),
+        key = key,
         accessor = accessor,
         result = resolve(context.withoutScoped(key.type), key)
     )
