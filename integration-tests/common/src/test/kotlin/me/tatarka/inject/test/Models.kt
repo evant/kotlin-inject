@@ -48,7 +48,7 @@ var fooConstructorCount = 0
 
 class InternalBarConstructor @Inject internal constructor(internal val foo: InternalFoo)
 
-class NamedFoo(val name: String)
+data class NamedFoo(val name: String)
 
 interface INamedBar {
     val name: String

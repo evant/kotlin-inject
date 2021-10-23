@@ -9,6 +9,7 @@ plugins {
 }
 
 dependencies {
+    implementation(kotlin("stdlib"))
     kapt(project(":kotlin-inject-compiler:kapt"))
     implementation(project(":kotlin-inject-runtime"))
     implementation(project(":integration-tests:module"))
@@ -21,6 +22,8 @@ dependencies {
     testImplementation(libs.javax.inject)
 
     testImplementation(libs.assertk)
+
+    jmhImplementation(kotlin("stdlib"))
 }
 
 sourceSets {
@@ -34,7 +37,13 @@ sourceSets {
 kapt {
     arguments {
         arg("me.tatarka.inject.enableJavaxAnnotations", "true")
+        arg("me.tatarka.inject.useClassReferenceForScopeAccess", "true")
     }
+}
+
+jmh {
+    // https://github.com/melix/jmh-gradle-plugin/issues/159
+    duplicateClassesStrategy.set(DuplicatesStrategy.EXCLUDE)
 }
 
 val SourceSet.kotlin: SourceDirectorySet

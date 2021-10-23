@@ -3,9 +3,9 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 plugins {
     id("kotlin-inject.detekt")
     id("kotlin-inject.merge-tests")
+    `java-library`
     kotlin("jvm")
     kotlin("kapt")
-    alias(libs.plugins.jmh)
 }
 
 dependencies {
@@ -37,11 +37,6 @@ kapt {
     arguments {
         arg("me.tatarka.inject.generateCompanionExtensions", "true")
     }
-}
-
-jmh {
-    // https://github.com/melix/jmh-gradle-plugin/issues/159
-    duplicateClassesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 val SourceSet.kotlin: SourceDirectorySet

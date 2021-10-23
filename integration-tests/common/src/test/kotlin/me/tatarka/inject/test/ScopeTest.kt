@@ -73,6 +73,28 @@ class ScopedBar
     abstract val bar2: UseBar2
 }
 
+@CustomScope @Component abstract class TypeAccessComponent {
+    abstract val string: String
+    abstract val `class` : IFoo
+    abstract val parameterized: GenericFoo<String>
+    abstract val typeAlias1: NamedFoo1
+    abstract val typeAlias2: NamedFoo2
+    abstract val lambda: (String) -> String
+    abstract val suspendLambda: suspend (String) -> String
+    abstract val receiverLambda: Int.() -> String
+    abstract val suspendReceiverLambda: suspend Int.() -> String
+
+    @Provides @CustomScope fun provideString(): String = "string"
+    @Provides @CustomScope fun provideClass(): IFoo = Foo()
+    @Provides @CustomScope fun provideParameterized(): GenericFoo<String> = GenericFoo("generic")
+    @Provides @CustomScope fun provideTypeAlias1(): NamedFoo1 = NamedFoo("one")
+    @Provides @CustomScope fun provideTypeAlias2(): NamedFoo2 = NamedFoo("two")
+    @Provides @CustomScope fun provideLambda(): (String) -> String = { "$it lambda" }
+    @Provides @CustomScope fun provideSuspendLambda(): suspend (String) -> String = { "$it suspend lambda" }
+    @Provides @CustomScope fun provideReceiverLambda(): Int.() -> String = { "$this receiver lambda" }
+    @Provides @CustomScope fun provideSuspendReceiverLambda(): suspend Int.() -> String = { "$this suspend receiver lambda" }
+}
+
 class ScopeTest {
     @BeforeTest
     fun setup() {
@@ -150,5 +172,19 @@ class ScopeTest {
         val component = MultipleUseScopedComponent::class.create()
 
         assertThat(component.bar1.bar).isSameAs(component.bar2.bar)
+    }
+
+    @Test fun generates_a_component_with_unique_keys_for_scoped_access() = runTest {
+        val component = TypeAccessComponent::class.create()
+
+        assertThat(component.string).isEqualTo("string")
+        assertThat(component.`class`).isEqualTo(Foo())
+        assertThat(component.parameterized).isEqualTo(GenericFoo("generic"))
+        assertThat(component.typeAlias1).isEqualTo(NamedFoo("one"))
+        assertThat(component.typeAlias2).isEqualTo(NamedFoo("two"))
+        assertThat(component.lambda("test")).isEqualTo("test lambda")
+        assertThat(component.suspendLambda("test")).isEqualTo("test suspend lambda")
+        assertThat(component.receiverLambda(1)).isEqualTo("1 receiver lambda")
+        assertThat(component.suspendReceiverLambda(1)).isEqualTo("1 suspend receiver lambda")
     }
 }

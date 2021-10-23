@@ -52,7 +52,7 @@ sealed class TypeResult {
      * The type is scoped to key.
      */
     class Scoped(
-        val key: String,
+        val key: TypeKey,
         val accessor: String,
         val result: TypeResultRef,
     ) : TypeResult() {

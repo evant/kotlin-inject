@@ -1,16 +1,17 @@
 package me.tatarka.inject.benchmark
 
-import me.tatarka.inject.internal.LazyMap
-import me.tatarka.inject.internal.ScopedComponent
 import org.openjdk.jmh.annotations.Benchmark
 import org.openjdk.jmh.annotations.Scope
 
 // @Inject @MyScope
-class Foo
+class Foo {
+    class Bar
+}
 
 // @MyScope @Component
 abstract class ScopedAccessComponent {
     abstract val foo: Foo
+    abstract val bar: Foo.Bar
 }
 
 class InjectLazyScopedAccessComponent : ScopedAccessComponent() {
@@ -18,22 +19,48 @@ class InjectLazyScopedAccessComponent : ScopedAccessComponent() {
         Foo()
     }
 
+    private val _bar by lazy {
+        Foo.Bar()
+    }
+
     override val foo: Foo
         get() = _foo
+
+    override val bar: Foo.Bar
+        get() = _bar
+}
+interface ScopedComponentString {
+    val _scoped: LazyMapString
 }
 
-class InjectDynamicScopedAccessComponent : ScopedAccessComponent(), ScopedComponent {
-    override val _scoped = LazyMap()
-
-    override val foo: Foo = _scoped.get("Foo") { Foo() }
+interface ScopedComponentClass  {
+    val _scoped: LazyMapClass
 }
+
+class InjectDynamicScopedStringAccessComponent : ScopedAccessComponent(), ScopedComponentString {
+    override val _scoped = LazyMapString()
+
+    override val foo: Foo get() = _scoped.get("me/tatarka/inject/benchmark/Foo") { Foo() }
+
+    override val bar: Foo.Bar get() = _scoped.get("me/tatarka/inject/benchmark/Foo\$Bar") { Foo.Bar() }
+}
+
+class InjectDynamicScopedClassAccessComponent : ScopedAccessComponent(), ScopedComponentClass {
+    override val _scoped = LazyMapClass()
+
+    override val foo: Foo get() = _scoped.get(Foo::class) { Foo() }
+
+    override val bar: Foo.Bar get() = _scoped.get(Foo.Bar::class) { Foo.Bar() }
+}
+
 
 open class ScopedAccessBenchmark {
 
     @org.openjdk.jmh.annotations.State(Scope.Benchmark)
     open class State {
         val lazyComponent = InjectLazyScopedAccessComponent()
-        val dynamicComponent = InjectDynamicScopedAccessComponent()
+        val dynamicStringComponent = InjectDynamicScopedStringAccessComponent()
+        val dynamicClassComponent = InjectDynamicScopedClassAccessComponent()
     }
 
     @Benchmark
@@ -42,7 +69,13 @@ open class ScopedAccessBenchmark {
     }
 
     @Benchmark
-    fun dynamic_scoped_access_compoennt(state: State): Foo {
-        return state.dynamicComponent.foo
+    fun dynamic_scoped_string_access_compoennt(state: State): Foo {
+        return state.dynamicStringComponent.foo
     }
+
+    @Benchmark
+    fun dynamic_scoped_class_access_compoennt(state: State) : Foo {
+        return state.dynamicClassComponent.foo
+    }
+
 }

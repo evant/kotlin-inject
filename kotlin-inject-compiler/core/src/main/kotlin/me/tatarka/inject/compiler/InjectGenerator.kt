@@ -130,8 +130,10 @@ class InjectGenerator<Provider>(
                             }
                         }.optimize(context)
 
-                        for (result in results) {
-                            result.generateInto(this)
+                        with(TypeResultGenerator(options)) {
+                            for (result in results) {
+                                result.generateInto(this@apply)
+                            }
                         }
                     } catch (e: FailedToGenerateException) {
                         error(e.message.orEmpty(), e.element)
