@@ -4,6 +4,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotNull
 import me.tatarka.inject.annotations.Component
+import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Provides
 import kotlin.test.Test
 
