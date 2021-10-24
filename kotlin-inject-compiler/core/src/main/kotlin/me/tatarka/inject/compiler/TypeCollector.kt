@@ -14,7 +14,7 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
             provider: AstProvider,
             options: Options,
             astClass: AstClass,
-            accessor: String = "",
+            accessor: Accessor = Accessor.Empty,
         ): TypeCollector = TypeCollector(provider, options).apply {
             val typeInfo = collectTypeInfo(astClass)
             collectTypes(astClass, accessor, typeInfo)
@@ -42,7 +42,7 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
     @Suppress("ComplexMethod", "NestedBlockDepth")
     private fun collectTypes(
         astClass: AstClass,
-        accessor: String = "",
+        accessor: Accessor,
         typeInfo: TypeInfo,
     ) {
         if (typeInfo.elementScope != null) {
@@ -102,7 +102,7 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
                     val elemTypeInfo = collectTypeInfo(elemAstClass)
                     collectTypes(
                         astClass = elemAstClass,
-                        accessor = if (accessor.isNotEmpty()) "$accessor.${parameter.name}" else parameter.name,
+                        accessor = accessor + parameter.name,
                         typeInfo = elemTypeInfo
                     )
                 }
@@ -194,7 +194,7 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
         key: TypeKey,
         creator: ContainerCreator,
         method: AstMethod,
-        accessor: String,
+        accessor: Accessor,
         scopedComponent: AstClass?
     ) {
         val current = types[key]
@@ -211,7 +211,7 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
         }
     }
 
-    private fun addMethod(key: TypeKey, method: AstMethod, accessor: String, scopedComponent: AstClass?) {
+    private fun addMethod(key: TypeKey, method: AstMethod, accessor: Accessor, scopedComponent: AstClass?) {
         val oldValue = types[key]
         if (oldValue == null) {
             types[key] = method(method, accessor, scopedComponent)
@@ -220,14 +220,14 @@ class TypeCollector private constructor(private val provider: AstProvider, priva
         }
     }
 
-    private fun addProviderMethod(key: TypeKey, method: AstMethod, accessor: String) {
+    private fun addProviderMethod(key: TypeKey, method: AstMethod, accessor: Accessor) {
         // Skip adding if already provided by child component.
         if (!providerTypes.containsKey(key)) {
             providerTypes[key] = method(method, accessor, scopedComponent = null)
         }
     }
 
-    private fun method(method: AstMethod, accessor: String, scopedComponent: AstClass?) = TypeCreator.Method(
+    private fun method(method: AstMethod, accessor: Accessor, scopedComponent: AstClass?) = TypeCreator.Method(
         method = method,
         accessor = accessor,
         scopedComponent = scopedComponent
@@ -283,13 +283,13 @@ sealed class TypeCreator(val source: AstElement) {
 
     class Constructor(
         val constructor: AstConstructor,
-        val accessor: String = "",
+        val accessor: Accessor = Accessor.Empty,
         val scopedComponent: AstClass? = null
     ) : TypeCreator(constructor)
 
     class Method(
         val method: AstMethod,
-        val accessor: String = "",
+        val accessor: Accessor = Accessor.Empty,
         val scopedComponent: AstClass? = null
     ) : TypeCreator(method)
 
@@ -307,5 +307,5 @@ enum class ContainerCreator {
 
 data class ScopedComponent(
     val type: AstClass,
-    val accessor: String?
+    val accessor: Accessor
 )
