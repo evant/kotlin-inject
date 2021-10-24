@@ -11,16 +11,16 @@ import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.tags.TypeAliasTag
 
-data class TypeResultGenerator(val options: Options, val implicitAccessor: String = "") {
+data class TypeResultGenerator(val options: Options, val implicitAccessor: Accessor = Accessor.Empty) {
 
     fun TypeResult.Provider.generateInto(typeSpec: TypeSpec.Builder) {
         val codeBlock = CodeBlock.builder().apply {
-            val accessTypes = mutableMapOf<String, TypeName>()
+            val accessTypes = mutableMapOf<Accessor, TypeName>()
             collectCheckAccessTypes(accessTypes)
             for ((accessor, type) in accessTypes) {
                 addStatement("require(%L is %T)", accessor, type)
             }
-            add("return ")
+            add("return·")
             add(result.generate())
         }.build()
 
@@ -46,7 +46,7 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Strin
         }
     }
 
-    private fun TypeResult.collectCheckAccessTypes(result: MutableMap<String, TypeName>) {
+    private fun TypeResult.collectCheckAccessTypes(result: MutableMap<Accessor, TypeName>) {
         if (this is TypeResult.Scoped && accessor.isNotEmpty()) {
             result[this.accessor] = SCOPED_COMPONENT
         }
@@ -85,21 +85,22 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Strin
     private fun TypeResult.Provides.generate(): CodeBlock {
         return CodeBlock.builder().apply {
 
-            val changeScope = accessor.isNotEmpty() && receiver != null && accessor != implicitAccessor
+            val accessorInScope = implicitAccessor.resolve(accessor)
+            val changeScope = receiver != null && accessorInScope.isNotEmpty()
 
-            if (accessor.isNotEmpty()) {
+            if (accessorInScope.isNotEmpty()) {
                 if (changeScope) {
                     add("with(")
-                    if (implicitAccessor.isNotEmpty()) {
+                    if (implicitAccessor.isNotEmpty() && accessor == accessorInScope) {
                         add("this@%L.", className)
                     }
-                    add("%L)", accessor)
+                    add("%L)", accessorInScope)
                     beginControlFlow("")
-                } else if (accessor != implicitAccessor) {
-                    if (implicitAccessor.isNotEmpty()) {
+                } else {
+                    if (implicitAccessor.isNotEmpty() && accessor == accessorInScope) {
                         add("this@%L.", className)
                     }
-                    add("%L.", accessor)
+                    add("%L.", accessorInScope)
                 }
             }
 
@@ -147,8 +148,9 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Strin
 
     private fun TypeResult.Scoped.generate(): CodeBlock {
         return CodeBlock.builder().apply {
-            if (accessor.isNotEmpty() && accessor != implicitAccessor) {
-                add("%L.", accessor)
+            val accessorInScope = implicitAccessor.resolve(accessor)
+            if (accessorInScope.isNotEmpty()) {
+                add("%L.", accessorInScope)
             }
             add("_scoped.get(")
             if (key.qualifier != null) {
