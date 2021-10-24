@@ -47,7 +47,8 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
     }
 
     private fun TypeResult.collectCheckAccessTypes(result: MutableMap<Accessor, TypeName>) {
-        if (this is TypeResult.Scoped && accessor.isNotEmpty()) {
+        // Only for accessors of size one, as additional indirections may cause smart casting not to work.
+        if (this is TypeResult.Scoped && accessor.size == 1) {
             result[this.accessor] = SCOPED_COMPONENT
         }
         val children = children
@@ -150,7 +151,11 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
         return CodeBlock.builder().apply {
             val accessorInScope = implicitAccessor.resolve(accessor)
             if (accessorInScope.isNotEmpty()) {
-                add("%L.", accessorInScope)
+                if (accessor.size > 1) {
+                    add("(%L as %T).", accessorInScope, SCOPED_COMPONENT)
+                } else {
+                    add("%L.", accessorInScope)
+                }
             }
             add("_scoped.get(")
             if (key.qualifier != null) {
