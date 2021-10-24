@@ -11,6 +11,9 @@ data class Accessor(val components: List<String>) {
 
     inline fun isNotEmpty() = components.isNotEmpty()
 
+    inline val size: Int
+        get() = components.size
+
     operator fun plus(part: String): Accessor {
         return Accessor(components + part)
     }
@@ -28,25 +31,25 @@ data class Accessor(val components: List<String>) {
      * ```
      */
     fun resolve(accessor: Accessor): Accessor {
-        if (accessor.components.size < components.size) {
+        if (accessor.size < size) {
             return accessor
         }
         for (i in components.indices) {
-            if (i >= accessor.components.size) {
+            if (i >= accessor.size) {
                 return accessor
             }
             if (components[i] != accessor.components[i]) {
                 return accessor.sublist(i)
             }
         }
-        return accessor.sublist(components.size)
+        return accessor.sublist(size)
     }
 
     private fun sublist(startIndex: Int): Accessor {
         return if (startIndex == 0) {
             this
         } else {
-            Accessor(components.subList(startIndex, components.size))
+            Accessor(components.subList(startIndex, size))
         }
     }
 }
