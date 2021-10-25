@@ -1,6 +1,7 @@
 import org.jetbrains.kotlin.gradle.dsl.KotlinJsCompile
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTargetWithTests
 import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
+import org.jetbrains.kotlin.gradle.targets.js.npm.tasks.KotlinNpmInstallTask
 
 plugins {
     kotlin("multiplatform")
@@ -73,4 +74,10 @@ tasks.withType<KotlinJsTest>().configureEach {
 fun Task.disableAndWarn() {
     enabled = false
     logger.warn("disabling: $name as ksp does not support js ir https://github.com/JetBrains/kotlin/pull/4264")
+}
+
+// Don't run npm install scripts, protects against
+// https://blog.jetbrains.com/kotlin/2021/10/important-ua-parser-js-exploit-and-kotlin-js/ etc.
+tasks.withType<KotlinNpmInstallTask> {
+    args += "--ignore-scripts"
 }
