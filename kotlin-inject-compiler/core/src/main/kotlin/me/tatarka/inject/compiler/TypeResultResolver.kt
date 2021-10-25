@@ -13,7 +13,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
      * Resolves all [TypeResult] for provider methods in the given class.
      */
     fun resolveAll(context: Context, astClass: AstClass): List<TypeResult.Provider> {
-        return context.collector.providerMethods.map { method ->
+        return context.types.providerMethods.map { method ->
             Provider(context, astClass, method)
         }
     }
@@ -46,7 +46,10 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
      * Find the given type.
      */
     private fun Context.findType(key: TypeKey): TypeResult {
-        val typeCreator = collector.resolve(key)
+        if (key.type.isError) {
+            throw FailedToGenerateException(trace("Unresolved reference: $key"))
+        }
+        val typeCreator = types.resolve(key)
         if (typeCreator != null) {
             return typeCreator.toResult(this, key, skipScoped)
         }

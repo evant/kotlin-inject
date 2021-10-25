@@ -6,7 +6,7 @@ package me.tatarka.inject.compiler
 data class Context(
     val provider: AstProvider,
     val className: String,
-    val collector: TypeCollector,
+    val types: TypeCollector.Result,
     val scopeInterface: AstClass? = null,
     val args: List<Pair<AstType, String>> = emptyList(),
     val skipScoped: AstType? = null,

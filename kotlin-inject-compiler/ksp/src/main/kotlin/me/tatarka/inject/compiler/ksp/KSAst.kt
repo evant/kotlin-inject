@@ -24,6 +24,7 @@ import com.google.devtools.ksp.symbol.KSValueParameter
 import com.google.devtools.ksp.symbol.Modifier
 import com.google.devtools.ksp.symbol.Nullability
 import com.google.devtools.ksp.symbol.Variance
+import com.google.devtools.ksp.symbol.Visibility
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.MemberName
@@ -49,6 +50,7 @@ import me.tatarka.inject.compiler.AstProvider
 import me.tatarka.inject.compiler.AstType
 import me.tatarka.inject.compiler.Messenger
 import me.tatarka.inject.compiler.OutputProvider
+import me.tatarka.inject.compiler.PROVIDES
 import kotlin.reflect.KClass
 
 interface KSAstProvider : AstProvider, OutputProvider {
@@ -85,6 +87,22 @@ interface KSAstProvider : AstProvider, OutputProvider {
                 }
             )
         )
+    }
+
+    override fun validate(element: AstClass): Boolean {
+        require(element is KSAstClass)
+        return element.declaration.accept(FixedKSValidateVisitor { node, _ ->
+            when (node) {
+                is KSFunctionDeclaration ->
+                    node.getVisibility() != Visibility.PRIVATE &&
+                            (node.isAbstract || node.hasAnnotation(PROVIDES.packageName, PROVIDES.simpleName))
+                is KSPropertyDeclaration ->
+                    node.getVisibility() != Visibility.PRIVATE &&
+                            (node.isAbstract() ||
+                                    node.getter?.hasAnnotation(PROVIDES.packageName, PROVIDES.simpleName) ?: true)
+                else -> true
+            }
+        }, null)
     }
 
     override fun AstElement.toTrace(): String {
@@ -372,6 +390,9 @@ private class KSAstType private constructor(
             KSAstType(resolver, it.type!!)
         }
 
+    override val isError: Boolean
+        get() = type.isError
+
     override fun isUnit(): Boolean {
         return type == resolver.builtIns.unitType
     }
@@ -424,6 +445,10 @@ private class KSAstType private constructor(
 
     override fun hashCode(): Int {
         return type.eqvHashCode()
+    }
+
+    override fun toString(): String {
+        return typeRef.toString().shortenPackage()
     }
 }
 
