@@ -150,12 +150,14 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
     private fun TypeResult.Scoped.generate(): CodeBlock {
         return CodeBlock.builder().apply {
             val accessorInScope = implicitAccessor.resolve(accessor)
-            if (accessorInScope.isNotEmpty()) {
-                if (accessor.size > 1) {
+            if (accessor.size > 1) {
+                if (accessorInScope.isNotEmpty()) {
                     add("(%L as %T).", accessorInScope, SCOPED_COMPONENT)
                 } else {
-                    add("%L.", accessorInScope)
+                    add("(this as %T).", SCOPED_COMPONENT)
                 }
+            } else if (accessorInScope.isNotEmpty()) {
+                add("%L.", accessorInScope)
             }
             add("_scoped.get(")
             if (key.qualifier != null) {

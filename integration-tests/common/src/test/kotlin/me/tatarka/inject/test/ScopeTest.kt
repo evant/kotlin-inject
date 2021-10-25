@@ -10,16 +10,23 @@ import me.tatarka.inject.annotations.Provides
 import me.tatarka.inject.test.different.DifferentPackageFoo
 import me.tatarka.inject.test.different.DifferentPackageScopedComponent
 import me.tatarka.inject.test.different.create
+import me.tatarka.inject.test.module.ExternalChildComponent
 import me.tatarka.inject.test.module.ExternalScope
+import me.tatarka.inject.test.module.IExternalFoo
 import me.tatarka.inject.test.module.ScopedExternalFoo
+import me.tatarka.inject.test.module.create
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 
-@CustomScope @Component abstract class CustomScopeConstructorComponent {
+@CustomScope
+@Component
+abstract class CustomScopeConstructorComponent {
     abstract val bar: CustomScopeBar
 }
 
-@CustomScope @Component abstract class CustomScopeProvidesComponent {
+@CustomScope
+@Component
+abstract class CustomScopeProvidesComponent {
 
     abstract val foo: IFoo
 
@@ -27,17 +34,22 @@ import kotlin.test.Test
         @Provides @CustomScope get() = this
 }
 
-@Component abstract class ParentScopedComponent(@Component val parent: CustomScopeConstructorComponent) {
+@Component
+abstract class ParentScopedComponent(@Component val parent: CustomScopeConstructorComponent) {
     abstract val bar: CustomScopeBar
 }
 
-@Component abstract class ParentParentScopedComponent(@Component val parent: ParentScopedComponent) {
+@Component
+abstract class ParentParentScopedComponent(@Component val parent: ParentScopedComponent) {
     abstract val bar: CustomScopeBar
 }
 
-@Component abstract class NonCustomScopeParentComponent
+@Component
+abstract class NonCustomScopeParentComponent
 
-@CustomScope @Component abstract class CustomScopeChildComponent(@Component val parent: NonCustomScopeParentComponent) {
+@CustomScope
+@Component
+abstract class CustomScopeChildComponent(@Component val parent: NonCustomScopeParentComponent) {
     abstract val bar: CustomScopeBar
 }
 
@@ -49,33 +61,44 @@ class ScopedFoo(val bar: ScopedBar)
 @Inject
 class ScopedBar
 
-@CustomScope @Component abstract class DependentCustomScopeComponent {
+@CustomScope
+@Component
+abstract class DependentCustomScopeComponent {
     abstract val foo: ScopedFoo
 
     abstract val bar: ScopedBar
 }
 
-@Component abstract class DifferentPackageChildComponent(@Component val parent: DifferentPackageScopedComponent) {
+@Component
+abstract class DifferentPackageChildComponent(@Component val parent: DifferentPackageScopedComponent) {
     abstract val foo: DifferentPackageFoo
 }
 
-@Component @ExternalScope abstract class ExternalScopedComponent {
+@Component
+@ExternalScope
+abstract class ExternalScopedComponent {
     abstract val foo: ScopedExternalFoo
 }
 
-@Inject class UseBar1(val bar: ScopedBar)
+@Inject
+class UseBar1(val bar: ScopedBar)
 
-@Inject class UseBar2(val bar: ScopedBar)
+@Inject
+class UseBar2(val bar: ScopedBar)
 
-@CustomScope @Component abstract class MultipleUseScopedComponent {
+@CustomScope
+@Component
+abstract class MultipleUseScopedComponent {
     abstract val bar1: UseBar1
 
     abstract val bar2: UseBar2
 }
 
-@CustomScope @Component abstract class TypeAccessComponent {
+@CustomScope
+@Component
+abstract class TypeAccessComponent {
     abstract val string: String
-    abstract val `class` : IFoo
+    abstract val `class`: IFoo
     abstract val parameterized: GenericFoo<String>
     abstract val typeAlias1: NamedFoo1
     abstract val typeAlias2: NamedFoo2
@@ -84,15 +107,46 @@ class ScopedBar
     abstract val receiverLambda: Int.() -> String
     abstract val suspendReceiverLambda: suspend Int.() -> String
 
-    @Provides @CustomScope fun provideString(): String = "string"
-    @Provides @CustomScope fun provideClass(): IFoo = Foo()
-    @Provides @CustomScope fun provideParameterized(): GenericFoo<String> = GenericFoo("generic")
-    @Provides @CustomScope fun provideTypeAlias1(): NamedFoo1 = NamedFoo("one")
-    @Provides @CustomScope fun provideTypeAlias2(): NamedFoo2 = NamedFoo("two")
-    @Provides @CustomScope fun provideLambda(): (String) -> String = { "$it lambda" }
-    @Provides @CustomScope fun provideSuspendLambda(): suspend (String) -> String = { "$it suspend lambda" }
-    @Provides @CustomScope fun provideReceiverLambda(): Int.() -> String = { "$this receiver lambda" }
-    @Provides @CustomScope fun provideSuspendReceiverLambda(): suspend Int.() -> String = { "$this suspend receiver lambda" }
+    @Provides
+    @CustomScope
+    fun provideString(): String = "string"
+
+    @Provides
+    @CustomScope
+    fun provideClass(): IFoo = Foo()
+
+    @Provides
+    @CustomScope
+    fun provideParameterized(): GenericFoo<String> = GenericFoo("generic")
+
+    @Provides
+    @CustomScope
+    fun provideTypeAlias1(): NamedFoo1 = NamedFoo("one")
+
+    @Provides
+    @CustomScope
+    fun provideTypeAlias2(): NamedFoo2 = NamedFoo("two")
+
+    @Provides
+    @CustomScope
+    fun provideLambda(): (String) -> String = { "$it lambda" }
+
+    @Provides
+    @CustomScope
+    fun provideSuspendLambda(): suspend (String) -> String = { "$it suspend lambda" }
+
+    @Provides
+    @CustomScope
+    fun provideReceiverLambda(): Int.() -> String = { "$this receiver lambda" }
+
+    @Provides
+    @CustomScope
+    fun provideSuspendReceiverLambda(): suspend Int.() -> String = { "$this suspend receiver lambda" }
+}
+
+@Component
+abstract class NestedExternalScopedComponent(@Component val parent: ExternalChildComponent) {
+    abstract val foo: IExternalFoo
 }
 
 class ScopeTest {
@@ -162,19 +216,22 @@ class ScopeTest {
         assertThat(component.bar).isSameAs(component.foo.bar)
     }
 
-    @Test fun generates_a_component_with_a_parent_scoped_component_in_a_different_package() {
+    @Test
+    fun generates_a_component_with_a_parent_scoped_component_in_a_different_package() {
         val component = DifferentPackageChildComponent::class.create(DifferentPackageScopedComponent::class.create())
 
         assertThat(component.foo).isSameAs(component.foo)
     }
 
-    @Test fun generates_a_component_that_reuses_the_same_scoped_dependency() {
+    @Test
+    fun generates_a_component_that_reuses_the_same_scoped_dependency() {
         val component = MultipleUseScopedComponent::class.create()
 
         assertThat(component.bar1.bar).isSameAs(component.bar2.bar)
     }
 
-    @Test fun generates_a_component_with_unique_keys_for_scoped_access() = runTest {
+    @Test
+    fun generates_a_component_with_unique_keys_for_scoped_access() = runTest {
         val component = TypeAccessComponent::class.create()
 
         assertThat(component.string).isEqualTo("string")
@@ -186,5 +243,12 @@ class ScopeTest {
         assertThat(component.suspendLambda("test")).isEqualTo("test suspend lambda")
         assertThat(component.receiverLambda(1)).isEqualTo("1 receiver lambda")
         assertThat(component.suspendReceiverLambda(1)).isEqualTo("1 suspend receiver lambda")
+    }
+
+    @Test
+    fun generates_a_component_with_nested_scoped_parent_in_another_module() {
+        val component = NestedExternalScopedComponent::class.create(ExternalChildComponent::class.create())
+
+        assertThat(component.foo).isSameAs(component.foo)
     }
 }

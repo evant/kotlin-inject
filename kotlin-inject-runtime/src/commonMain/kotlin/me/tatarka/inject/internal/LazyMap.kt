@@ -1,5 +1,5 @@
 package me.tatarka.inject.internal
 
-expect class LazyMap {
+expect class LazyMap() {
     fun <T> get(key: String, init: () -> T): T
 }
