@@ -31,6 +31,7 @@ class InjectGenerator<Provider>(
         where Provider : AstProvider, Provider : OutputProvider {
 
     private val createGenerator = CreateGenerator(provider, options)
+    private val typeCollector = TypeCollector(provider, options)
 
     var scopeType: AstType? = null
         private set
@@ -62,7 +63,7 @@ class InjectGenerator<Provider>(
     ): TypeSpec {
         val context = collectTypes(astClass, injectName)
         val resolver = TypeResultResolver(this, options)
-        val scope = context.collector.scopeClass
+        val scope = context.types.scopeClass
         scopeType = scope?.scopeType(options)
 
         return provider.buildTypeSpec(
@@ -148,17 +149,13 @@ class InjectGenerator<Provider>(
         astClass: AstClass,
         injectName: String,
     ): Context {
-        val typeCollector = TypeCollector(
-            provider = this,
-            options = options,
-            astClass = astClass,
-        )
-        val elementScopeClass = typeCollector.scopeClass
+        val types = typeCollector.collect(astClass)
+        val elementScopeClass = types.scopeClass
         val scopeFromParent = elementScopeClass != astClass
         return Context(
             provider = this,
             className = injectName,
-            collector = typeCollector,
+            types = types,
             scopeInterface = if (scopeFromParent) elementScopeClass else null,
         )
     }

@@ -48,6 +48,7 @@ import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.ExecutableType
 import javax.lang.model.type.NoType
 import javax.lang.model.type.PrimitiveType
+import javax.lang.model.type.TypeKind
 import javax.lang.model.type.TypeMirror
 import javax.lang.model.type.TypeVariable
 import javax.lang.model.util.ElementFilter
@@ -139,6 +140,11 @@ interface ModelAstProvider : AstProvider {
                 (it as ModelAstType).type
             }.toTypedArray()
         )
+
+    override fun validate(element: AstClass): Boolean {
+        // TODO: kapt validation?
+        return true
+    }
 
     override fun AstElement.toTrace(): String {
         return when (this) {
@@ -562,6 +568,9 @@ private class ModelAstType(
             }
         }
 
+    override val isError: Boolean
+        get() = type.kind == TypeKind.ERROR
+
     override fun isUnit(): Boolean = type is NoType
 
     override fun isPlatform(): Boolean = kmType?.isPlatformType() ?: false
@@ -614,6 +623,10 @@ private class ModelAstType(
 
     override fun hashCode(): Int {
         return kmType?.eqvHashCode() ?: type.eqvHashCode()
+    }
+
+    override fun toString(): String {
+        return type.asTypeName(kmType).toString().shortenPackage()
     }
 }
 

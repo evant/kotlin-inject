@@ -15,6 +15,8 @@ interface AstProvider {
 
     fun declaredTypeOf(klass: KClass<*>, vararg astTypes: AstType): AstType
 
+    fun validate(element: AstClass): Boolean
+
     fun warn(message: String, element: AstElement? = null) = messenger.warn(message, element)
 
     fun error(message: String, element: AstElement? = null) =
@@ -66,6 +68,13 @@ abstract class AstClass : AstElement(), AstAnnotated, AstHasModifiers {
     fun visitInheritanceChain(f: (AstClass) -> Unit) {
         f(this)
         superTypes.forEach { it.visitInheritanceChain(f) }
+    }
+
+    fun inheritanceChain(): Sequence<AstClass> = sequence {
+        yield(this@AstClass)
+        for (type in superTypes) {
+            yieldAll(type.inheritanceChain())
+        }
     }
 
     abstract fun asClassName(): ClassName
@@ -151,6 +160,8 @@ abstract class AstType : AstElement() {
 
     abstract val arguments: List<AstType>
 
+    abstract val isError: Boolean
+
     abstract fun isUnit(): Boolean
 
     abstract fun isPlatform(): Boolean
@@ -172,12 +183,11 @@ abstract class AstType : AstElement() {
 
     abstract fun isAssignableFrom(other: AstType): Boolean
 
-    final override fun toString(): String {
-        val packageName = packageName
+    protected fun String.shortenPackage(): String {
         return if (packageName in DEFAULT_IMPORTS) {
-            asTypeName().toString().removePrefix("$packageName.")
+            removePrefix("$packageName.")
         } else {
-            asTypeName().toString()
+            this
         }
     }
 }

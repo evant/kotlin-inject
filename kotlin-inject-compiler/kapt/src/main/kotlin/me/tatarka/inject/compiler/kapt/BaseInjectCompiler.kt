@@ -17,7 +17,7 @@ abstract class BaseInjectCompiler :
     protected lateinit var filer: Filer
     override lateinit var env: ProcessingEnvironment
 
-    override fun init(processingEnv: ProcessingEnvironment) {
+    open override fun init(processingEnv: ProcessingEnvironment) {
         super.init(processingEnv)
         this.options = Options.from(processingEnv.options)
         this.env = processingEnv

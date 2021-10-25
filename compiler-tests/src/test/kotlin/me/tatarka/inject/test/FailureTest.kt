@@ -47,7 +47,7 @@ class FailureTest(private val target: Target) {
                 """.trimIndent()
             ).compile()
         }.isFailure().output()
-            .contains("@Component class: MyComponent must be abstract", "MyComponent.${target.sourceExt()}")
+            .contains("@Component class: MyComponent must be abstract")
     }
 
     @Test
@@ -62,13 +62,13 @@ class FailureTest(private val target: Target) {
                 """.trimIndent()
             ).compile()
         }.isFailure().output()
-            .contains("@Component class: MyComponent must not be private", "MyComponent.${target.sourceExt()}")
+            .contains("@Component class: MyComponent must not be private")
     }
 
     @Test
     fun fails_if_provides_is_private() {
         assertThat {
-            projectCompiler.source(
+            val result = projectCompiler.source(
                 "MyComponent.kt",
                 """
                     import me.tatarka.inject.annotations.Component
@@ -79,7 +79,7 @@ class FailureTest(private val target: Target) {
                     }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().contains("@Provides method must not be private", "MyComponent.${target.sourceExt()}")
+        }.isFailure().output().contains("@Provides method must not be private")
     }
 
     @Test
@@ -97,7 +97,7 @@ class FailureTest(private val target: Target) {
                 """.trimIndent()
             ).compile()
         }.isFailure().output()
-            .contains("@Provides method must have a concrete implementation", "MyComponent.${target.sourceExt()}")
+            .contains("@Provides method must have a concrete implementation")
     }
 
     @Test
@@ -114,7 +114,7 @@ class FailureTest(private val target: Target) {
                     }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().contains("@Provides method must return a value", "MyComponent.${target.sourceExt()}")
+        }.isFailure().output().contains("@Provides method must return a value")
     }
 
     @Test
@@ -133,7 +133,7 @@ class FailureTest(private val target: Target) {
                 """.trimIndent()
             ).compile()
         }.isFailure().output()
-            .contains("Cannot provide: String", "as it is already provided", "MyComponent.${target.sourceExt()}")
+            .contains("Cannot provide: String", "as it is already provided")
     }
 
     @Test
@@ -150,7 +150,7 @@ class FailureTest(private val target: Target) {
                 """.trimIndent()
             ).compile()
         }.isFailure().output()
-            .contains("Cannot find an @Inject constructor or provider for: String", "MyComponent.${target.sourceExt()}")
+            .contains("Cannot find an @Inject constructor or provider for: String")
     }
 
     @Test
@@ -236,7 +236,7 @@ class FailureTest(private val target: Target) {
                 """.trimIndent()
             ).compile()
         }.isFailure().output()
-            .contains("Cannot find an @Inject constructor or provider for: String", "MyComponent.${target.sourceExt()}")
+            .contains("Cannot find an @Inject constructor or provider for: String")
     }
 
     @Test
@@ -258,7 +258,7 @@ class FailureTest(private val target: Target) {
                 """.trimIndent()
             ).compile()
         }.isFailure().output()
-            .contains("Cannot find component with scope: @MyScope to inject Foo", "MyComponent.${target.sourceExt()}")
+            .contains("Cannot find component with scope: @MyScope to inject Foo")
     }
 
     @Test

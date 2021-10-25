@@ -67,7 +67,7 @@ fun KSTypeReference.eqv(other: KSTypeReference): Boolean {
 }
 
 fun KSType.eqv(other: KSType): Boolean {
-    return declaration.qualifiedName == other.declaration.qualifiedName &&
+    return declaration.qualifiedName?.asString() == other.declaration.qualifiedName?.asString() &&
             nullability == other.nullability &&
             arguments.eqvItr(other.arguments) { a, b ->
                 a.variance == b.variance && a.type.eqv(

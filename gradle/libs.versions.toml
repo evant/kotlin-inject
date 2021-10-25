@@ -7,8 +7,9 @@ kotlinpoet = "1.10.1"
 kotiln-gradle = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 detekt-gradle = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version = "1.18.0" }
 ksp = { module = "com.google.devtools.ksp:symbol-processing-api", version.ref = "ksp" }
-kotlin-compile-testing = { module = "com.github.tschuchortdev:kotlin-compile-testing-ksp", version = "1.4.3" }
+kotlin-compile-testing = { module = "com.github.tschuchortdev:kotlin-compile-testing-ksp", version = "1.4.5" }
 kotlin-compiler-embeddable = { module = "org.jetbrains.kotlin:kotlin-compiler-embeddable", version.ref = "kotlin" }
+room-compiler-processing-testing = { module = "androidx.room:room-compiler-processing-testing", version = "2.4.0-beta01" }
 kotlin-annotation-processing-embeddable = { module = "org.jetbrains.kotlin:kotlin-annotation-processing-embeddable", version.ref = "kotlin" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version = "1.5.2" }
 kotlinx-metadata-jvm = { module = "org.jetbrains.kotlinx:kotlinx-metadata-jvm", version = "0.2.0" }
@@ -21,9 +22,11 @@ kotlinpoet-ksp = { module = "com.squareup:kotlinpoet-ksp", version.ref = "kotlin
 detekt-formatting = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", version = "1.17.1" }
 [bundles]
 kotlin-compile-testing = [
-    "kotlin-compile-testing",
-    "kotlin-compiler-embeddable",
-    "kotlin-annotation-processing-embeddable"
+# switching to room-compiler-processing-testing for now because of https://github.com/tschuchortdev/kotlin-compile-testing/issues/72
+#     "kotlin-compile-testing",
+#     "kotlin-compiler-embeddable",
+#     "kotlin-annotation-processing-embeddable",
+    "room-compiler-processing-testing"
 ]
 [plugins]
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

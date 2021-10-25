@@ -1,24 +1,26 @@
 package me.tatarka.inject
 
-import com.tschuchort.compiletesting.KotlinCompilation
-import com.tschuchort.compiletesting.SourceFile
-import com.tschuchort.compiletesting.kspArgs
-import com.tschuchort.compiletesting.symbolProcessorProviders
+import androidx.room.compiler.processing.util.Source
+import androidx.room.compiler.processing.util.compiler.TestCompilationArguments
+import androidx.room.compiler.processing.util.compiler.TestCompilationResult
+import com.google.devtools.ksp.processing.SymbolProcessorProvider
 import me.tatarka.inject.compiler.Options
 import me.tatarka.inject.compiler.kapt.InjectCompiler
 import me.tatarka.inject.compiler.ksp.InjectProcessorProvider
 import java.io.File
+import javax.tools.Diagnostic
 
 class ProjectCompiler(
     private val target: Target,
-    private val root: File? = null,
+    private val workingDir: File,
 ) {
 
-    private val sourceFiles = mutableListOf<SourceFile>()
+    private val sourceFiles = mutableListOf<Source>()
     private var options: Options? = null
+    private val symbolProcessors = mutableListOf<SymbolProcessorProvider>()
 
     fun source(fileName: String, source: String): ProjectCompiler {
-        sourceFiles.add(SourceFile.kotlin(fileName, source))
+        sourceFiles.add(Source.kotlin(fileName, source))
         return this
     }
 
@@ -27,31 +29,45 @@ class ProjectCompiler(
         return this
     }
 
-    fun compile() {
-        val result = KotlinCompilation().apply {
-            sources = sourceFiles
-            root?.let { workingDir = it }
-            inheritClassPath = true
-            when (target) {
-                Target.KAPT -> {
-                    options?.let {
-                        kaptArgs.putAll(it.toMap())
-                    }
-                    annotationProcessors = listOf(InjectCompiler())
-                }
-                Target.KSP -> {
-                    options?.let {
-                        kspArgs.putAll(it.toMap())
-                    }
-                    symbolProcessorProviders = listOf(InjectProcessorProvider())
-                }
-            }
-        }.compile()
+    fun symbolProcessor(processor: SymbolProcessorProvider): ProjectCompiler {
+        symbolProcessors.add(processor)
+        return this
+    }
 
-        if (result.exitCode != KotlinCompilation.ExitCode.OK) {
-            @Suppress("TooGenericExceptionThrown")
-            throw Exception(result.messages)
+    fun compile(): TestCompilationResult {
+        var args = TestCompilationArguments(
+            sources = sourceFiles,
+            processorOptions = options?.toMap().orEmpty()
+        )
+        args = when (target) {
+            Target.KAPT -> args.copy(kaptProcessors = listOf(InjectCompiler()))
+            Target.KSP -> {
+                val processors = mutableListOf<SymbolProcessorProvider>()
+                processors.add(InjectProcessorProvider())
+                processors.addAll(symbolProcessors)
+                args.copy(
+                    symbolProcessorProviders = processors
+                )
+            }
         }
+        val result = androidx.room.compiler.processing.util.compiler.compile(workingDir = workingDir, arguments = args)
+
+        if (!result.success) {
+            @Suppress("TooGenericExceptionThrown")
+            throw Exception(result.diagnostics
+                .filter { it.key == Diagnostic.Kind.ERROR }
+                .flatMap { it.value }.joinToString {
+                    StringBuilder().apply {
+                        append(it.msg)
+                        it.location?.source?.let {
+                            append(" ")
+                            append(it.relativePath)
+                        }
+                    }.toString()
+                })
+        }
+
+        return result
     }
 }
 
