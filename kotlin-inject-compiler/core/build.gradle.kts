@@ -7,7 +7,7 @@ plugins {
 dependencies {
     implementation(project(":kotlin-inject-runtime"))
     api(libs.kotlinpoet)
-    testImplementation(libs.bundles.kotlin.test.junit)
+    testImplementation(libs.kotlin.test)
     testImplementation(libs.assertk)
 }
 
