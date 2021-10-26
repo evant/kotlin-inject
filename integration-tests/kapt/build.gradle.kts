@@ -15,10 +15,10 @@ dependencies {
     implementation(project(":integration-tests:module"))
 
     kaptTest(project(":kotlin-inject-compiler:kapt"))
-    testImplementation(libs.bundles.kotlin.test.junit)
+    testImplementation(libs.kotlin.test)
+    testImplementation(libs.kotlin.reflect)
     testImplementation(libs.kotlinx.coroutines)
     testImplementation(libs.javax.inject)
-
     testImplementation(libs.assertk)
 
     jmhImplementation(kotlin("stdlib"))
