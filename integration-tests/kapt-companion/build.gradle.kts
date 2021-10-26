@@ -14,9 +14,7 @@ dependencies {
     implementation(project(":integration-tests:module"))
 
     kaptTest(project(":kotlin-inject-compiler:kapt"))
-    testImplementation("org.jetbrains.kotlin:kotlin-test")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
-    testImplementation("org.jetbrains.kotlin:kotlin-reflect")
+    testImplementation(libs.bundles.kotlin.test.junit)
     testImplementation(libs.javax.inject)
 
     testImplementation(libs.assertk)

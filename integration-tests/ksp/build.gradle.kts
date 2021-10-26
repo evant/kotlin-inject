@@ -23,14 +23,14 @@ kotlin {
             kotlin.srcDir("../common/src/test/kotlin")
             dependencies {
                 implementation(kotlin("test"))
-                implementation(libs.kotlinx.coroutines.core)
+                implementation(libs.kotlinx.coroutines)
                 implementation(libs.assertk)
             }
         }
         jvmTest {
             kotlin.srcDir("../common-jvm/src/test/kotlin")
             dependencies {
-                implementation("org.jetbrains.kotlin:kotlin-reflect")
+                implementation(libs.kotlin.reflect)
                 implementation(libs.javax.inject)
             }
         }

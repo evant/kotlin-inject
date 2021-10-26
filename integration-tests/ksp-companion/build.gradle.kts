@@ -7,6 +7,10 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
+dependencies {
+    ksp(project(":kotlin-inject-compiler:ksp"))
+}
+
 kotlin {
     sourceSets {
         commonMain {
@@ -18,14 +22,13 @@ kotlin {
         commonTest {
             kotlin.srcDir("../common-companion/src/test/kotlin")
             dependencies {
-                implementation(kotlin("test"))
-                configurations["ksp"].dependencies.add(project(":kotlin-inject-compiler:ksp"))
+                implementation(libs.kotlin.test)
                 implementation(libs.assertk)
             }
         }
         jvmTest {
             dependencies {
-                implementation("org.jetbrains.kotlin:kotlin-reflect")
+                implementation(libs.kotlin.reflect)
                 implementation(libs.javax.inject)
             }
         }
