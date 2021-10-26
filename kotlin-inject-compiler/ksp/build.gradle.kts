@@ -9,8 +9,6 @@ plugins {
 dependencies {
     implementation(project(":kotlin-inject-runtime"))
     implementation(project(":kotlin-inject-compiler:core"))
-    // for access to CompilationErrorException until ksp properly fails on errors
-    implementation(libs.kotlin.compiler.embeddable)
     implementation(libs.ksp)
     implementation(libs.kotlinpoet.ksp)
 }

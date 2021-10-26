@@ -13,13 +13,9 @@ dependencies {
     implementation(project(":kotlin-inject-compiler:kapt"))
     implementation(project(":kotlin-inject-compiler:ksp"))
 
-    implementation(libs.kotlin.compile.testing)
     implementation(libs.bundles.kotlin.compile.testing)
 
-    testImplementation("org.jetbrains.kotlin:kotlin-test")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
-    testImplementation("org.jetbrains.kotlin:kotlin-reflect")
-
+    testImplementation(libs.bundles.kotlin.test.junit)
     testImplementation(libs.assertk)
     testImplementation(libs.burst.junit4)
 }
