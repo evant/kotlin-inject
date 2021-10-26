@@ -66,7 +66,7 @@ The bulk of the testing is done in `integration-tests`. These declare `@Componen
 code is generated, compiles correctly, and returns the expected results.
 
 To test validation errors, there are also a few tests using
-[Kotlin Compile Testing](https://github.com/tschuchortdev/kotlin-compile-testing) in `compiler-tests`.
+[Kotlin Compile Testing](https://github.com/tschuchortdev/kotlin-compile-testing) in `compiler-inject-compiler:test`.
 
 Note that there a no tests testing that the generated source code looks a certain way. This is intentional, as these
 test can be quite brittle. What's important is the generated code _behaves_ as expected, not exactly what it looks like.
