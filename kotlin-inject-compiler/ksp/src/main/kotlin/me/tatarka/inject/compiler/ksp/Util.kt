@@ -67,7 +67,7 @@ fun KSTypeReference.eqv(other: KSTypeReference): Boolean {
 }
 
 fun KSType.eqv(other: KSType): Boolean {
-    return declaration.qualifiedName?.asString() == other.declaration.qualifiedName?.asString() &&
+    return hasSameName(other) &&
             nullability == other.nullability &&
             arguments.eqvItr(other.arguments) { a, b ->
                 a.variance == b.variance && a.type.eqv(
@@ -77,14 +77,39 @@ fun KSType.eqv(other: KSType): Boolean {
             }
 }
 
+private fun KSType.hasSameName(other: KSType): Boolean {
+    val thisName = robustName
+    val otherName = other.robustName
+    return if (thisName == null && otherName == null) {
+        false
+    } else {
+        thisName == otherName
+    }
+}
+
 fun KSType.eqvHashCode(collector: HashCollector = HashCollector()): Int = collectHash(collector) {
-    hash(declaration.qualifiedName)
+    hash(robustName)
     hash(nullability)
     for (argument in arguments) {
         hash(argument.variance)
         argument.type?.eqvHashCode(this)
     }
 }
+
+private val KSType.robustName: String?
+    get() {
+        return if (isError) {
+            // Can't rely on qualified name, sometimes toString() will still give a unique result
+            val thisString = toString()
+            if (thisString == "<ERROR TYPE>") {
+                null
+            } else {
+                thisString
+            }
+        } else {
+            declaration.qualifiedName?.asString()
+        }
+    }
 
 fun KSTypeReference.eqvHashCode(collector: HashCollector): Int = collectHash(collector) {
     resolve().eqvHashCode(collector)

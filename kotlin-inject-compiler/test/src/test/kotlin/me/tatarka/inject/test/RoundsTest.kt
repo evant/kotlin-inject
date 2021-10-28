@@ -235,4 +235,32 @@ class RoundsTest {
             doesNotContain("Unresolved reference: create")
         }
     }
+
+    @Test
+    fun multiple_invalid_types_only_show_unresolved_reference_error() {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                    import me.tatarka.inject.annotations.Component
+                    import me.tatarka.inject.annotations.Provides
+
+                    @Component abstract class MyComponent {
+                        @Provides
+                        fun foo(): Foo = TODO()
+                        
+                        @Provides
+                        fun bar(): Bar = TODO()
+                    }
+
+                    fun use() = MyComponent::class.create()
+                """.trimIndent()
+            ).compile()
+        }.isFailure().message().isNotNull().all {
+            contains("Unresolved reference: Foo")
+            contains("Unresolved reference: Bar")
+            doesNotContain("Cannot provide", "as it is already provided")
+        }
+    }
 }
