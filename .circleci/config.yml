@@ -30,8 +30,7 @@ jobs:
           command: sudo apt update && sudo apt install -y libtinfo5
       - run:
           name: Run Tests
-          # explicit ksp task until we have an improved ksp multiplatform task story
-          command: ./gradlew integration-tests:module:kspKotlinMetadata check
+          command: ./gradlew check
       - gradle/collect_test_results:
           test_results_path: build/test-results
           reports_path: build/reports
@@ -64,8 +63,7 @@ jobs:
             ".circleci/config.yml" }}-macos
       - run:
           name: Run Tests
-          # explicit ksp task until we have an improved ksp multiplatform task story
-          command: ./gradlew integration-tests:module:kspKotlinMetadata checkApple
+          command: ./gradlew checkApple
       - gradle/collect_test_results:
           test_results_path: build/test-results
           reports_path: build/reports

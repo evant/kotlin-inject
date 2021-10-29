@@ -1,8 +1,3 @@
-import com.google.devtools.ksp.gradle.KspTaskJS
-import com.google.devtools.ksp.gradle.KspTaskJvm
-import com.google.devtools.ksp.gradle.KspTaskMetadata
-import com.google.devtools.ksp.gradle.KspTaskNative
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("kotlin-inject.multiplatform")
@@ -11,7 +6,7 @@ plugins {
 }
 
 dependencies {
-    ksp(project(":kotlin-inject-compiler:ksp"))
+    add("kspMetadata", project(":kotlin-inject-compiler:ksp"))
 }
 
 kotlin {
@@ -29,15 +24,8 @@ kotlin {
 kotlin.sourceSets.commonMain {
     kotlin.srcDir("build/generated/ksp/commonMain/kotlin")
 }
-tasks.withType<KspTaskJS>().configureEach {
-    enabled = false
-}
-tasks.withType<KspTaskJvm>().configureEach {
-    enabled = false
-}
-tasks.withType<KspTaskNative>().configureEach {
-    enabled = false
-}
-tasks.withType<KotlinCompile>().configureEach {
-    dependsOn(tasks.withType<KspTaskMetadata>())
+tasks.withType<org.jetbrains.kotlin.gradle.dsl.KotlinCompile<*>>().all {
+    if (name != "kspKotlinMetadata") {
+        dependsOn("kspKotlinMetadata")
+    }
 }
