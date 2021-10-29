@@ -48,7 +48,6 @@ val TypeElement.metadata: KotlinClassMetadata?
         val meta = getAnnotation(Metadata::class.java) ?: return null
         val header = KotlinClassHeader(
             kind = meta.kind,
-            bytecodeVersion = meta.bytecodeVersion,
             data1 = meta.data1,
             data2 = meta.data2,
             extraInt = meta.extraInt,

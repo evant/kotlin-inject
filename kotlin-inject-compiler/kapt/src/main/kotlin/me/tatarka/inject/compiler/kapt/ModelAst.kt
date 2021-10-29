@@ -10,6 +10,7 @@ import com.squareup.kotlinpoet.asClassName
 import kotlinx.metadata.Flag
 import kotlinx.metadata.Flags
 import kotlinx.metadata.KmAnnotation
+import kotlinx.metadata.KmAnnotationArgument
 import kotlinx.metadata.KmClass
 import kotlinx.metadata.KmClassifier
 import kotlinx.metadata.KmConstructor
@@ -655,15 +656,26 @@ private class ModelAstAnnotation(
     }
 
     override fun toString(): String {
-        return "@${mirror.annotationType}(${
-            if (kmAnnotation != null) {
-                kmAnnotation.arguments.toList()
-                    .joinToString(separator = ", ") { (name, value) -> "$name=${value.value}" }
-            } else {
-                mirror.elementValues.toList()
-                    .joinToString(separator = ", ") { (element, value) -> "${element.simpleName}=${value.value}" }
-            }
-        })"
+        return kmAnnotation?.asString() ?: mirror.asString()
+    }
+}
+
+private fun AnnotationMirror.asString(): String =
+    "@$annotationType(${
+        elementValues.toList()
+            .joinToString(separator = ", ") { (element, value) -> "${element.simpleName}=${value.value}" }
+    })"
+
+private fun KmAnnotation.asString(): String =
+    "@$className(${arguments.toList().joinToString { (name, value) -> "$name=${value.asString()}" }})"
+
+private fun KmAnnotationArgument.asString(): String {
+    return when (this) {
+        is KmAnnotationArgument.LiteralValue<*> -> value.toString()
+        is KmAnnotationArgument.KClassValue -> className
+        is KmAnnotationArgument.EnumValue -> "$enumClassName.$enumEntryName"
+        is KmAnnotationArgument.AnnotationValue -> annotation.asString()
+        is KmAnnotationArgument.ArrayValue -> "[${elements.joinToString { it.asString() }}]"
     }
 }
 

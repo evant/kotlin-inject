@@ -36,7 +36,6 @@ class InjectProcessor(
         for (element in previousDiffered + resolver.getSymbolsWithClassAnnotation(
             COMPONENT.packageName,
             COMPONENT.simpleName,
-            logger,
         )) {
             val astClass = element.toAstClass()
             if (validate(astClass)) {
