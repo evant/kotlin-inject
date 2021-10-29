@@ -49,7 +49,7 @@ dependencies {
 }
 ```
 
-### Experimental KSP Support
+### or with KSP
 
 You can use [ksp](https://github.com/google/ksp) instead of kapt.
 
@@ -59,7 +59,7 @@ You can use [ksp](https://github.com/google/ksp) instead of kapt.
 pluginManagement {
     repositories {
         gradlePluginPortal()
-        google()
+        mavenCentral()
     }
 }
 ```
@@ -68,8 +68,8 @@ pluginManagement {
 
 ```groovy
 plugins {
-    id("org.jetbrains.kotlin.jvm") version "1.5.21"
-    id("com.google.devtools.ksp") version "1.5.21-1.0.0-beta05"
+    id("org.jetbrains.kotlin.jvm") version "1.5.31"
+    id("com.google.devtools.ksp") version "1.5.31-1.0.0"
 }
 
 repositories {
