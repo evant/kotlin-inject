@@ -20,32 +20,58 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
 
     /**
      * Resolves the given type in this context. This will return a cached result if has already been resolved.
+     * @throws FailedToGenerateException if cannot be found
      */
     private fun resolve(context: Context, key: TypeKey): TypeResultRef {
-        return TypeResultRef(key, types[key] ?: context.findType(key).also {
-            if (it.isCacheable) {
-                types[key] = it
-            }
-        })
+        return resolveOrNull(context, key)
+            ?: throw FailedToGenerateException(cannotFind(key))
     }
 
     /**
-     * Resolves the given type with the given index & size. This is used for matching positional types in function args.
+     * Resolves the given type in this context. This will return a cached result if has already been resolved. Returns
+     * null if it cannot be found.
      */
-    private fun resolveWithIndex(context: Context, key: TypeKey, index: Int, size: Int): TypeResultRef {
-        val indexFromEnd = size - index - 1
-        context.args.asReversed().getOrNull(indexFromEnd)?.let { (type, name) ->
-            if (type.isAssignableFrom(key.type)) {
-                return TypeResultRef(key, TypeResult.Arg(name))
+    private fun resolveOrNull(context: Context, key: TypeKey): TypeResultRef? {
+        val type = types[key] ?: context.findType(key)?.also {
+            if (it.isCacheable) {
+                types[key] = it
             }
         }
-        return resolve(context, key)
+        return type?.let { TypeResultRef(key, it) }
+    }
+
+    /**
+     * Resolves the given set of params. It will match position types in function args. If a param cannot be resolved,
+     * but it has as default, it will be skipped.
+     */
+    private fun resolveParams(context: Context, params: List<AstParam>): List<TypeResultRef> {
+        val size = params.size
+        val args = context.args.asReversed()
+        return params.mapIndexedNotNull { i, param ->
+            val indexFromEnd = size - i - 1
+            val key = TypeKey(param.type, param.qualifier(options))
+            val arg = args.getOrNull(indexFromEnd)
+            if (arg != null) {
+                val (type, name) = arg
+                if (type.isAssignableFrom(key.type)) {
+                    return@mapIndexedNotNull TypeResultRef(key, TypeResult.Arg(name))
+                }
+            }
+            val result = resolveOrNull(context, key)
+            if (result != null) {
+                return@mapIndexedNotNull result
+            }
+            if (param.hasDefault) {
+                return@mapIndexedNotNull null
+            }
+            throw FailedToGenerateException(cannotFind(key))
+        }
     }
 
     /**
      * Find the given type.
      */
-    private fun Context.findType(key: TypeKey): TypeResult {
+    private fun Context.findType(key: TypeKey): TypeResult? {
         if (key.type.isError) {
             throw FailedToGenerateException(trace("Unresolved reference: $key"))
         }
@@ -79,7 +105,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             val lKey = TypeKey(key.type.arguments[0], key.qualifier)
             return Lazy(this, key = lKey)
         }
-        throw FailedToGenerateException(trace("Cannot find an @Inject constructor or provider for: $key"))
+        return null
     }
 
     private fun TypeCreator.toResult(context: Context, key: TypeKey, skipScoped: AstType?): TypeResult {
@@ -138,11 +164,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             },
             isProperty = method is AstProperty,
             parameters = (method as? AstFunction)?.let {
-                val size = it.parameters.size
-                it.parameters.mapIndexed { i, param ->
-                    val key = TypeKey(param.type, param.qualifier(options))
-                    resolveWithIndex(context, key, i, size)
-                }
+                resolveParams(context, it.parameters)
             } ?: emptyList(),
         )
     }
@@ -159,13 +181,9 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
 
     private fun Constructor(context: Context, constructor: AstConstructor, key: TypeKey) =
         withCycleDetection(key, constructor) {
-            val size = constructor.parameters.size
             TypeResult.Constructor(
                 type = constructor.type,
-                parameters = constructor.parameters.mapIndexed { i, param ->
-                    val key = TypeKey(param.type, param.qualifier(options))
-                    resolveWithIndex(context, key, i, size)
-                }
+                parameters = resolveParams(context, constructor.parameters),
             )
         }
 
@@ -205,14 +223,10 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         } else {
             args
         }.mapIndexed { i, arg -> arg to "arg$i" }
-        val size = function.parameters.size
         TypeResult.NamedFunction(
             name = function.asMemberName(),
             args = namedArgs.map { it.second },
-            parameters = function.parameters.mapIndexed { i, param ->
-                val key = TypeKey(param.type, param.qualifier(options))
-                resolveWithIndex(context.withArgs(namedArgs), key, i, size)
-            }
+            parameters = resolveParams(context.withArgs(namedArgs), function.parameters),
         )
     }
 
@@ -261,6 +275,8 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
      * elements that were traversed for this context.
      */
     private fun trace(message: String): String = "$message\n" + cycleDetector.trace(provider)
+
+    private fun cannotFind(key: TypeKey): String = trace("Cannot find an @Inject constructor or provider for: $key")
 
     private val TypeResult.isCacheable: Boolean
         // don't cache local vars as the may not be in scope when requesting the type from a different location
