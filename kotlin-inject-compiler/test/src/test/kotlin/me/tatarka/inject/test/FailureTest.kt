@@ -472,4 +472,36 @@ class FailureTest {
             )
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun fails_if_type_is_missing_arg_even_if_used_as_default_value(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+               import me.tatarka.inject.annotations.Inject
+               import me.tatarka.inject.annotations.Component
+
+               @Component abstract class MyComponent {
+                abstract val foo: Foo
+               }
+
+               @Inject class Foo(bar: Bar = Bar(""))
+
+               @Inject class Bar(value: String)
+
+               @Component abstract class MyChildComponent(@Component val parent: MyParentComponent) {
+                 abstract val foo: String
+               }
+                """.trimIndent()
+            ).compile()
+        }.isFailure().output().all {
+            contains(
+                "Cannot find an @Inject constructor or provider for: String"
+            )
+        }
+    }
 }
