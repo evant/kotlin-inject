@@ -1,5 +1,4 @@
 import org.gradle.accessors.dm.LibrariesForLibs
-import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 
 plugins {
     kotlin("jvm")
@@ -7,10 +6,14 @@ plugins {
 
 val libs = the<LibrariesForLibs>()
 
-dependencies {
-}
-
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+// Ensure xml test reports are generated
+tasks.withType<AbstractTestTask>().configureEach {
+    reports {
+        junitXml.required.set(true)
+    }
 }

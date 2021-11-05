@@ -48,6 +48,12 @@ kotlin {
                 dependsOn(nativeTest)
             }
         }
+        // Ensure xml test reports are generated
+        val jvmTest by tasks.getting(Test::class) {
+            doFirst {
+                reports.junitXml.required.set(true)
+            }
+        }
     }
 }
 

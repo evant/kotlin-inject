@@ -1,30 +1,32 @@
-import org.gradle.kotlin.dsl.getValue
-import org.gradle.kotlin.dsl.getting
-import org.jetbrains.kotlin.gradle.tasks.KotlinTest
+import org.jetbrains.kotlin.gradle.targets.jvm.tasks.KotlinJvmTest
+import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest
 
-val tests = tasks.withType<KotlinTest>()
-val testsApple = tests.filter { it.targetName?.contains(Regex("macos|ios|tvos|watchos")) ?: false }
+val tests = tasks.withType<AbstractTestTask>()
+val testsApple = tests.withType<KotlinNativeTest>().matching { it.targetName?.contains(Regex("macos|ios|tvos|watchos")) ?: false }
 
-val testReport by rootProject.tasks.getting(TestReport::class) {
+val testReport = rootProject.tasks.named("testReport", TestReport::class) {
     reportOn(tests)
 }
 
-val testReportApple by rootProject.tasks.getting(TestReport::class) {
+val testReportApple = rootProject.tasks.named("testReportApple", TestReport::class) {
     reportOn(testsApple)
 }
 
-val copyTestResults by rootProject.tasks.getting(Copy::class) {
+val copyTestResults = rootProject.tasks.named("copyTestResults", Copy::class) {
     tests.forEach { test ->
         // Have to explicitly wire up task dependency due to https://github.com/gradle/gradle/issues/17120
         dependsOn(test)
         from(test.reports.junitXml.outputLocation.get().asFile) {
             include("**/*.xml")
-            rename("(.*).xml", "$1[${test.targetName}].xml")
+            if (test is KotlinJvmTest) {
+                rename("(.*).xml", "$1[${test.targetName}].xml")
+            }
         }
+        into(rootProject.buildDir.resolve("test-results"))
     }
 }
 
-val copyTestResultsApple by rootProject.tasks.getting(Copy::class) {
+val copyTestResultsApple = rootProject.tasks.named("copyTestResultsApple", Copy::class) {
     testsApple.forEach { test ->
         // Have to explicitly wire up task dependency due to https://github.com/gradle/gradle/issues/17120
         dependsOn(test)
@@ -32,13 +34,6 @@ val copyTestResultsApple by rootProject.tasks.getting(Copy::class) {
             include("**/*.xml")
             rename("(.*).xml", "$1[${test.targetName}].xml")
         }
+        into(rootProject.buildDir.resolve("test-results"))
     }
-}
-
-val check by rootProject.tasks.getting {
-    finalizedBy(testReport, copyTestResults)
-}
-
-val checkApple by rootProject.tasks.getting {
-    finalizedBy(testReportApple, copyTestResultsApple)
 }
