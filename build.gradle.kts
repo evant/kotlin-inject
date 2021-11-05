@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.nexus.publish)
+    base
 }
 
 group = "me.tatarka.inject"
@@ -30,7 +31,11 @@ val copyTestResultsApple by tasks.registering(Copy::class) {
     includeEmptyDirs = false
 }
 
+val check by tasks.getting
 val checkApple by tasks.creating
+
+check.finalizedBy(testReport, copyTestResults)
+checkApple.finalizedBy(testReportApple, copyTestResultsApple)
 
 // Heavy-weight patch for this KGP+Gradle bug that can cause deadlocks
 // https://github.com/gradle/gradle/issues/17812
