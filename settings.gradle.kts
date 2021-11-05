@@ -5,6 +5,7 @@ pluginManagement {
         gradlePluginPortal()
         mavenCentral()
     }
+    includeBuild("build-logic")
 }
 
 dependencyResolutionManagement {
@@ -27,3 +28,4 @@ include(":integration-tests:ksp")
 include(":integration-tests:module")
 include(":integration-tests:kapt-companion")
 include(":integration-tests:ksp-companion")
+include(":integration-tests:jmh")

@@ -1,10 +1,9 @@
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 
 plugins {
+    id("kotlin-inject.jvm")
     id("kotlin-inject.detekt")
     id("kotlin-inject.merge-tests")
-    `java-library`
-    kotlin("jvm")
     kotlin("kapt")
 }
 
@@ -17,11 +16,6 @@ dependencies {
     testImplementation(libs.kotlin.test)
     testImplementation(libs.javax.inject)
     testImplementation(libs.assertk)
-}
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 sourceSets {

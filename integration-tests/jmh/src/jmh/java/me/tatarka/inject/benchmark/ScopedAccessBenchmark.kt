@@ -2,6 +2,7 @@ package me.tatarka.inject.benchmark
 
 import org.openjdk.jmh.annotations.Benchmark
 import org.openjdk.jmh.annotations.Scope
+import org.openjdk.jmh.annotations.State
 
 // @Inject @MyScope
 class Foo {
@@ -29,11 +30,12 @@ class InjectLazyScopedAccessComponent : ScopedAccessComponent() {
     override val bar: Foo.Bar
         get() = _bar
 }
+
 interface ScopedComponentString {
     val _scoped: LazyMapString
 }
 
-interface ScopedComponentClass  {
+interface ScopedComponentClass {
     val _scoped: LazyMapClass
 }
 
@@ -56,25 +58,25 @@ class InjectDynamicScopedClassAccessComponent : ScopedAccessComponent(), ScopedC
 
 open class ScopedAccessBenchmark {
 
-    @org.openjdk.jmh.annotations.State(Scope.Benchmark)
-    open class State {
+    @State(Scope.Benchmark)
+    open class ComponentState {
         val lazyComponent = InjectLazyScopedAccessComponent()
         val dynamicStringComponent = InjectDynamicScopedStringAccessComponent()
         val dynamicClassComponent = InjectDynamicScopedClassAccessComponent()
     }
 
     @Benchmark
-    fun lazy_scoped_access_component(state: State): Foo {
+    fun lazy_scoped_access_component(state: ComponentState): Foo {
         return state.lazyComponent.foo
     }
 
     @Benchmark
-    fun dynamic_scoped_string_access_compoennt(state: State): Foo {
+    fun dynamic_scoped_string_access_compoennt(state: ComponentState): Foo {
         return state.dynamicStringComponent.foo
     }
 
     @Benchmark
-    fun dynamic_scoped_class_access_compoennt(state: State) : Foo {
+    fun dynamic_scoped_class_access_compoennt(state: ComponentState): Foo {
         return state.dynamicClassComponent.foo
     }
 

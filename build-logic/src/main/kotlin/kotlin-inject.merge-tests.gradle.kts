@@ -35,7 +35,7 @@ val copyTestResultsApple by rootProject.tasks.getting(Copy::class) {
     }
 }
 
-tasks.findByName("check")?.apply {
+val check by rootProject.tasks.getting {
     finalizedBy(testReport, copyTestResults)
 }
 

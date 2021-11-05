@@ -16,7 +16,6 @@ val nativeTargets = arrayOf(
 )
 
 kotlin {
-    jvm()
     js(BOTH) {
         browser()
         nodejs()
@@ -31,6 +30,8 @@ kotlin {
     for (target in nativeTargets) {
        targets.add(presets.getByName(target).createTarget(target))
     }
+
+    jvm()
 
     sourceSets {
         val nativeMain by creating {
