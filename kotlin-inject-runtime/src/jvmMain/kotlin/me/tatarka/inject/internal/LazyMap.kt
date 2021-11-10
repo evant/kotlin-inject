@@ -1,7 +1,6 @@
 package me.tatarka.inject.internal
 
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.reflect.KClass
 
 private val NULL = Any()
 
@@ -10,17 +9,17 @@ actual class LazyMap {
 
     actual fun <T> get(key: String, init: () -> T): T {
         val result = map[key]
-        if (result == null) {
+        return if (result == null) {
             synchronized(map) {
                 var result = map[key]
                 if (result == null) {
                     result = init() ?: NULL
                     map[key] = result
                 }
-                return coerceResult(result)
+                coerceResult(result)
             }
         } else {
-            return coerceResult(result)
+            coerceResult(result)
         }
     }
 

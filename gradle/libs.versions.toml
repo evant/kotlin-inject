@@ -16,6 +16,7 @@ room-compiler-processing-testing = { module = "androidx.room:room-compiler-proce
 kotlin-annotation-processing-embeddable = { module = "org.jetbrains.kotlin:kotlin-annotation-processing-embeddable", version.ref = "kotlin" }
 kotlinx-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version = "1.5.2" }
 kotlinx-metadata-jvm = { module = "org.jetbrains.kotlinx:kotlinx-metadata-jvm", version = "0.3.0" }
+kotlinx-atomicfu = { module = "org.jetbrains.kotlinx:atomicfu", version = "0.16.3" }
 jdk-compiler = { module = "io.earcam.wrapped:jdk.compiler", version = "1.8.132" }
 assertk = { module = "com.willowtreeapps.assertk:assertk", version = "0.25" }
 burst-junit4 = { module = "com.squareup.burst:burst-junit4", version = "1.2.0" }
