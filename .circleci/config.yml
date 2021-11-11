@@ -5,11 +5,41 @@ _defaults: &defaults
   working_directory: ~/code
   environment:
     JVM_OPTS: -Xmx3200m
-_gradle_checksum: &gradle_checksum
-  name: Generate Cache Checksum
-  command: >-
-    find . -name 'build.gradle' | sort | xargs cat | shasum | awk '{print
-    $1}' > /tmp/gradle_cache_seed
+commands:
+  with_cache:
+    description: "Caches and restores gradle dependencies"
+    parameters:
+      cache_key:
+        type: string
+        default: v1
+      steps:
+        type: steps
+    steps:
+      - restore_cache:
+          key: >-
+            gradle-<< parameters.cache_key >>-{{ checksum "gradle/libs.versions.toml" }}-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
+      - steps:
+          << parameters.steps >>
+      - save_cache:
+          key: >-
+            gradle-<< parameters.cache_key >>-{{ checksum "gradle/libs.versions.toml" }}-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
+          paths:
+            - ~/.gradle/caches
+            - ~/.gradle/wrapper
+            - ~/.konan
+  gradle_publish:
+    description: "Publishes to sonatype/maven central"
+    parameters:
+      publish_task:
+        type: string
+        default: publish
+    steps:
+      - deploy:
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "main" ]; then
+              echo "$MAVEN_CENTRAL_SEC_RING" | base64 -d > $HOME/secring.gpg
+              ./gradlew << parameters.publish_task >> -PsonatypeUsername="$SONATYPE_USERNAME" -PsonatypePassword="$SONATYPE_PASSWORD" -Psigning.keyId=34BCD878 -Psigning.password="$MAVEN_CENTRAL_KEY_PASSPHRASE" -Psigning.secretKeyRingFile=$HOME/secring.gpg --no-parallel
+            fi
 jobs:
   build-linux:
     docker:
@@ -17,76 +47,43 @@ jobs:
     <<: *defaults
     steps:
       - checkout
-      # We can't use gradle/with_cache because it does not include the .konan dir where there kotlin native compiler lives
-      - run:
-          <<: *gradle_checksum
-      - restore_cache:
-          key: >-
-            gradle-{{ checksum "/tmp/gradle_cache_seed" }}-{{ checksum
-            ".circleci/config.yml" }}-linux
       # Work-around kotlin native using an old version of libtinfo https://github.com/circleci/circleci-images/issues/430
       - run:
           name: Install libtinfo5
           command: sudo apt update && sudo apt install -y libtinfo5
-      - run:
-          name: Build
-          command: ./gradlew assemble
-      - run:
-          name: Run Tests
-          command: ./gradlew check --continue
-      - gradle/collect_test_results:
-          test_results_path: build/test-results
-          reports_path: build/reports
-      - deploy:
-          command: |
-            if [ "${CIRCLE_BRANCH}" == "main" ]; then
-              echo "$MAVEN_CENTRAL_SEC_RING" | base64 -d > $HOME/secring.gpg
-              ./gradlew publish -PsonatypeUsername="$SONATYPE_USERNAME" -PsonatypePassword="$SONATYPE_PASSWORD" -Psigning.keyId=34BCD878 -Psigning.password="$MAVEN_CENTRAL_KEY_PASSPHRASE" -Psigning.secretKeyRingFile=$HOME/secring.gpg --no-parallel
-            fi
-      - save_cache:
-          paths:
-            - ~/.gradle/caches
-            - ~/.gradle/wrapper
-            - ~/.konan
-          key: >-
-            gradle-{{ checksum "/tmp/gradle_cache_seed" }}-{{ checksum
-            ".circleci/config.yml" }}-linux
+      - with_cache:
+          cache_key: linux
+          steps:
+            - run:
+                name: Build
+                command: ./gradlew assemble
+            - run:
+                name: Run Tests
+                command: ./gradlew check --continue
+            - gradle/collect_test_results:
+                test_results_path: build/test-results
+                reports_path: build/reports
+            - gradle_publish
   build-macos:
     macos:
       xcode: "13.0.0"
     <<: *defaults
     steps:
       - checkout
-      # We can't use gradle/with_cache because it incorrectly uses the same cache key from build-linux
-      - run:
-          <<: *gradle_checksum
-      - restore_cache:
-          key: >-
-            gradle-{{ checksum "/tmp/gradle_cache_seed" }}-{{ checksum
-            ".circleci/config.yml" }}-macos
-      - run:
-          name: Build
-          command: ./gradlew assemble
-      - run:
-          name: Run Tests
-          command: ./gradlew checkApple --continue
-      - gradle/collect_test_results:
-          test_results_path: build/test-results
-          reports_path: build/reports
-      - deploy:
-          command: |
-            if [ "${CIRCLE_BRANCH}" == "main" ]; then
-              echo "$MAVEN_CENTRAL_SEC_RING" | base64 -D -o $HOME/secring.gpg
-              ./gradlew publishApple -PsonatypeUsername="$SONATYPE_USERNAME" -PsonatypePassword="$SONATYPE_PASSWORD" -Psigning.keyId=34BCD878 -Psigning.password="$MAVEN_CENTRAL_KEY_PASSPHRASE" -Psigning.secretKeyRingFile=$HOME/secring.gpg --no-parallel
-            fi
-      - save_cache:
-          paths:
-            - ~/.gradle/caches
-            - ~/.gradle/wrapper
-            - ~/.konan
-          key: >-
-            gradle-{{ checksum "/tmp/gradle_cache_seed" }}-{{ checksum
-            ".circleci/config.yml" }}-macos
+      - with_cache:
+          cache_key: macos
+          steps:
+            - run:
+                name: Build
+                command: ./gradlew assemble
+            - run:
+                name: Run Tests
+                command: ./gradlew checkApple --continue
+            - gradle/collect_test_results:
+                test_results_path: build/test-results
+                reports_path: build/reports
+            - gradle_publish:
+                publish_task: publishApple
 workflows:
   version: 2
   build:
