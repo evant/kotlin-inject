@@ -29,8 +29,11 @@ jobs:
           name: Install libtinfo5
           command: sudo apt update && sudo apt install -y libtinfo5
       - run:
+          name: Build
+          command: ./gradlew assemble
+      - run:
           name: Run Tests
-          command: ./gradlew check
+          command: ./gradlew check --continue
       - gradle/collect_test_results:
           test_results_path: build/test-results
           reports_path: build/reports
@@ -62,8 +65,11 @@ jobs:
             gradle-{{ checksum "/tmp/gradle_cache_seed" }}-{{ checksum
             ".circleci/config.yml" }}-macos
       - run:
+          name: Build
+          command: ./gradlew assemble
+      - run:
           name: Run Tests
-          command: ./gradlew checkApple
+          command: ./gradlew checkApple --continue
       - gradle/collect_test_results:
           test_results_path: build/test-results
           reports_path: build/reports
