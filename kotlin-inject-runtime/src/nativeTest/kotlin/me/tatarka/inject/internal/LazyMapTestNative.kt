@@ -11,6 +11,9 @@ class LazyMapTestNative {
 
     @Test
     fun caches_value_from_multiple_threads() {
+        // only works with the new experimental runtime that's in kotlin 1.6+
+        if (!KotlinVersion.CURRENT.isAtLeast(1, 6)) return
+
         val lazyMap = LazyMap()
         val count = 100
         val results = List(count) {
