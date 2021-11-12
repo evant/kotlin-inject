@@ -39,13 +39,13 @@ val repo = appComponent.repo
 
 ```groovy
 plugins {
-    id("org.jetbrains.kotlin.jvm") version "1.5.20"
-    id("org.jetbrains.kotlin.kapt") version "1.5.20"
+    id("org.jetbrains.kotlin.jvm") version "1.5.31"
+    id("org.jetbrains.kotlin.kapt") version "1.5.31"
 }
 
 dependencies {
-    kapt("me.tatarka.inject:kotlin-inject-compiler-kapt:0.3.6")
-    implementation("me.tatarka.inject:kotlin-inject-runtime:0.3.6")
+    kapt("me.tatarka.inject:kotlin-inject-compiler-kapt:0.4.0")
+    implementation("me.tatarka.inject:kotlin-inject-runtime:0.4.0")
 }
 ```
 
@@ -69,7 +69,7 @@ pluginManagement {
 ```groovy
 plugins {
     id("org.jetbrains.kotlin.jvm") version "1.5.31"
-    id("com.google.devtools.ksp") version "1.5.31-1.0.0"
+    id("com.google.devtools.ksp") version "1.5.31-1.0.1"
 }
 
 repositories {
@@ -78,8 +78,8 @@ repositories {
 }
 
 dependencies {
-    ksp("me.tatarka.inject:kotlin-inject-compiler-ksp:0.3.6")
-    implementation("me.tatarka.inject:kotlin-inject-runtime:0.3.6")
+    ksp("me.tatarka.inject:kotlin-inject-compiler-ksp:0.4.0")
+    implementation("me.tatarka.inject:kotlin-inject-runtime:0.4.0")
 }
 ```
 
@@ -127,8 +127,6 @@ type for an extension function/property counts as an argument. Another way to wr
 @Provides
 fun http(http: RealHttp): Http = http
 ```
-
-.
 
 ```kotlin
 @Inject
@@ -416,6 +414,26 @@ class Foo
 class MyClass(lazyFoo: Lazy<Foo>) {
     val foo by lazyFoo
 }
+```
+
+### Default Arguments
+
+You can use default arguments for parameters you inject. If the type is present in the graph, it'll be injected,
+otherwise the default will be used.
+
+  ```kotlin
+@Inject class MyClass(val dep: Dep = Dep("default"))
+
+@Component abstract ComponentWithDep {
+    abstract val myClass: MyClass
+    @Provides fun dep(): Dep = Dep("injected")
+}
+@Component abstract ComponentWithoutDep {
+    abstract val myClass: MyClass
+}
+
+ComponentWithDep::class.create().myClass.dep // Dep("injected")
+ComponentWithoutDep::class.create().myClass.dep // Dep("default")
 ```
 
 ### Options
