@@ -157,11 +157,11 @@ interface ModelAstProvider : AstProvider {
 
 interface ModelOutputProvider : OutputProvider {
 
-    override fun buildTypeSpec(typeSpecBuilder: TypeSpec.Builder, originatingElement: AstClass): TypeSpec {
-        require(originatingElement is ModelAstClass)
-        return typeSpecBuilder
-            .addOriginatingElement(originatingElement.element)
-            .build()
+    override fun TypeSpec.Builder.build(elements: List<AstClass>): TypeSpec {
+        for (element in elements) {
+            addOriginatingElement((element as ModelAstClass).element)
+        }
+        return build()
     }
 }
 

@@ -115,11 +115,12 @@ interface KSAstProvider : AstProvider, OutputProvider {
         }
     }
 
-    override fun buildTypeSpec(typeSpecBuilder: TypeSpec.Builder, originatingElement: AstClass): TypeSpec {
-        require(originatingElement is KSAstClass)
-        return typeSpecBuilder
-            .addOriginatingKSFile(originatingElement.declaration.containingFile!!)
-            .build()
+    override fun TypeSpec.Builder.build(elements: List<AstClass>): TypeSpec {
+        val files = elements.mapNotNull { (it as KSAstClass).declaration.containingFile }.toSet()
+        for (file in files) {
+            addOriginatingKSFile(file)
+        }
+        return build()
     }
 }
 
