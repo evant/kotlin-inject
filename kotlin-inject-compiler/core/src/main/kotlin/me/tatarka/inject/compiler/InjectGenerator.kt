@@ -66,7 +66,7 @@ class InjectGenerator<Provider>(
         val scope = context.types.scopeClass
         scopeType = scope?.scopeType(options)
 
-        return provider.buildTypeSpec(
+        return with(provider) {
             TypeSpec.classBuilder(context.className)
                 .apply {
                     if (astClass.isInterface) {
@@ -141,8 +141,8 @@ class InjectGenerator<Provider>(
                         // Create a stub component to prevent extra compile errors,
                         // the original one will still be reported.
                     }
-                }, astClass
-        )
+                }.build(listOf(astClass))
+        }
     }
 
     private fun collectTypes(

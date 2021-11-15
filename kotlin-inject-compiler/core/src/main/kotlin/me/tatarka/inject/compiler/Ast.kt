@@ -65,15 +65,16 @@ abstract class AstClass : AstElement(), AstAnnotated, AstHasModifiers {
 
     abstract val type: AstType
 
-    fun visitInheritanceChain(f: (AstClass) -> Unit) {
-        f(this)
-        superTypes.forEach { it.visitInheritanceChain(f) }
-    }
-
     fun inheritanceChain(): Sequence<AstClass> = sequence {
         yield(this@AstClass)
         for (type in superTypes) {
             yieldAll(type.inheritanceChain())
+        }
+    }
+
+    fun isInstanceOf(packageName: String, name: String): Boolean {
+        return inheritanceChain().any {
+            it.packageName == packageName && it.name == name
         }
     }
 
@@ -223,5 +224,5 @@ interface AstHasModifiers {
 }
 
 interface OutputProvider {
-    fun buildTypeSpec(typeSpecBuilder: TypeSpec.Builder, originatingElement: AstClass): TypeSpec
+    fun TypeSpec.Builder.build(elements: List<AstClass>): TypeSpec
 }
