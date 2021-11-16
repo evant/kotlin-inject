@@ -149,6 +149,37 @@ abstract class NestedExternalScopedComponent(@Component val parent: ExternalChil
     abstract val foo: IExternalFoo
 }
 
+class Parameterized<E, S>
+
+@CustomScope
+@Inject
+class ParameterizedFoo(
+  private val p1: Parameterized<List<Int>, List<String>>,
+  private val p2: Parameterized<List<String>, List<String>>,
+  private val bar: ParameterizedBar
+)
+
+@CustomScope
+@Inject
+class ParameterizedBar(
+  private val p1: Parameterized<List<Int>, List<String>>,
+  private val p2: Parameterized<List<String>, List<String>>
+)
+
+@CustomScope
+@Component
+abstract class MultipleSameTypedScopedProvidesComponent {
+  abstract val foo: ParameterizedFoo
+
+  @CustomScope
+  @Provides
+  protected fun parameterized1() = Parameterized<List<Int>, List<String>>()
+
+  @CustomScope
+  @Provides
+  protected fun parameterized2() = Parameterized<List<String>, List<String>>()
+}
+
 class ScopeTest {
     @BeforeTest
     fun setup() {
@@ -251,4 +282,11 @@ class ScopeTest {
 
         assertThat(component.foo).isSameAs(component.foo)
     }
+
+  @Test
+  fun generates_a_component_when_multiple_scoped_provides_funs_have_the_same_return_type_with_different_type_args() {
+    val component = MultipleSameTypedScopedProvidesComponent::class.create()
+
+    assertThat(component.foo).isSameAs(component.foo)
+ }
 }

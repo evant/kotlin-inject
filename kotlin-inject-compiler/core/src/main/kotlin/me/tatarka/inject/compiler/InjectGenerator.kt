@@ -221,7 +221,19 @@ fun AstClass.toInjectName(): String =
 
 fun AstType.toVariableName(): String =
     simpleName.split(".")
-        .joinToString("_") { it.decapitalize(Locale.US) }
+        .joinToString("_") { it.decapitalize(Locale.US) } +
+        joinArgumentTypeNames()
+
+private fun AstType.joinArgumentTypeNames(): String = when {
+  arguments.isEmpty() -> ""
+  else -> arguments.joinToString(separator = "") {
+    it
+      .simpleName
+      .split(".")
+      .joinToString("_") +
+      it.joinArgumentTypeNames()
+  }
+}
 
 private fun dumpGraph(astClass: AstClass, entries: List<TypeResult.Provider>): String {
     val out = StringBuilder(astClass.name).append("\n")
