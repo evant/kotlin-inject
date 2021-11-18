@@ -1,8 +1,10 @@
 package me.tatarka.inject.internal
 
+import kotlin.native.concurrent.SharedImmutable
 import kotlinx.atomicfu.locks.ReentrantLock
 import kotlinx.atomicfu.locks.withLock
 
+@SharedImmutable
 private val NULL = Any()
 
 actual class LazyMap {
