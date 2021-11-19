@@ -44,28 +44,31 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
      * Resolves the given set of params. It will match position types in function args. If a param cannot be resolved,
      * but it has as default, it will be skipped.
      */
-    private fun resolveParams(context: Context, params: List<AstParam>): List<TypeResultRef> {
+    private fun resolveParams(context: Context, params: List<AstParam>): Map<String, TypeResultRef> {
         val size = params.size
         val args = context.args.asReversed()
-        return params.mapIndexedNotNull { i, param ->
+        val paramsWithName = LinkedHashMap<String, TypeResultRef>(size)
+        params.forEachIndexed { i, param ->
             val indexFromEnd = size - i - 1
             val key = TypeKey(param.type, param.qualifier(options))
             val arg = args.getOrNull(indexFromEnd)
             if (arg != null) {
                 val (type, name) = arg
                 if (type.isAssignableFrom(key.type)) {
-                    return@mapIndexedNotNull TypeResultRef(key, TypeResult.Arg(name))
+                  paramsWithName[param.name] = TypeResultRef(key, TypeResult.Arg(name))
+                  return@forEachIndexed
                 }
             }
             val result = resolveOrNull(context, key)
             if (result != null) {
-                return@mapIndexedNotNull result
+                paramsWithName[param.name] = result
+                return@forEachIndexed
             }
-            if (param.hasDefault) {
-                return@mapIndexedNotNull null
+            if (!param.hasDefault) {
+                throw FailedToGenerateException(cannotFind(key))
             }
-            throw FailedToGenerateException(cannotFind(key))
         }
+        return paramsWithName
     }
 
     /**
@@ -165,7 +168,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             isProperty = method is AstProperty,
             parameters = (method as? AstFunction)?.let {
                 resolveParams(context, it.parameters)
-            } ?: emptyList(),
+            } ?: emptyMap(),
         )
     }
 
