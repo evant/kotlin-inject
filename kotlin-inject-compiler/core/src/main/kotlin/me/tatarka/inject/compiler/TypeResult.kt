@@ -39,12 +39,12 @@ sealed class TypeResult {
         val accessor: Accessor = Accessor.Empty,
         val receiver: TypeResultRef? = null,
         val isProperty: Boolean = false,
-        val parameters: List<TypeResultRef> = emptyList(),
+        val parameters: Map<String, TypeResultRef> = emptyMap(),
     ) : TypeResult() {
         override val children
             get() = iterator {
                 receiver?.let { yield(it) }
-                yieldAll(parameters)
+                yieldAll(parameters.values)
             }
     }
 
@@ -65,10 +65,10 @@ sealed class TypeResult {
      */
     class Constructor(
         val type: AstType,
-        val parameters: List<TypeResultRef>
+        val parameters: Map<String, TypeResultRef>
     ) : TypeResult() {
         override val children
-            get() = parameters.iterator()
+            get() = parameters.values.iterator()
     }
 
     /**
@@ -99,10 +99,10 @@ sealed class TypeResult {
     class NamedFunction(
         val name: MemberName,
         val args: List<String>,
-        val parameters: List<TypeResultRef>,
+        val parameters: Map<String, TypeResultRef>,
     ) : TypeResult() {
         override val children
-            get() = parameters.iterator()
+            get() = parameters.values.iterator()
     }
 
     /**

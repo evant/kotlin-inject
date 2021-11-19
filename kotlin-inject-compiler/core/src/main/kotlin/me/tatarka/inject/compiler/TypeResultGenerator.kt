@@ -116,13 +116,20 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
                 add("%N", methodName)
             } else {
                 add("%N(", methodName)
-                parameters.forEachIndexed { i, param ->
+                if (parameters.isNotEmpty()) {
+                    add("\n⇥")
+                }
+                parameters.entries.forEachIndexed { i, (paramName, param) ->
                     if (i != 0) {
-                        add(", ")
+                        add(",\n")
                     }
                     with(if (changeScope) copy(implicitAccessor = accessor) else this@TypeResultGenerator) {
+                        add("$paramName = ")
                         add(param.generate())
                     }
+                }
+                if (parameters.isNotEmpty()) {
+                    add("\n⇤")
                 }
                 add(")")
             }
@@ -138,17 +145,19 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
         return CodeBlock.builder().apply {
             add("%T(", type.asTypeName())
             if (parameters.isNotEmpty()) {
-              val constructorParams = type.toAstClass().primaryConstructor?.parameters ?: emptyList()
               add("\n⇥")
-              parameters.forEachIndexed { i, param ->
+              val isNamedArgumentsSupported = type.toAstClass().primaryConstructor != null
+              parameters.entries.forEachIndexed { i, (paramName, param) ->
                 if (i != 0) {
                   add(",\n")
                 }
-                if (i in constructorParams.indices) {
-                  add(constructorParams[i].name)
-                  add(" = ")
+                when {
+                  isNamedArgumentsSupported -> {
+                    add("$paramName = ")
+                    add(param.generate())
+                  }
+                  else -> add(param.generate())
                 }
-                add(param.generate())
               }
               add("\n⇤")
             }
@@ -272,11 +281,18 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
             add("\n⇥")
 
             add("%M(", name)
-            parameters.forEachIndexed { i, param ->
+            if (parameters.isNotEmpty()) {
+                add("\n⇥")
+            }
+            parameters.entries.forEachIndexed { i, (paramName, param) ->
                 if (i != 0) {
-                    add(", ")
+                    add(",\n")
                 }
+                add("$paramName = ")
                 add(param.generate())
+            }
+            if (parameters.isNotEmpty()) {
+                add("\n⇤")
             }
             add(")")
 
