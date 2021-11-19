@@ -118,7 +118,7 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
                 add("%N(", methodName)
                 parameters.forEachIndexed { i, param ->
                     if (i != 0) {
-                        add(",")
+                        add(", ")
                     }
                     with(if (changeScope) copy(implicitAccessor = accessor) else this@TypeResultGenerator) {
                         add(param.generate())
@@ -128,8 +128,8 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
             }
 
             if (changeScope) {
-                add("\n")
-                endControlFlow()
+                // don't use endControlFlow() because it emits a newline after the closing brace
+                add("\n⇤}")
             }
         }.build()
     }
@@ -137,11 +137,20 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
     private fun TypeResult.Constructor.generate(): CodeBlock {
         return CodeBlock.builder().apply {
             add("%T(", type.asTypeName())
-            parameters.forEachIndexed { i, param ->
+            if (parameters.isNotEmpty()) {
+              val constructorParams = type.toAstClass().primaryConstructor?.parameters ?: emptyList()
+              add("\n⇥")
+              parameters.forEachIndexed { i, param ->
                 if (i != 0) {
-                    add(",")
+                  add(",\n")
+                }
+                if (i in constructorParams.indices) {
+                  add(constructorParams[i].name)
+                  add(" = ")
                 }
                 add(param.generate())
+              }
+              add("\n⇤")
             }
             add(")")
         }.build()
@@ -167,8 +176,8 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
             add(")")
             beginControlFlow("")
             add(result.generate())
-            add("\n")
-            endControlFlow()
+            // don't use endControlFlow() because it emits a newline after the closing brace
+            add("\n⇤}")
         }.build()
     }
 
@@ -215,19 +224,22 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
     private fun TypeResult.Container.generate(): CodeBlock {
         return CodeBlock.builder().apply {
             add("$creator(")
+            add("\n⇥")
             args.forEachIndexed { index, arg ->
                 if (index != 0) {
-                    add(", ")
+                    add(",\n")
                 }
                 add(arg.generate())
             }
+            add("\n⇤")
             add(")")
         }.build()
     }
 
     private fun TypeResult.Function.generate(): CodeBlock {
         return CodeBlock.builder().apply {
-            beginControlFlow("")
+            // don't use beginControlFlow() so the arg list can be kept on the same line
+            add("{")
             args.forEachIndexed { index, arg ->
                 if (index != 0) {
                     add(",")
@@ -237,14 +249,17 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
             if (args.isNotEmpty()) {
                 add(" ->")
             }
+            add("\n⇥")
             add(result.generate())
-            endControlFlow()
+            // don't use endControlFlow() because it emits a newline after the closing brace
+            add("\n⇤}")
         }.build()
     }
 
     private fun TypeResult.NamedFunction.generate(): CodeBlock {
         return CodeBlock.builder().apply {
-            beginControlFlow("")
+            // don't use beginControlFlow() so the arg list can be kept on the same line
+            add("{")
             args.forEachIndexed { index, arg ->
                 if (index != 0) {
                     add(",")
@@ -254,17 +269,19 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
             if (args.isNotEmpty()) {
                 add(" ->")
             }
+            add("\n⇥")
 
             add("%M(", name)
             parameters.forEachIndexed { i, param ->
                 if (i != 0) {
-                    add(",")
+                    add(", ")
                 }
                 add(param.generate())
             }
             add(")")
 
-            endControlFlow()
+            // don't use endControlFlow() because it emits a newline after the closing brace
+            add("\n⇤}")
         }.build()
     }
 
@@ -284,8 +301,8 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
         return CodeBlock.builder().apply {
             beginControlFlow("lazy")
             add(result.generate())
-            add("\n")
-            endControlFlow()
+            // don't use endControlFlow() because it emits a newline after the closing brace
+            add("\n⇤}")
         }.build()
     }
 
