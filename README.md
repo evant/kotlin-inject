@@ -99,7 +99,7 @@ class. An implementation of this component will be generated for you.
     abstract val repo: Repository
 ```
 
-In you component you can declare abstract read-only properties or functions to return an instance of a given type. This
+In your component you can declare abstract read-only properties or functions to return an instance of a given type. This
 is where the magic happens. kotlin-inject will figure out how to construct that type for you in it's generated
 implementation. How does it know how to do this? There's a few ways:
 
