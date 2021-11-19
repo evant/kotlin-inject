@@ -65,7 +65,8 @@ sealed class TypeResult {
      */
     class Constructor(
         val type: AstType,
-        val parameters: Map<String, TypeResultRef>
+        val parameters: Map<String, TypeResultRef>,
+        val supportsNamedArguments: Boolean
     ) : TypeResult() {
         override val children
             get() = parameters.values.iterator()

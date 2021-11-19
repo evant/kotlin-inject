@@ -146,7 +146,7 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
             add("%T(", type.asTypeName())
             if (parameters.isNotEmpty()) {
               add("\n⇥")
-              val isNamedArgumentsSupported = type.toAstClass().primaryConstructor != null
+              val isNamedArgumentsSupported = supportsNamedArguments
               parameters.entries.forEachIndexed { i, (paramName, param) ->
                 if (i != 0) {
                   add(",\n")

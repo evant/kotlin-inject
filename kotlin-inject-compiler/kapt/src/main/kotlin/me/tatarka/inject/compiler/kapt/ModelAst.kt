@@ -211,6 +211,7 @@ private class PrimitiveModelAstClass(
     override val type: ModelAstType
 ) : AstClass() {
 
+    override val isJavaClass: Boolean = false
     override val packageName: String = "kotlin"
     override val name: String = type.toString()
     override val visibility: KModifier = KModifier.PUBLIC
@@ -243,6 +244,8 @@ private class ModelAstClass(
 ) : AstClass(), ModelAstAnnotated {
 
     val kmClass: KmClass? = element.metadata?.toKmClass()
+
+    override val isJavaClass: Boolean = kmClass == null
 
     override val packageName: String
         get() {
