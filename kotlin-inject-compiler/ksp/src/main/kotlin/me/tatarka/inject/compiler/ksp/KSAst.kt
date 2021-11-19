@@ -23,6 +23,7 @@ import com.google.devtools.ksp.symbol.KSTypeReference
 import com.google.devtools.ksp.symbol.KSValueParameter
 import com.google.devtools.ksp.symbol.Modifier
 import com.google.devtools.ksp.symbol.Nullability
+import com.google.devtools.ksp.symbol.Origin
 import com.google.devtools.ksp.symbol.Variance
 import com.google.devtools.ksp.symbol.Visibility
 import com.squareup.kotlinpoet.ClassName
@@ -165,6 +166,8 @@ private class KSAstBasicElement(private val declaration: KSDeclaration) : AstBas
 
 private class KSAstClass(override val resolver: Resolver, override val declaration: KSClassDeclaration) :
     AstClass(), KSAstHasModifiers {
+    override val isJavaClass: Boolean
+        get() = declaration.origin == Origin.JAVA || declaration.origin == Origin.JAVA_LIB
 
     override val packageName: String
         get() = declaration.packageName.asString()

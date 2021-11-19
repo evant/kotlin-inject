@@ -44,6 +44,7 @@ abstract class AstBasicElement : AstElement() {
 }
 
 abstract class AstClass : AstElement(), AstAnnotated, AstHasModifiers {
+    abstract val isJavaClass: Boolean
 
     abstract val packageName: String
 
@@ -105,6 +106,8 @@ sealed class AstMethod : AstElement(), AstAnnotated, AstHasModifiers {
 
 abstract class AstConstructor(private val parent: AstClass) : AstElement(), AstAnnotated {
     val type: AstType get() = parent.type
+
+    val supportsNamedArguments get() = !parent.isJavaClass
 
     abstract val parameters: List<AstParam>
 

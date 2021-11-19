@@ -187,6 +187,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             TypeResult.Constructor(
                 type = constructor.type,
                 parameters = resolveParams(context, constructor.parameters),
+                supportsNamedArguments = constructor.supportsNamedArguments
             )
         }
 
