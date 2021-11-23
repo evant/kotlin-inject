@@ -55,8 +55,8 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             if (arg != null) {
                 val (type, name) = arg
                 if (type.isAssignableFrom(key.type)) {
-                  paramsWithName[param.name] = TypeResultRef(key, TypeResult.Arg(name))
-                  return@forEachIndexed
+                    paramsWithName[param.name] = TypeResultRef(key, TypeResult.Arg(name))
+                    return@forEachIndexed
                 }
             }
             val result = resolveOrNull(context, key)
@@ -206,13 +206,11 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         context: Context,
         key: TypeKey,
         args: List<AstType>
-    ): TypeResult {
+    ): TypeResult? {
         cycleDetector.delayedConstruction()
         val namedArgs = args.mapIndexed { i, arg -> arg to "arg$i" }
-        return TypeResult.Function(
-            args = namedArgs.map { it.second },
-            result = resolve(context.withArgs(namedArgs), key)
-        )
+        val result = resolveOrNull(context.withArgs(namedArgs), key) ?: return null
+        return TypeResult.Function(args = namedArgs.map { it.second }, result = result)
     }
 
     private fun NamedFunction(
@@ -234,9 +232,10 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         )
     }
 
-    private fun Lazy(context: Context, key: TypeKey): TypeResult {
+    private fun Lazy(context: Context, key: TypeKey): TypeResult? {
         cycleDetector.delayedConstruction()
-        return maybeLateInit(key, TypeResult.Lazy(resolve(context, key)))
+        val result = resolveOrNull(context, key) ?: return null
+        return maybeLateInit(key, TypeResult.Lazy(result))
     }
 
     private fun LateInit(
