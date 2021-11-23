@@ -8,17 +8,27 @@ import me.tatarka.inject.annotations.Provides
 import kotlin.test.Test
 
 @Inject
-class FooWithDefault(override val name: String = "default") : IFooWithDefault
+class FooWithDefault(
+    override val name: String = "default",
+    override val fn: () -> String = { "default" },
+    override val lazy: Lazy<String> = lazy { "default" },
+) : IFooWithDefault
 
 interface IFooWithDefault {
     val name: String
+    val fn: () -> String
+    val lazy: Lazy<String>
 }
 
 typealias fooWithDefaultFun = () -> IFooWithDefault
 
 @Inject
-fun fooWithDefaultFun(name: String = "default"): IFooWithDefault {
-    return FooWithDefault(name)
+fun fooWithDefaultFun(
+    name: String = "default",
+    fn: () -> String = { "default" },
+    lazy: Lazy<String> = lazy { "default" },
+): IFooWithDefault {
+    return FooWithDefault(name, fn, lazy)
 }
 
 @Component
@@ -28,7 +38,11 @@ abstract class UseDefaultComponent {
     abstract val fooFun: fooWithDefaultFun
 
     @Provides
-    fun iFoo(name: String = "default"): IFooWithDefault = FooWithDefault(name)
+    fun iFoo(
+        name: String = "default",
+        fn: () -> String = { "default" },
+        lazy: Lazy<String> = lazy { "default" },
+    ): IFooWithDefault = FooWithDefault(name, fn, lazy)
 }
 
 @Component
@@ -41,7 +55,11 @@ abstract class OverrideDefaultComponent {
         @Provides get() = "override"
 
     @Provides
-    fun iFoo(name: String = "default"): IFooWithDefault = FooWithDefault(name)
+    fun iFoo(
+        name: String = "default",
+        fn: () -> String = { "default" },
+        lazy: Lazy<String> = lazy { "default" },
+    ): IFooWithDefault = FooWithDefault(name, fn, lazy)
 }
 
 class DefaultParamTest {
@@ -50,8 +68,14 @@ class DefaultParamTest {
         val component = UseDefaultComponent::class.create()
 
         assertThat(component.foo.name).isEqualTo("default")
+        assertThat(component.foo.fn()).isEqualTo("default")
+        assertThat(component.foo.lazy.value).isEqualTo("default")
         assertThat(component.iFoo.name).isEqualTo("default")
+        assertThat(component.iFoo.fn()).isEqualTo("default")
+        assertThat(component.iFoo.lazy.value).isEqualTo("default")
         assertThat(component.fooFun().name).isEqualTo("default")
+        assertThat(component.fooFun().fn()).isEqualTo("default")
+        assertThat(component.fooFun().lazy.value).isEqualTo("default")
     }
 
     @Test
@@ -59,7 +83,13 @@ class DefaultParamTest {
         val component = OverrideDefaultComponent::class.create()
 
         assertThat(component.foo.name).isEqualTo("override")
+        assertThat(component.foo.fn()).isEqualTo("override")
+        assertThat(component.foo.lazy.value).isEqualTo("override")
         assertThat(component.iFoo.name).isEqualTo("override")
+        assertThat(component.iFoo.fn()).isEqualTo("override")
+        assertThat(component.iFoo.lazy.value).isEqualTo("override")
         assertThat(component.fooFun().name).isEqualTo("override")
+        assertThat(component.fooFun().fn()).isEqualTo("override")
+        assertThat(component.fooFun().lazy.value).isEqualTo("override")
     }
 }
