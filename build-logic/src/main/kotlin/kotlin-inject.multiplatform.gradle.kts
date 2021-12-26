@@ -19,12 +19,6 @@ kotlin {
     js(BOTH) {
         browser()
         nodejs()
-        // suppress noisy 'Reflection is not supported in JavaScript target'
-        for (compilation in arrayOf("main", "test")) {
-            compilations.getByName(compilation).kotlinOptions {
-                suppressWarnings = true
-            }
-        }
     }
 
     for (target in nativeTargets) {
