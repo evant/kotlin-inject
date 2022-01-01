@@ -5,7 +5,7 @@ orbs:
 _defaults: &defaults
   working_directory: ~/code
   environment:
-    JVM_OPTS: -Xmx3200m
+    JVM_OPTS: -Xmx4G
 commands:
   with_cache:
     description: "Caches and restores gradle dependencies"
@@ -45,6 +45,7 @@ jobs:
   build-linux:
     docker:
       - image: cimg/openjdk:11.0.11-browsers@sha256:02d8ac1beb99bff9c303376388355c6f87f9e29960804e920f01f30547214f7c
+    resource_class: medium+
     <<: *defaults
     steps:
       # Work-around kotlin native using an old version of libtinfo https://github.com/circleci/circleci-images/issues/430
