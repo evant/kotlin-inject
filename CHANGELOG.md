@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] 2022-01-01
+
+### Changed
+
+- Improved generated code formatting.
+- Removed explicit retention annotation to get rid of kotlin js warnings.
+
+### Fixed
+
+- Fixes conflicting declarations when scoped `@Provides` functions returned the same type with different generic args.
+- Fixes default parameter handling with lambda or lazy values. 
+- Fixes to kotlin native implementation that should make it more usable across threads.
+  Note: the new memory model limitation is still present, but you can use https://github.com/touchlab/Stately to wrap
+  the access when using the legacy memory model.
+
 ## [0.4.0] 2021-11-12
 
 ### Changed
