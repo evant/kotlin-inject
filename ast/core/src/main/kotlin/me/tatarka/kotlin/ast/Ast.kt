@@ -236,4 +236,3 @@ enum class AstVisibility {
         INTERNAL -> KModifier.INTERNAL
     }
 }
-
