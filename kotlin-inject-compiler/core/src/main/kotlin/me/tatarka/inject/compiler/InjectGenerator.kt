@@ -12,7 +12,7 @@ import me.tatarka.kotlin.ast.AstAnnotation
 import me.tatarka.kotlin.ast.AstClass
 import me.tatarka.kotlin.ast.AstConstructor
 import me.tatarka.kotlin.ast.AstFunction
-import me.tatarka.kotlin.ast.AstMethod
+import me.tatarka.kotlin.ast.AstMember
 import me.tatarka.kotlin.ast.AstProperty
 import me.tatarka.kotlin.ast.AstProvider
 import me.tatarka.kotlin.ast.AstType
@@ -81,14 +81,14 @@ class InjectGenerator(
                 .addOriginatingElement(astClass)
                 .apply {
                     if (astClass.isInterface) {
-                        addSuperinterface(astClass.asClassName())
+                        addSuperinterface(astClass.toClassName())
                     } else {
-                        superclass(astClass.asClassName())
+                        superclass(astClass.toClassName())
                     }
                     if (scope != null) {
                         addSuperinterface(SCOPED_COMPONENT)
                     }
-                    addModifiers(astClass.visibility.toModifier())
+                    addModifiers(astClass.visibility.toKModifier())
                     if (constructor != null) {
                         val funSpec = FunSpec.constructorBuilder()
                         val params = constructor.parameters
@@ -101,9 +101,9 @@ class InjectGenerator(
                                 }
                             }
                         }
-                        val paramSpecs = params.map { it.asParameterSpec() }
+                        val paramSpecs = params.map { it.toParameterSpec() }
                         val nonDefaultParamSpecs =
-                            constructor.parameters.filter { !it.hasDefault }.map { it.asParameterSpec() }
+                            constructor.parameters.filter { !it.hasDefault }.map { it.toParameterSpec() }
                         if (paramSpecs.size == nonDefaultParamSpecs.size) {
                             for (p in paramSpecs) {
                                 funSpec.addParameter(p)
@@ -184,7 +184,7 @@ fun AstAnnotated.scopeType(options: Options): AstType? {
 
 fun AstAnnotated.isComponent() = hasAnnotation(COMPONENT.packageName, COMPONENT.simpleName)
 
-fun AstMethod.isProvides() = hasAnnotation(PROVIDES.packageName, PROVIDES.simpleName)
+fun AstMember.isProvides() = hasAnnotation(PROVIDES.packageName, PROVIDES.simpleName)
 
 fun AstAnnotated.isInject() = hasAnnotation(INJECT.packageName, INJECT.simpleName)
 
@@ -221,14 +221,14 @@ fun AstAnnotated.qualifier(options: Options): AstAnnotation? {
     }
 }
 
-fun AstMethod.isProvider(): Boolean =
+fun AstMember.isProvider(): Boolean =
     !isProvides() && isAbstract && when (this) {
         is AstFunction -> parameters.isEmpty()
         is AstProperty -> true
     } && receiverParameterType == null && returnType.isNotUnit()
 
 fun AstClass.toInjectName(): String =
-    "Inject${asClassName().simpleNames.joinToString("_")}"
+    "Inject${toClassName().simpleNames.joinToString("_")}"
 
 fun AstType.toVariableName(): String =
     simpleName.split(".")

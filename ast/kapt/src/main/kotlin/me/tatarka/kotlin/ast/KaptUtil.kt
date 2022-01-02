@@ -20,6 +20,10 @@ import kotlinx.metadata.KmValueParameter
 import kotlinx.metadata.jvm.JvmMethodSignature
 import kotlinx.metadata.jvm.KotlinClassHeader
 import kotlinx.metadata.jvm.KotlinClassMetadata
+import me.tatarka.kotlin.ast.internal.HashCollector
+import me.tatarka.kotlin.ast.internal.collectHash
+import me.tatarka.kotlin.ast.internal.eqv
+import me.tatarka.kotlin.ast.internal.eqvItr
 import javax.lang.model.element.AnnotationMirror
 import javax.lang.model.element.Element
 import javax.lang.model.element.ExecutableElement

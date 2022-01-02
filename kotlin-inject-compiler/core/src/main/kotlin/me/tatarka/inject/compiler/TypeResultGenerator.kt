@@ -26,7 +26,7 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
 
         if (isProperty) {
             typeSpec.addProperty(
-                PropertySpec.builder(name, returnType.asTypeName())
+                PropertySpec.builder(name, returnType.toTypeName())
                     .apply {
                         if (isPrivate) addModifiers(KModifier.PRIVATE)
                         if (isOverride) addModifiers(KModifier.OVERRIDE)
@@ -35,7 +35,7 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
             )
         } else {
             typeSpec.addFunction(
-                FunSpec.builder(name).returns(returnType.asTypeName())
+                FunSpec.builder(name).returns(returnType.toTypeName())
                     .apply {
                         if (isPrivate) addModifiers(KModifier.PRIVATE)
                         if (isOverride) addModifiers(KModifier.OVERRIDE)
@@ -143,7 +143,7 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
 
     private fun TypeResult.Constructor.generate(): CodeBlock {
         return CodeBlock.builder().apply {
-            add("%T(", type.asTypeName())
+            add("%T(", type.toTypeName())
             if (parameters.isNotEmpty()) {
               add("\n⇥")
               val isNamedArgumentsSupported = supportsNamedArguments
@@ -181,7 +181,7 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
             if (key.qualifier != null) {
                 add("%S + ", key.qualifier)
             }
-            addTypeName(key.type.asTypeName())
+            addTypeName(key.type.toTypeName())
             add(")")
             beginControlFlow("")
             add(result.generate())
@@ -302,7 +302,7 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
     }
 
     private fun TypeResult.Object.generate(): CodeBlock {
-        return CodeBlock.builder().add("%T", type.asTypeName()).build()
+        return CodeBlock.builder().add("%T", type.toTypeName()).build()
     }
 
     private fun TypeResult.Arg.generate(): CodeBlock {
@@ -325,7 +325,7 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
     private fun TypeResult.LateInit.generate(): CodeBlock {
         return CodeBlock.builder().apply {
             beginControlFlow("run")
-            addStatement("lateinit var %N: %T", name, result.key.type.asTypeName())
+            addStatement("lateinit var %N: %T", name, result.key.type.toTypeName())
             add(result.generate())
             beginControlFlow(".also")
             addStatement("%N = it", name)

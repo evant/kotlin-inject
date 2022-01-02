@@ -6,6 +6,10 @@ import com.google.devtools.ksp.symbol.KSDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.KSTypeParameter
 import com.google.devtools.ksp.symbol.KSTypeReference
+import me.tatarka.kotlin.ast.internal.HashCollector
+import me.tatarka.kotlin.ast.internal.collectHash
+import me.tatarka.kotlin.ast.internal.eqv
+import me.tatarka.kotlin.ast.internal.eqvItr
 
 internal fun KSAnnotated.annotationAnnotatedWith(packageName: String, simpleName: String): KSAnnotation? {
     for (annotation in annotations) {

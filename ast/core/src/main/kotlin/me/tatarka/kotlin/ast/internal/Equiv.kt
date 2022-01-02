@@ -1,4 +1,4 @@
-package me.tatarka.kotlin.ast
+package me.tatarka.kotlin.ast.internal
 
 fun <T> Iterable<T>.eqvItr(other: Iterable<T>, eqv: (T, T) -> Boolean): Boolean {
     val itr1 = iterator()
