@@ -5,7 +5,7 @@ import me.tatarka.inject.compiler.ContainerCreator.setOf
 import me.tatarka.kotlin.ast.AstClass
 import me.tatarka.kotlin.ast.AstConstructor
 import me.tatarka.kotlin.ast.AstElement
-import me.tatarka.kotlin.ast.AstMethod
+import me.tatarka.kotlin.ast.AstMember
 import me.tatarka.kotlin.ast.AstProvider
 import me.tatarka.kotlin.ast.AstType
 import me.tatarka.kotlin.ast.AstVisibility
@@ -27,7 +27,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
 
     inner class Result internal constructor(
         val scopeClass: AstClass?,
-        val providerMethods: List<AstMethod>,
+        val providerMethods: List<AstMember>,
         val valid: Boolean,
     ) {
         // Map of types to inject and how to obtain them.
@@ -114,7 +114,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
         private fun addContainerType(
             key: TypeKey,
             creator: ContainerCreator,
-            method: AstMethod,
+            method: AstMember,
             accessor: Accessor,
             scopedComponent: AstClass?
         ) {
@@ -132,7 +132,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
             }
         }
 
-        private fun addMethod(key: TypeKey, method: AstMethod, accessor: Accessor, scopedComponent: AstClass?) {
+        private fun addMethod(key: TypeKey, method: AstMember, accessor: Accessor, scopedComponent: AstClass?) {
             val oldValue = types[key]
             if (oldValue == null) {
                 types[key] = method(method, accessor, scopedComponent)
@@ -141,14 +141,14 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
             }
         }
 
-        private fun addProviderMethod(key: TypeKey, method: AstMethod, accessor: Accessor) {
+        private fun addProviderMethod(key: TypeKey, method: AstMember, accessor: Accessor) {
             // Skip adding if already provided by child component.
             if (!providerTypes.containsKey(key)) {
                 providerTypes[key] = method(method, accessor, scopedComponent = null)
             }
         }
 
-        private fun method(method: AstMethod, accessor: Accessor, scopedComponent: AstClass?) = TypeCreator.Method(
+        private fun method(method: AstMember, accessor: Accessor, scopedComponent: AstClass?) = TypeCreator.Method(
             method = method,
             accessor = accessor,
             scopedComponent = scopedComponent
@@ -195,9 +195,9 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
         return typeInfoCache.getOrPut(astClass.toString()) {
             val isComponent = astClass.isComponent()
 
-            val concreteMethods = mutableSetOf<AstMethod>()
-            val providesMethods = mutableListOf<AstMethod>()
-            val providerMethods = mutableListOf<AstMethod>()
+            val concreteMethods = mutableSetOf<AstMember>()
+            val providesMethods = mutableListOf<AstMember>()
+            val providerMethods = mutableListOf<AstMember>()
 
             var scopeClass: AstClass? = null
             var elementScope: AstType? = null
@@ -271,8 +271,8 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
 }
 
 class TypeInfo(
-    val providesMethods: List<AstMethod> = emptyList(),
-    val providerMethods: List<AstMethod> = emptyList(),
+    val providesMethods: List<AstMember> = emptyList(),
+    val providerMethods: List<AstMember> = emptyList(),
     val scopeClass: AstClass? = null,
     val elementScope: AstType? = null,
     val valid: Boolean = true,
@@ -289,7 +289,7 @@ sealed class TypeCreator(val source: AstElement) {
     ) : TypeCreator(constructor)
 
     class Method(
-        val method: AstMethod,
+        val method: AstMember,
         val accessor: Accessor = Accessor.Empty,
         val scopedComponent: AstClass? = null
     ) : TypeCreator(method)

@@ -20,7 +20,7 @@ class CreateGenerator(private val astProvider: AstProvider, private val options:
             element.companion.also {
                 if (it == null) {
                     astProvider.error(
-                        """Missing companion for class: ${element.asClassName()}.
+                        """Missing companion for class: ${element.toClassName()}.
                             |When you have the option me.tatarka.inject.generateCompanionExtensions=true you must declare a companion option on the component class for the extension function to apply to.
                             |You can do so by adding 'companion object' to the class.
                         """.trimMargin(),
@@ -32,7 +32,7 @@ class CreateGenerator(private val astProvider: AstProvider, private val options:
             null
         }
         return mutableListOf<FunSpec>().apply {
-            val typeName = element.type.asTypeName()
+            val typeName = element.type.toTypeName()
             val params = constructor?.parameters ?: emptyList()
             add(generateCreate(element, typeName, constructor, injectComponent, companion, params))
             val nonDefaultParams = constructor?.parameters?.filter { !it.hasDefault } ?: emptyList()
@@ -52,14 +52,14 @@ class CreateGenerator(private val astProvider: AstProvider, private val options:
     ): FunSpec {
         return FunSpec.builder("create")
             .apply {
-                addModifiers(element.visibility.toModifier())
+                addModifiers(element.visibility.toKModifier())
                 if (constructor != null) {
                     for (param in params) {
-                        addParameter(param.asParameterSpec())
+                        addParameter(param.toParameterSpec())
                     }
                 }
                 if (companion != null) {
-                    receiver(companion.type.asTypeName())
+                    receiver(companion.type.toTypeName())
                 } else {
                     receiver(KClass::class.asClassName().plusParameter(typeName))
                 }

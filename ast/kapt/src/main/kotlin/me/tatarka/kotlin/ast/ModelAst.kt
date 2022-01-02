@@ -193,9 +193,9 @@ private class PrimitiveModelAstClass(
     override val superTypes: Sequence<AstClass> = emptySequence()
     override val primaryConstructor: AstConstructor? = null
     override val constructors: Sequence<AstConstructor> = emptySequence()
-    override val methods: List<AstMethod> = emptyList()
+    override val methods: List<AstMember> = emptyList()
 
-    override fun asClassName(): ClassName = throw UnsupportedOperationException()
+    override fun toClassName(): ClassName = throw UnsupportedOperationException()
 
     override fun equals(other: Any?): Boolean {
         return other is PrimitiveModelAstClass && type == other.type
@@ -289,7 +289,7 @@ private class ModelAstClass(
             }
         }
 
-    override val methods: List<AstMethod>
+    override val methods: List<AstMember>
         get() {
             if (kmClass == null) return emptyList()
 
@@ -299,7 +299,7 @@ private class ModelAstClass(
                 methods[method.simpleSig] = method
             }
 
-            val result = mutableListOf<AstMethod>()
+            val result = mutableListOf<AstMember>()
             for (property in kmClass.properties) {
                 val method = methods[property.getterSignature?.simpleSig] ?: continue
                 result.add(
@@ -331,7 +331,7 @@ private class ModelAstClass(
             return ModelAstType(provider, element.asType(), kmClass?.type)
         }
 
-    override fun asClassName(): ClassName = element.asClassName()
+    override fun toClassName(): ClassName = element.asClassName()
 
     override fun equals(other: Any?): Boolean = other is ModelAstAnnotated && element == other.element
     override fun hashCode(): Int = element.hashCode()
@@ -434,12 +434,12 @@ private class ModelAstFunction(
             }
         }
 
-    override fun overrides(other: AstMethod): Boolean {
+    override fun overrides(other: AstMember): Boolean {
         require(other is ModelAstMethod)
         return provider.elements.overrides(element, other.element, parent.element)
     }
 
-    override fun asMemberName(): MemberName {
+    override fun toMemberName(): MemberName {
         return MemberName(provider.elements.getPackageOf(element).qualifiedName.toString(), name)
     }
 
@@ -490,12 +490,12 @@ private class ModelAstProperty(
             ModelAstType(provider, element.parameters[0].asType(), it)
         }
 
-    override fun overrides(other: AstMethod): Boolean {
+    override fun overrides(other: AstMember): Boolean {
         require(other is ModelAstMethod)
         return provider.elements.overrides(element, other.element, parent.element)
     }
 
-    override fun asMemberName(): MemberName {
+    override fun toMemberName(): MemberName {
         return MemberName(provider.elements.getPackageOf(element).qualifiedName.toString(), name)
     }
 
@@ -578,7 +578,7 @@ private class ModelAstType(
         }
     }
 
-    override fun asTypeName(): TypeName {
+    override fun toTypeName(): TypeName {
         return type.asTypeName(kmType)
     }
 

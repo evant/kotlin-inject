@@ -4,7 +4,7 @@ import me.tatarka.kotlin.ast.AstClass
 import me.tatarka.kotlin.ast.AstConstructor
 import me.tatarka.kotlin.ast.AstElement
 import me.tatarka.kotlin.ast.AstFunction
-import me.tatarka.kotlin.ast.AstMethod
+import me.tatarka.kotlin.ast.AstMember
 import me.tatarka.kotlin.ast.AstParam
 import me.tatarka.kotlin.ast.AstProperty
 import me.tatarka.kotlin.ast.AstProvider
@@ -143,7 +143,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     private fun Provider(
         context: Context,
         astClass: AstClass,
-        method: AstMethod,
+        method: AstMember,
     ): TypeResult.Provider {
         val returnType = method.returnTypeFor(astClass)
         val key = TypeKey(returnType, method.qualifier(options))
@@ -164,7 +164,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     private fun Provides(
         context: Context,
         accessor: Accessor,
-        method: AstMethod,
+        method: AstMember,
         key: TypeKey,
     ) = withCycleDetection(key, method) {
         TypeResult.Provides(
@@ -236,7 +236,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             args
         }.mapIndexed { i, arg -> arg to "arg$i" }
         TypeResult.NamedFunction(
-            name = function.asMemberName(),
+            name = function.toMemberName(),
             args = namedArgs.map { it.second },
             parameters = resolveParams(context.withArgs(namedArgs), function.parameters),
         )

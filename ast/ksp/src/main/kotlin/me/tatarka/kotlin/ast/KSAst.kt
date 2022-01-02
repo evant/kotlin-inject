@@ -172,9 +172,9 @@ private class KSAstClass(override val resolver: Resolver, override val declarati
     override val constructors: Sequence<AstConstructor>
         get() = declaration.getConstructors().map { KSAstConstructor(resolver, this, it) }
 
-    override val methods: List<AstMethod>
+    override val methods: List<AstMember>
         get() {
-            return mutableListOf<AstMethod>().apply {
+            return mutableListOf<AstMember>().apply {
                 addAll(
                     declaration.getDeclaredProperties().map {
                         KSAstProperty(resolver, it)
@@ -201,7 +201,7 @@ private class KSAstClass(override val resolver: Resolver, override val declarati
         return declaration.hashCode()
     }
 
-    override fun asClassName(): ClassName {
+    override fun toClassName(): ClassName {
         return declaration.toClassName()
     }
 }
@@ -247,7 +247,7 @@ private class KSAstFunction(override val resolver: Resolver, override val declar
     override val receiverParameterType: AstType?
         get() = declaration.extensionReceiver?.let { KSAstType(resolver, it) }
 
-    override fun overrides(other: AstMethod): Boolean {
+    override fun overrides(other: AstMember): Boolean {
         if (other !is KSAstFunction) return false
         return resolver.overrides(declaration, other.declaration)
     }
@@ -276,7 +276,7 @@ private class KSAstFunction(override val resolver: Resolver, override val declar
         return declaration.hashCode()
     }
 
-    override fun asMemberName(): MemberName {
+    override fun toMemberName(): MemberName {
         val packageName = declaration.qualifiedName?.getQualifier().orEmpty()
         return MemberName(packageName, declaration.simpleName.asString())
     }
@@ -294,7 +294,7 @@ private class KSAstProperty(override val resolver: Resolver, override val declar
     override val receiverParameterType: AstType?
         get() = declaration.extensionReceiver?.let { KSAstType(resolver, it) }
 
-    override fun overrides(other: AstMethod): Boolean {
+    override fun overrides(other: AstMember): Boolean {
         if (other !is KSAstProperty) return false
         return resolver.overrides(declaration, other.declaration)
     }
@@ -333,7 +333,7 @@ private class KSAstProperty(override val resolver: Resolver, override val declar
         return declaration.hashCode()
     }
 
-    override fun asMemberName(): MemberName {
+    override fun toMemberName(): MemberName {
         val packageName = declaration.qualifiedName?.getQualifier().orEmpty()
         return MemberName(packageName, declaration.simpleName.toString())
     }
@@ -417,7 +417,7 @@ private class KSAstType private constructor(
         return typeRef.toString().shortenPackage()
     }
 
-    override fun asTypeName(): TypeName {
+    override fun toTypeName(): TypeName {
         return typeRef.toTypeName()
     }
 }

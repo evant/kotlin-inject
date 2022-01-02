@@ -21,7 +21,7 @@ interface AstProvider {
 
     fun AstElement.toTrace(): String
 
-    fun TypeSpec.Builder.addOriginatingElement(element: AstClass) : TypeSpec.Builder
+    fun TypeSpec.Builder.addOriginatingElement(element: AstClass): TypeSpec.Builder
 }
 
 interface Messenger {
@@ -61,7 +61,7 @@ abstract class AstClass : AstElement(), AstAnnotated, AstHasModifiers {
 
     abstract val constructors: Sequence<AstConstructor>
 
-    abstract val methods: List<AstMethod>
+    abstract val methods: List<AstMember>
 
     abstract val type: AstType
 
@@ -86,21 +86,21 @@ abstract class AstClass : AstElement(), AstAnnotated, AstHasModifiers {
         return if (packageName.isEmpty() || packageName == "kotlin") name else type.toString()
     }
 
-    abstract fun asClassName(): ClassName
+    abstract fun toClassName(): ClassName
 }
 
-sealed class AstMethod : AstElement(), AstAnnotated, AstHasModifiers {
+sealed class AstMember : AstElement(), AstAnnotated, AstHasModifiers {
     abstract val name: String
 
     abstract val receiverParameterType: AstType?
 
-    abstract fun overrides(other: AstMethod): Boolean
+    abstract fun overrides(other: AstMember): Boolean
 
     abstract val returnType: AstType
 
     abstract fun returnTypeFor(enclosingClass: AstClass): AstType
 
-    abstract fun asMemberName(): MemberName
+    abstract fun toMemberName(): MemberName
 }
 
 abstract class AstConstructor(private val parent: AstClass) : AstElement(), AstAnnotated {
@@ -119,7 +119,7 @@ abstract class AstConstructor(private val parent: AstClass) : AstElement(), AstA
     }
 }
 
-abstract class AstFunction : AstMethod() {
+abstract class AstFunction : AstMember() {
     abstract val parameters: List<AstParam>
 
     abstract val isSuspend: Boolean
@@ -133,7 +133,7 @@ abstract class AstFunction : AstMethod() {
     }
 }
 
-abstract class AstProperty : AstMethod() {
+abstract class AstProperty : AstMember() {
 
     abstract override fun equals(other: Any?): Boolean
 
@@ -192,7 +192,7 @@ abstract class AstType : AstElement() {
         }
     }
 
-    abstract fun asTypeName(): TypeName
+    abstract fun toTypeName(): TypeName
 }
 
 abstract class AstAnnotation : AstElement() {
@@ -215,8 +215,8 @@ abstract class AstParam : AstElement(), AstAnnotated {
         return "$name: $type"
     }
 
-    fun asParameterSpec(): ParameterSpec {
-        return ParameterSpec(name, type.asTypeName())
+    fun toParameterSpec(): ParameterSpec {
+        return ParameterSpec(name, type.toTypeName())
     }
 }
 
@@ -229,7 +229,7 @@ interface AstHasModifiers {
 enum class AstVisibility {
     PUBLIC, PRIVATE, PROTECTED, INTERNAL;
 
-    fun toModifier(): KModifier = when (this) {
+    fun toKModifier(): KModifier = when (this) {
         PUBLIC -> KModifier.PUBLIC
         PRIVATE -> KModifier.PRIVATE
         PROTECTED -> KModifier.PROTECTED
