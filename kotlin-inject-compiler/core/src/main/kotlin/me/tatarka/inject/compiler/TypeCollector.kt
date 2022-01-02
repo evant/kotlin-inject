@@ -10,7 +10,7 @@ import me.tatarka.kotlin.ast.AstProvider
 import me.tatarka.kotlin.ast.AstType
 import me.tatarka.kotlin.ast.AstVisibility
 
-class TypeCollector(private val provider: AstProvider, private val options: Options) : AstProvider by provider {
+class TypeCollector(private val provider: AstProvider, private val options: Options) {
 
     private val typeInfoCache = mutableMapOf<String, TypeInfo>()
 
@@ -61,7 +61,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
             for (method in typeInfo.providesMethods) {
                 val scopeType = method.scopeType(options)
                 if (scopeType != null && scopeType != typeInfo.elementScope) {
-                    error("@Provides scope: $scopeType must match component scope: ${typeInfo.elementScope}", method)
+                    provider.error("@Provides scope: $scopeType must match component scope: ${typeInfo.elementScope}", method)
                 }
                 val scopedComponent = if (scopeType != null) astClass else null
                 if (method.hasAnnotation(INTO_MAP.packageName, INTO_MAP.simpleName)) {
@@ -71,14 +71,14 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                     if (resolvedType.packageName == "kotlin" && resolvedType.simpleName == "Pair") {
                         val typeArgs = resolvedType.arguments
                         val mapType =
-                            TypeKey(declaredTypeOf(Map::class, typeArgs[0], typeArgs[1]), method.qualifier(options))
+                            TypeKey(provider.declaredTypeOf(Map::class, typeArgs[0], typeArgs[1]), method.qualifier(options))
                         addContainerType(mapType, mapOf, method, accessor, scopedComponent)
                     } else {
-                        error("@IntoMap must have return type of type Pair", method)
+                        provider.error("@IntoMap must have return type of type Pair", method)
                     }
                 } else if (method.hasAnnotation(INTO_SET.packageName, INTO_SET.simpleName)) {
                     // A -> Set<A>
-                    val setType = TypeKey(declaredTypeOf(Set::class, method.returnTypeFor(astClass)))
+                    val setType = TypeKey(provider.declaredTypeOf(Set::class, method.returnTypeFor(astClass)))
                     addContainerType(setType, setOf, method, accessor, scopedComponent)
                 } else {
                     val returnType = method.returnTypeFor(astClass)
@@ -88,7 +88,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                         if (providerTypes.containsKey(key)) continue
                         // We out outside the current class, so complain if not accessible
                         if (method.visibility == AstVisibility.PROTECTED) {
-                            error("@Provides method is not accessible", method)
+                            provider.error("@Provides method is not accessible", method)
                         }
                     }
                     addMethod(key, method, accessor, scopedComponent)
@@ -155,8 +155,8 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
         )
 
         private fun duplicate(key: TypeKey, newValue: AstElement, oldValue: AstElement) {
-            error("Cannot provide: $key", newValue)
-            error("as it is already provided", oldValue)
+            provider.error("Cannot provide: $key", newValue)
+            provider.error("as it is already provided", oldValue)
         }
 
         fun resolve(key: TypeKey): TypeCreator? {
@@ -169,12 +169,12 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                 return result
             }
             val astClass = key.type.toAstClass()
-            val injectCtor = astClass.findInjectConstructors(messenger, options)
+            val injectCtor = astClass.findInjectConstructors(provider.messenger, options)
             if (injectCtor != null) {
                 val scope = astClass.scopeType(options)
                 val scopedComponent = if (scope != null) scopedAccessors[scope] else null
                 if (scope != null && scopedComponent == null) {
-                    error("Cannot find component with scope: @$scope to inject $astClass", astClass)
+                    provider.error("Cannot find component with scope: @$scope to inject $astClass", astClass)
                     return null
                 }
                 return TypeCreator.Constructor(
@@ -209,8 +209,8 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                         scopeClass = parentClass
                         elementScope = parentScope
                     } else {
-                        messenger.error("Cannot apply scope: $parentScope", parentClass)
-                        messenger.error(
+                        provider.error("Cannot apply scope: $parentScope", parentClass)
+                        provider.error(
                             "as scope: $elementScope is already applied",
                             scopeClass
                         )
@@ -224,16 +224,16 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                     }
                     if (method.isProvides()) {
                         if (method.visibility == AstVisibility.PRIVATE) {
-                            error("@Provides method must not be private", method)
+                            provider.error("@Provides method must not be private", method)
                             continue
                         }
                         if (method.returnType.isUnit()) {
-                            error("@Provides method must return a value", method)
+                            provider.error("@Provides method must return a value", method)
                             continue
                         }
                         if (method.returnType.isPlatform()) {
                             val name = method.returnType.simpleName
-                            error(
+                            provider.error(
                                 """@Provides method must not return a platform type
                                 |This can happen when you call a platform method and leave off an explicit return type.
                                 |You can fix this be explicitly declaring the return type as $name or $name?"""
@@ -245,7 +245,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                         if (isComponent && abstract) {
                             val providesImpl = concreteMethods.find { it.overrides(method) }
                             if (providesImpl == null) {
-                                error("@Provides method must have a concrete implementation", method)
+                                provider.error("@Provides method must have a concrete implementation", method)
                                 continue
                             }
                             concreteMethods.remove(providesImpl)
