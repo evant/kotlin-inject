@@ -38,7 +38,7 @@ val LAZY_MAP = ClassName("me.tatarka.inject.internal", "LazyMap")
 class InjectGenerator(
     private val provider: AstProvider,
     private val options: Options,
-) : AstProvider by provider {
+) {
 
     private val createGenerator = CreateGenerator(provider, options)
     private val typeCollector = TypeCollector(provider, options)
@@ -72,7 +72,7 @@ class InjectGenerator(
         constructor: AstConstructor?
     ): TypeSpec {
         val context = collectTypes(astClass, injectName)
-        val resolver = TypeResultResolver(this, options)
+        val resolver = TypeResultResolver(provider, options)
         val scope = context.types.scopeClass
         scopeType = scope?.scopeType(options)
 
@@ -164,7 +164,7 @@ class InjectGenerator(
         val elementScopeClass = types.scopeClass
         val scopeFromParent = elementScopeClass != astClass
         return Context(
-            provider = this,
+            provider = provider,
             className = injectName,
             types = types,
             scopeInterface = if (scopeFromParent) elementScopeClass else null,
