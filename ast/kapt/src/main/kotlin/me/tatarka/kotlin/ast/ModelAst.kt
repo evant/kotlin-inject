@@ -696,12 +696,6 @@ private val KmAnnotation.type: KmType
         classifier = KmClassifier.Class(className)
     }
 
-private fun String.toKmType(args: List<KmTypeProjection>): KmType = KmType(0).apply {
-    classifier = KmClassifier.Class(this@toKmType).apply {
-        arguments.addAll(args)
-    }
-}
-
 private fun toAstVisibility(element: Element, flags: Flags?): AstVisibility {
     return if (flags != null) {
         when {

@@ -40,7 +40,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
         // Map of scoped components and the accessors to obtain them
         private val scopedAccessors = mutableMapOf<AstType, ScopedComponent>()
 
-        @Suppress("ComplexMethod", "NestedBlockDepth")
+        @Suppress("ComplexMethod", "LongMethod", "NestedBlockDepth")
         internal fun collectTypes(
             astClass: AstClass,
             accessor: Accessor,
@@ -61,7 +61,10 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
             for (method in typeInfo.providesMethods) {
                 val scopeType = method.scopeType(options)
                 if (scopeType != null && scopeType != typeInfo.elementScope) {
-                    provider.error("@Provides scope: $scopeType must match component scope: ${typeInfo.elementScope}", method)
+                    provider.error(
+                        "@Provides scope: $scopeType must match component scope: ${typeInfo.elementScope}",
+                        method
+                    )
                 }
                 val scopedComponent = if (scopeType != null) astClass else null
                 if (method.hasAnnotation(INTO_MAP.packageName, INTO_MAP.simpleName)) {
@@ -70,8 +73,9 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                     val resolvedType = type.resolvedType()
                     if (resolvedType.packageName == "kotlin" && resolvedType.simpleName == "Pair") {
                         val typeArgs = resolvedType.arguments
-                        val mapType =
-                            TypeKey(provider.declaredTypeOf(Map::class, typeArgs[0], typeArgs[1]), method.qualifier(options))
+                        val mapType = TypeKey(
+                            provider.declaredTypeOf(Map::class, typeArgs[0], typeArgs[1]), method.qualifier(options)
+                        )
                         addContainerType(mapType, mapOf, method, accessor, scopedComponent)
                     } else {
                         provider.error("@IntoMap must have return type of type Pair", method)

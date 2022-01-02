@@ -9,7 +9,6 @@ import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.tags.TypeAliasTag
 import kotlinx.metadata.Flag
-import kotlinx.metadata.Flags
 import kotlinx.metadata.KmClass
 import kotlinx.metadata.KmClassifier
 import kotlinx.metadata.KmConstructor
@@ -27,7 +26,6 @@ import me.tatarka.kotlin.ast.internal.eqvItr
 import javax.lang.model.element.AnnotationMirror
 import javax.lang.model.element.Element
 import javax.lang.model.element.ExecutableElement
-import javax.lang.model.element.Modifier
 import javax.lang.model.element.PackageElement
 import javax.lang.model.element.TypeElement
 import javax.lang.model.type.ArrayType
