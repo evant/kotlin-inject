@@ -7,6 +7,17 @@ import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
+import me.tatarka.kotlin.ast.AstAnnotated
+import me.tatarka.kotlin.ast.AstAnnotation
+import me.tatarka.kotlin.ast.AstClass
+import me.tatarka.kotlin.ast.AstConstructor
+import me.tatarka.kotlin.ast.AstFunction
+import me.tatarka.kotlin.ast.AstMethod
+import me.tatarka.kotlin.ast.AstProperty
+import me.tatarka.kotlin.ast.AstProvider
+import me.tatarka.kotlin.ast.AstType
+import me.tatarka.kotlin.ast.AstVisibility
+import me.tatarka.kotlin.ast.Messenger
 import java.util.Locale
 
 private const val ANNOTATION_PACKAGE_NAME = "me.tatarka.inject.annotations"
@@ -24,11 +35,10 @@ val JAVAX_QUALIFIER = ClassName("javax.inject", "Qualifier")
 val SCOPED_COMPONENT = ClassName("me.tatarka.inject.internal", "ScopedComponent")
 val LAZY_MAP = ClassName("me.tatarka.inject.internal", "LazyMap")
 
-class InjectGenerator<Provider>(
-    private val provider: Provider,
+class InjectGenerator(
+    private val provider: AstProvider,
     private val options: Options,
-) : AstProvider by provider
-        where Provider : AstProvider, Provider : OutputProvider {
+) : AstProvider by provider {
 
     private val createGenerator = CreateGenerator(provider, options)
     private val typeCollector = TypeCollector(provider, options)
@@ -39,7 +49,7 @@ class InjectGenerator<Provider>(
     fun generate(astClass: AstClass): FileSpec {
         if (!astClass.isAbstract) {
             throw FailedToGenerateException("@Component class: $astClass must be abstract", astClass)
-        } else if (astClass.visibility == KModifier.PRIVATE) {
+        } else if (astClass.visibility == AstVisibility.PRIVATE) {
             throw FailedToGenerateException("@Component class: $astClass must not be private", astClass)
         }
 
@@ -68,6 +78,7 @@ class InjectGenerator<Provider>(
 
         return with(provider) {
             TypeSpec.classBuilder(context.className)
+                .addOriginatingElement(astClass)
                 .apply {
                     if (astClass.isInterface) {
                         addSuperinterface(astClass.asClassName())
@@ -77,7 +88,7 @@ class InjectGenerator<Provider>(
                     if (scope != null) {
                         addSuperinterface(SCOPED_COMPONENT)
                     }
-                    addModifiers(astClass.visibility)
+                    addModifiers(astClass.visibility.toModifier())
                     if (constructor != null) {
                         val funSpec = FunSpec.constructorBuilder()
                         val params = constructor.parameters
@@ -141,7 +152,7 @@ class InjectGenerator<Provider>(
                         // Create a stub component to prevent extra compile errors,
                         // the original one will still be reported.
                     }
-                }.build(listOf(astClass))
+                }.build()
         }
     }
 

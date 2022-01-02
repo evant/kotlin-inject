@@ -1,5 +1,9 @@
 package me.tatarka.inject.compiler
 
+import me.tatarka.kotlin.ast.AstProvider
+import me.tatarka.kotlin.ast.AstClass
+import me.tatarka.kotlin.ast.AstType
+
 /**
  * A context to find types in. Holds enough info to figure out how to obtain the type.
  */

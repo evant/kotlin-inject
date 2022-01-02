@@ -1,5 +1,8 @@
 package me.tatarka.inject.compiler
 
+import me.tatarka.kotlin.ast.AstElement
+import me.tatarka.kotlin.ast.AstProvider
+
 /**
  * Builds of a stack of elements visited to see if we hit a cycle. Normally a cycle will cause a compile error. However
  * the cycle can be 'broken' by delaying construction.

@@ -5,7 +5,6 @@ plugins {
     signing
 }
 
-group = rootProject.group
 version = rootProject.version
 
 fun MavenPublication.mavenCentralPom() {
@@ -64,6 +63,7 @@ publishing {
             create<MavenPublication>("lib") {
                 from(components["java"])
                 mavenCentralPom()
+                groupId = rootProject.group.toString()
                 // We want the artifactId to represent the full project path
                 artifactId = path
                     .trimStart(':')

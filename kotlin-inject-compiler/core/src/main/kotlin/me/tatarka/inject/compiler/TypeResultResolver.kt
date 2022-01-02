@@ -1,5 +1,15 @@
 package me.tatarka.inject.compiler
 
+import me.tatarka.kotlin.ast.AstClass
+import me.tatarka.kotlin.ast.AstConstructor
+import me.tatarka.kotlin.ast.AstElement
+import me.tatarka.kotlin.ast.AstFunction
+import me.tatarka.kotlin.ast.AstMethod
+import me.tatarka.kotlin.ast.AstParam
+import me.tatarka.kotlin.ast.AstProperty
+import me.tatarka.kotlin.ast.AstProvider
+import me.tatarka.kotlin.ast.AstType
+
 /**
  * Obtains a [TypeResult] from a given [Context].
  */

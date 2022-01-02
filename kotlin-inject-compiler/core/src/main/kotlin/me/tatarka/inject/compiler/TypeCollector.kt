@@ -1,8 +1,14 @@
 package me.tatarka.inject.compiler
 
-import com.squareup.kotlinpoet.KModifier
 import me.tatarka.inject.compiler.ContainerCreator.mapOf
 import me.tatarka.inject.compiler.ContainerCreator.setOf
+import me.tatarka.kotlin.ast.AstClass
+import me.tatarka.kotlin.ast.AstConstructor
+import me.tatarka.kotlin.ast.AstElement
+import me.tatarka.kotlin.ast.AstMethod
+import me.tatarka.kotlin.ast.AstProvider
+import me.tatarka.kotlin.ast.AstType
+import me.tatarka.kotlin.ast.AstVisibility
 
 class TypeCollector(private val provider: AstProvider, private val options: Options) : AstProvider by provider {
 
@@ -81,7 +87,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                         // May have already added from a resolvable provider
                         if (providerTypes.containsKey(key)) continue
                         // We out outside the current class, so complain if not accessible
-                        if (method.visibility == KModifier.PROTECTED) {
+                        if (method.visibility == AstVisibility.PROTECTED) {
                             error("@Provides method is not accessible", method)
                         }
                     }
@@ -217,7 +223,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                         concreteMethods.add(method)
                     }
                     if (method.isProvides()) {
-                        if (method.visibility == KModifier.PRIVATE) {
+                        if (method.visibility == AstVisibility.PRIVATE) {
                             error("@Provides method must not be private", method)
                             continue
                         }

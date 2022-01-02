@@ -7,10 +7,8 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":kotlin-inject-runtime"))
-    implementation(project(":kotlin-inject-compiler:core"))
-    implementation(project(":ast:ksp"))
-    implementation(libs.ksp)
+    api(project(":ast:core"))
+    api(libs.ksp)
     implementation(libs.kotlinpoet.ksp)
 }
 

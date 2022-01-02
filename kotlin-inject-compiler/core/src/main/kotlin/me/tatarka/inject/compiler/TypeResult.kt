@@ -1,6 +1,7 @@
 package me.tatarka.inject.compiler
 
 import com.squareup.kotlinpoet.MemberName
+import me.tatarka.kotlin.ast.AstType
 
 /**
  * [TypeResult] wrapper that allows updating it's value.
