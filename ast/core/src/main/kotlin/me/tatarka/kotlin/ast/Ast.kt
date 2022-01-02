@@ -1,4 +1,4 @@
-package me.tatarka.inject.compiler
+package me.tatarka.kotlin.ast
 
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.KModifier
@@ -15,14 +15,13 @@ interface AstProvider {
 
     fun declaredTypeOf(klass: KClass<*>, vararg astTypes: AstType): AstType
 
-    fun validate(element: AstClass): Boolean
-
     fun warn(message: String, element: AstElement? = null) = messenger.warn(message, element)
 
-    fun error(message: String, element: AstElement? = null) =
-        messenger.error(message, element)
+    fun error(message: String, element: AstElement? = null) = messenger.error(message, element)
 
     fun AstElement.toTrace(): String
+
+    fun TypeSpec.Builder.addOriginatingElement(element: AstClass) : TypeSpec.Builder
 }
 
 interface Messenger {
@@ -79,8 +78,6 @@ abstract class AstClass : AstElement(), AstAnnotated, AstHasModifiers {
         }
     }
 
-    abstract fun asClassName(): ClassName
-
     abstract override fun equals(other: Any?): Boolean
 
     abstract override fun hashCode(): Int
@@ -88,6 +85,8 @@ abstract class AstClass : AstElement(), AstAnnotated, AstHasModifiers {
     override fun toString(): String {
         return if (packageName.isEmpty() || packageName == "kotlin") name else type.toString()
     }
+
+    abstract fun asClassName(): ClassName
 }
 
 sealed class AstMethod : AstElement(), AstAnnotated, AstHasModifiers {
@@ -183,8 +182,6 @@ abstract class AstType : AstElement() {
 
     abstract fun toAstClass(): AstClass
 
-    abstract fun asTypeName(): TypeName
-
     abstract fun isAssignableFrom(other: AstType): Boolean
 
     protected fun String.shortenPackage(): String {
@@ -194,6 +191,8 @@ abstract class AstType : AstElement() {
             this
         }
     }
+
+    abstract fun asTypeName(): TypeName
 }
 
 abstract class AstAnnotation : AstElement() {
@@ -212,20 +211,29 @@ abstract class AstParam : AstElement(), AstAnnotated {
 
     abstract val hasDefault: Boolean
 
-    abstract fun asParameterSpec(): ParameterSpec
-
     override fun toString(): String {
         return "$name: $type"
+    }
+
+    fun asParameterSpec(): ParameterSpec {
+        return ParameterSpec(name, type.asTypeName())
     }
 }
 
 interface AstHasModifiers {
-
-    val visibility: KModifier
+    val visibility: AstVisibility
 
     val isAbstract: Boolean
 }
 
-interface OutputProvider {
-    fun TypeSpec.Builder.build(elements: List<AstClass>): TypeSpec
+enum class AstVisibility {
+    PUBLIC, PRIVATE, PROTECTED, INTERNAL;
+
+    fun toModifier(): KModifier = when (this) {
+        PUBLIC -> KModifier.PUBLIC
+        PRIVATE -> KModifier.PRIVATE
+        PROTECTED -> KModifier.PROTECTED
+        INTERNAL -> KModifier.INTERNAL
+    }
 }
+

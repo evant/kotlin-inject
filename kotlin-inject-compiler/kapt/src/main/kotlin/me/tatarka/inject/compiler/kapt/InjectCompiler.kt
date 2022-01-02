@@ -7,11 +7,13 @@ import me.tatarka.inject.compiler.Profiler
 import javax.annotation.processing.ProcessingEnvironment
 import javax.annotation.processing.RoundEnvironment
 import javax.lang.model.element.TypeElement
+import me.tatarka.kotlin.ast.ModelAstProvider
 
 class InjectCompiler(private val profiler: Profiler? = null) : BaseInjectCompiler() {
 
     private val annotationNames = mutableSetOf<String>()
-    private lateinit var generator: InjectGenerator<*>
+    private lateinit var provider: ModelAstProvider
+    private lateinit var generator: InjectGenerator
 
     init {
         annotationNames.add(Component::class.java.canonicalName)
@@ -19,7 +21,8 @@ class InjectCompiler(private val profiler: Profiler? = null) : BaseInjectCompile
 
     override fun init(processingEnv: ProcessingEnvironment) {
         super.init(processingEnv)
-        generator = InjectGenerator(this, options)
+        provider = ModelAstProvider(env)
+        generator = InjectGenerator(provider, options)
     }
 
     @Suppress("LoopWithTooManyJumpStatements")
@@ -33,7 +36,7 @@ class InjectCompiler(private val profiler: Profiler? = null) : BaseInjectCompile
         for (element in env.getElementsAnnotatedWith(Component::class.java)) {
             if (element !is TypeElement) continue
 
-            val astClass = element.toAstClass()
+            val astClass = with(provider) { element.toAstClass() }
 
             try {
                 val file = generator.generate(astClass)
@@ -42,7 +45,7 @@ class InjectCompiler(private val profiler: Profiler? = null) : BaseInjectCompile
                 }
                 file.writeTo(filer)
             } catch (e: FailedToGenerateException) {
-                error(e.message.orEmpty(), e.element)
+                provider.error(e.message.orEmpty(), e.element)
                 // Continue so we can see all errors
                 continue
             }

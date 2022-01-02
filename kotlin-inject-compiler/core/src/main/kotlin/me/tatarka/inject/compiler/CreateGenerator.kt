@@ -6,6 +6,10 @@ import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.plusParameter
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asClassName
+import me.tatarka.kotlin.ast.AstClass
+import me.tatarka.kotlin.ast.AstConstructor
+import me.tatarka.kotlin.ast.AstParam
+import me.tatarka.kotlin.ast.AstProvider
 import kotlin.reflect.KClass
 
 class CreateGenerator(private val astProvider: AstProvider, private val options: Options) {
@@ -48,7 +52,7 @@ class CreateGenerator(private val astProvider: AstProvider, private val options:
     ): FunSpec {
         return FunSpec.builder("create")
             .apply {
-                addModifiers(element.visibility)
+                addModifiers(element.visibility.toModifier())
                 if (constructor != null) {
                     for (param in params) {
                         addParameter(param.asParameterSpec())

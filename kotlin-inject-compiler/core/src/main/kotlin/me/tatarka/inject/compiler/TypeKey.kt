@@ -1,5 +1,8 @@
 package me.tatarka.inject.compiler
 
+import me.tatarka.kotlin.ast.AstType
+import me.tatarka.kotlin.ast.AstAnnotation
+
 class TypeKey(val type: AstType, val qualifier: AstAnnotation? = null) {
 
     override fun equals(other: Any?): Boolean {

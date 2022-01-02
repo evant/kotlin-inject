@@ -8,14 +8,11 @@ import javax.lang.model.SourceVersion
 
 private const val OPTION_GENERATE_COMPANION_EXTENSIONS = "me.tatarka.inject.generateCompanionExtensions"
 
-abstract class BaseInjectCompiler :
-    AbstractProcessor(),
-    ModelAstProvider,
-    ModelOutputProvider {
+abstract class BaseInjectCompiler : AbstractProcessor() {
 
     protected lateinit var options: Options
     protected lateinit var filer: Filer
-    override lateinit var env: ProcessingEnvironment
+    protected lateinit var env: ProcessingEnvironment
 
     open override fun init(processingEnv: ProcessingEnvironment) {
         super.init(processingEnv)

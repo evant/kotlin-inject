@@ -1,9 +1,7 @@
-package me.tatarka.inject.compiler.kapt
+package me.tatarka.kotlin.ast
 
 import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.MemberName
-import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asClassName
@@ -22,20 +20,6 @@ import kotlinx.metadata.KmValueParameter
 import kotlinx.metadata.KmVariance
 import kotlinx.metadata.jvm.getterSignature
 import kotlinx.metadata.jvm.signature
-import me.tatarka.inject.compiler.AstAnnotated
-import me.tatarka.inject.compiler.AstAnnotation
-import me.tatarka.inject.compiler.AstBasicElement
-import me.tatarka.inject.compiler.AstClass
-import me.tatarka.inject.compiler.AstConstructor
-import me.tatarka.inject.compiler.AstElement
-import me.tatarka.inject.compiler.AstFunction
-import me.tatarka.inject.compiler.AstMethod
-import me.tatarka.inject.compiler.AstParam
-import me.tatarka.inject.compiler.AstProperty
-import me.tatarka.inject.compiler.AstProvider
-import me.tatarka.inject.compiler.AstType
-import me.tatarka.inject.compiler.Messenger
-import me.tatarka.inject.compiler.OutputProvider
 import javax.annotation.processing.Messager
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.AnnotationMirror
@@ -58,9 +42,7 @@ import javax.lang.model.util.Types
 import javax.tools.Diagnostic
 import kotlin.reflect.KClass
 
-interface ModelAstProvider : AstProvider {
-
-    val env: ProcessingEnvironment
+class ModelAstProvider(private val env: ProcessingEnvironment) : AstProvider {
 
     val types: Types get() = env.typeUtils
     val elements: Elements get() = env.elementUtils
@@ -142,26 +124,15 @@ interface ModelAstProvider : AstProvider {
             }.toTypedArray()
         )
 
-    override fun validate(element: AstClass): Boolean {
-        // TODO: kapt validation?
-        return true
-    }
-
     override fun AstElement.toTrace(): String {
         return when (this) {
             is ModelAstMethod -> "${parent.type}.${toString()}"
             else -> toString()
         }
     }
-}
 
-interface ModelOutputProvider : OutputProvider {
-
-    override fun TypeSpec.Builder.build(elements: List<AstClass>): TypeSpec {
-        for (element in elements) {
-            addOriginatingElement((element as ModelAstClass).element)
-        }
-        return build()
+    override fun TypeSpec.Builder.addOriginatingElement(element: AstClass): TypeSpec.Builder = apply {
+        addOriginatingElement((element as ModelAstClass).element)
     }
 }
 
@@ -214,7 +185,7 @@ private class PrimitiveModelAstClass(
     override val isJavaClass: Boolean = false
     override val packageName: String = "kotlin"
     override val name: String = type.toString()
-    override val visibility: KModifier = KModifier.PUBLIC
+    override val visibility: AstVisibility = AstVisibility.PUBLIC
     override val isAbstract: Boolean = false
     override val isInterface: Boolean = false
     override val companion: AstClass? = null
@@ -257,8 +228,8 @@ private class ModelAstClass(
 
     override val name: String get() = element.simpleName.toString()
 
-    override val visibility: KModifier
-        get() = toKModifier(element, kmClass?.flags)
+    override val visibility: AstVisibility
+        get() = toAstVisibility(element, kmClass?.flags)
 
     override val isAbstract: Boolean
         get() = kmClass?.isAbstract() ?: false
@@ -406,8 +377,8 @@ private class ModelAstFunction(
 
     override val name: String get() = kmFunction.name
 
-    override val visibility: KModifier
-        get() = toKModifier(element, kmFunction.flags)
+    override val visibility: AstVisibility
+        get() = toAstVisibility(element, kmFunction.flags)
 
     override val isAbstract: Boolean
         get() = kmFunction.isAbstract()
@@ -490,8 +461,8 @@ private class ModelAstProperty(
 
     override val name: String get() = kmProperty.name
 
-    override val visibility: KModifier
-        get() = toKModifier(element, kmProperty.flags)
+    override val visibility: AstVisibility
+        get() = toAstVisibility(element, kmProperty.flags)
 
     override val isAbstract: Boolean
         get() = kmProperty.isAbstract()
@@ -713,10 +684,6 @@ private class ModelAstParam(
 
     override val hasDefault: Boolean
         get() = kmValueParameter?.hasDefault() ?: false
-
-    override fun asParameterSpec(): ParameterSpec {
-        return ParameterSpec(name, type.asTypeName())
-    }
 }
 
 private val KmClass.type: KmType
@@ -729,34 +696,31 @@ private val KmAnnotation.type: KmType
         classifier = KmClassifier.Class(className)
     }
 
-private fun KClass<*>.toKmType(args: List<KmTypeProjection>): KmType =
-    (qualifiedName ?: java.canonicalName).toKmType(args)
-
 private fun String.toKmType(args: List<KmTypeProjection>): KmType = KmType(0).apply {
     classifier = KmClassifier.Class(this@toKmType).apply {
         arguments.addAll(args)
     }
 }
 
-private fun toKModifier(element: Element, flags: Flags?): KModifier {
+private fun toAstVisibility(element: Element, flags: Flags?): AstVisibility {
     return if (flags != null) {
         when {
-            Flag.Common.IS_INTERNAL(flags) -> KModifier.INTERNAL
-            Flag.Common.IS_PRIVATE(flags) -> KModifier.PRIVATE
-            Flag.Common.IS_PROTECTED(flags) -> KModifier.PROTECTED
-            else -> KModifier.PUBLIC
+            Flag.Common.IS_INTERNAL(flags) -> AstVisibility.INTERNAL
+            Flag.Common.IS_PRIVATE(flags) -> AstVisibility.PRIVATE
+            Flag.Common.IS_PROTECTED(flags) -> AstVisibility.PROTECTED
+            else -> AstVisibility.PUBLIC
         }
     } else {
         val modifiers = element.modifiers
         when {
-            Modifier.PROTECTED in modifiers -> KModifier.PROTECTED
-            Modifier.PRIVATE in modifiers -> KModifier.PRIVATE
-            else -> KModifier.PUBLIC
+            Modifier.PROTECTED in modifiers -> AstVisibility.PROTECTED
+            Modifier.PRIVATE in modifiers -> AstVisibility.PRIVATE
+            else -> AstVisibility.PUBLIC
         }
     }
 }
 
-val AstClass.element: TypeElement
+private val AstClass.element: TypeElement
     get() {
         require(this is ModelAstClass)
         return element
