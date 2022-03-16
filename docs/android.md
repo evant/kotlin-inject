@@ -190,6 +190,78 @@ class HomeFragment(homeViewModel: (SavedStateHandle) -> HomeViewModel) : Fragmen
 }
 ```
 
+## Compose
+
+kotlin-inject's [function injection](../README.md#function-injection) works quite nicely with compose.
+
+```kotlin
+typealias Home = @Composeable () -> Unit
+
+@Inject
+@Composeable
+fun Home(repo: HomeRepository) {
+     // ...
+}
+
+@Component
+abstract class ApplicationComponent() {
+    abstract val home: Home
+}
+
+class MyActivity : Activity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate()
+        val home = ApplicationComponent().home
+        setContent {
+            home()
+        }
+        // ...
+        myScreen.loadImage(imageLoader)
+    }
+}
+```
+
+Similar to within fragments, you can inject a function that creates a ViewModel.
+
+```kotlin
+@Inject
+class HomeViewModel(private val repository: HomeRepository) : ViewModel()
+
+@Inject
+@Composable
+class Home(homeViewModel: () -> HomeViewModel) : Fragment() {
+    val viewModel = viewModel(factory = object : ViewModelProvider.Factory {
+        override fun <T : ViewModel?> create(modelClass: Class<T>): T = homeViewModel() as T
+    })
+}
+```
+
+and you can create a helper function for this as well.
+
+```kotlin
+@Composable
+inline fun <VM : ViewModel> viewModel(
+    viewModelStoreOwner: ViewModelStoreOwner = checkNotNull(LocalViewModelStoreOwner.current) {
+        "No ViewModelStoreOwner was provided via LocalViewModelStoreOwner"
+    },
+    key: String? = null,
+    crossinline factory: () -> VM,
+): VM = viewModel(
+    viewModelStoreOwner = viewModelStoreOwner,
+    key = key,
+    factory = object : ViewModelProvider.Factory {
+        override fun <T : ViewModel?> create(modelClass: Class<T>): T = factory() as T
+    }
+)
+
+@Inject
+@Composable
+class Home(homeViewModel: () -> HomeViewModel) : Fragment() {
+    val viewModel = viewModel { homeViewModel() }
+}
+```
+
 # Build Variants
 
 You may want to provide different dependencies based on the build-type/flavor. You can do this by splitting those out
