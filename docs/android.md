@@ -222,7 +222,7 @@ class MyActivity : Activity() {
 }
 ```
 
-Similar to within fragments, you can inject a function that creates a ViewModel.
+Similar to within fragments, you can inject a function that creates a `ViewModel`.
 
 ```kotlin
 @Inject
@@ -230,18 +230,19 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel()
 
 @Inject
 @Composable
-class Home(homeViewModel: () -> HomeViewModel) : Fragment() {
+fun Home(homeViewModel: () -> HomeViewModel) {
     val viewModel = viewModel(factory = object : ViewModelProvider.Factory {
         override fun <T : ViewModel?> create(modelClass: Class<T>): T = homeViewModel() as T
     })
+    ...
 }
 ```
 
-and you can create a helper function for this as well.
+and to simplify the above, you can create a modified version of the `viewModel` function from `androidx.lifecycle.viewmodel.compose`:
 
 ```kotlin
 @Composable
-inline fun <VM : ViewModel> viewModel(
+inline fun <reified VM : ViewModel> viewModel(
     viewModelStoreOwner: ViewModelStoreOwner = checkNotNull(LocalViewModelStoreOwner.current) {
         "No ViewModelStoreOwner was provided via LocalViewModelStoreOwner"
     },
@@ -257,8 +258,9 @@ inline fun <VM : ViewModel> viewModel(
 
 @Inject
 @Composable
-class Home(homeViewModel: () -> HomeViewModel) : Fragment() {
+fun Home(homeViewModel: () -> HomeViewModel) {
     val viewModel = viewModel { homeViewModel() }
+    ...
 }
 ```
 
