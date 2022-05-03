@@ -6,7 +6,7 @@ plugins {
 }
 
 dependencies {
-    add("kspMetadata", project(":kotlin-inject-compiler:ksp"))
+    add("kspCommonMainMetadata", project(":kotlin-inject-compiler:ksp"))
 }
 
 kotlin {
@@ -22,10 +22,10 @@ kotlin {
 // Generate common code with ksp instead of per-platform, hopefully this won't be needed in the future.
 // https://github.com/google/ksp/issues/567
 kotlin.sourceSets.commonMain {
-    kotlin.srcDir("build/generated/ksp/commonMain/kotlin")
+    kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
 }
-tasks.withType<org.jetbrains.kotlin.gradle.dsl.KotlinCompile<*>>().all {
-    if (name != "kspKotlinMetadata") {
-        dependsOn("kspKotlinMetadata")
+tasks.withType<org.jetbrains.kotlin.gradle.dsl.KotlinCompile<*>>().configureEach {
+    if (name != "kspCommonMainKotlinMetadata") {
+        dependsOn("kspCommonMainKotlinMetadata")
     }
 }

@@ -1,6 +1,4 @@
-import org.jetbrains.kotlin.gradle.dsl.KotlinJsCompile
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTargetWithTests
-import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
 import org.jetbrains.kotlin.gradle.targets.js.npm.tasks.KotlinNpmInstallTask
 
 plugins {
@@ -56,23 +54,6 @@ val nativeTest by tasks.registering {
             dependsOn("${name}Test")
         }
     }
-}
-
-// Disable as ksp doesn't support js ir
-tasks.withType<KotlinJsCompile>().configureEach {
-    if (name.contains("Test") && name.contains("Ir")) {
-        disableAndWarn()
-    }
-}
-tasks.withType<KotlinJsTest>().configureEach {
-    if (name.contains("Ir")) {
-        disableAndWarn()
-    }
-}
-
-fun Task.disableAndWarn() {
-    enabled = false
-    logger.warn("disabling: $name as ksp does not support js ir https://github.com/JetBrains/kotlin/pull/4264")
 }
 
 // Don't run npm install scripts, protects against
