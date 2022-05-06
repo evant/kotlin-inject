@@ -1,4 +1,3 @@
-
 plugins {
     id("kotlin-inject.multiplatform")
     id("kotlin-inject.detekt")
@@ -24,8 +23,23 @@ kotlin {
 kotlin.sourceSets.commonMain {
     kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
 }
+kotlin.targets.configureEach {
+    kotlin.configureKsp(name)
+}
 tasks.withType<org.jetbrains.kotlin.gradle.dsl.KotlinCompile<*>>().configureEach {
     if (name != "kspCommonMainKotlinMetadata") {
         dependsOn("kspCommonMainKotlinMetadata")
+    }
+}
+
+fun org.jetbrains.kotlin.gradle.plugin.KotlinSourceSetContainer.configureKsp(targetName: String) {
+    runCatching {
+        dependencies {
+            add("ksp${targetName.capitalize()}", project(":kotlin-inject-compiler:ksp"))
+        }
+
+         sourceSets.configureEach {
+           kotlin.srcDir("build/generated/ksp/$targetName/$name/kotlin")
+         }
     }
 }

@@ -13,14 +13,17 @@ import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.google.devtools.ksp.symbol.Visibility
-import com.squareup.kotlinpoet.ksp.writeTo
+import com.squareup.kotlinpoet.ksp.kspDependencies
+import com.squareup.kotlinpoet.ksp.originatingKSFiles
 import me.tatarka.inject.compiler.COMPONENT
+import me.tatarka.inject.compiler.PROVIDES
 import me.tatarka.inject.compiler.FailedToGenerateException
 import me.tatarka.inject.compiler.InjectGenerator
 import me.tatarka.inject.compiler.Options
-import me.tatarka.inject.compiler.PROVIDES
 import me.tatarka.kotlin.ast.AstClass
 import me.tatarka.kotlin.ast.KSAstProvider
+import java.io.OutputStreamWriter
+import java.nio.charset.StandardCharsets
 
 class InjectProcessor(
     private val options: Options,
@@ -47,7 +50,7 @@ class InjectProcessor(
             with(provider) {
                 val astClass = element.toAstClass()
                 if (validate(element)) {
-                    process(astClass)
+                    process(astClass, element.inputSourceSet)
                 } else {
                     deferred.add(element)
                 }
@@ -57,10 +60,26 @@ class InjectProcessor(
         return deferred
     }
 
-    private fun process(astClass: AstClass) {
+    private fun process(astClass: AstClass, inputSourceSet: Any) {
         try {
-            val file = generator.generate(astClass)
-            file.writeTo(codeGenerator, aggregating = true)
+            with(generator.generate(astClass)) {
+                val dependencies = kspDependencies(aggregating = true, originatingKSFiles())
+                val file = codeGenerator.createNewFile(dependencies, packageName, name)
+
+                // It needs to be after the call to CodeGenerator.createNewFile
+                val outputSourceSet = codeGenerator.generatedFile.first().toString().sourceSetBelow("ksp")
+
+                // TODO: This is a hack; https://github.com/google/ksp/issues/965
+                if (isInputAndOutputSourceSetsCompatible(inputSourceSet, outputSourceSet)) {
+                    // Don't use writeTo(file) because that tries to handle directories under the hood
+                    OutputStreamWriter(file, StandardCharsets.UTF_8)
+                        .use(::writeTo)
+                } else {
+                    logger.warn(
+                        "Input and output source sets don't match (input=$inputSourceSet, output=$outputSourceSet)"
+                    )
+                }
+            }
         } catch (e: FailedToGenerateException) {
             provider.error(e.message.orEmpty(), e.element)
             // Continue so we can see all errors
@@ -72,13 +91,14 @@ class InjectProcessor(
         for (element in deferred) {
             with(provider) {
                 val astClass = element.toAstClass()
-                process(astClass)
+                process(astClass, element.inputSourceSet)
             }
         }
         deferred = mutableListOf()
     }
 
     private fun validate(declaration: KSClassDeclaration): Boolean {
+        if (declaration.isExpect) return false
         return declaration.accept(FixedKSValidateVisitor { node, _ ->
             when (node) {
                 is KSFunctionDeclaration ->
@@ -91,6 +111,23 @@ class InjectProcessor(
                 else -> true
             }
         }, null)
+    }
+
+    private val KSClassDeclaration.inputSourceSet
+        get() = containingFile?.filePath?.sourceSetBelow("src") ?: {
+            logger.error(
+                "Could not determine the source file for class '${(qualifiedName ?: simpleName).asString()}'"
+            )
+            "unknown"
+        }
+
+    private fun String.sourceSetBelow(startDirectoryName: String): String =
+        substringAfter("/$startDirectoryName/").substringBefore("/kotlin/").substringAfterLast('/')
+
+    private fun isInputAndOutputSourceSetsCompatible(inputSourceSet: Any, outputSourceSet: Any): Boolean {
+        return inputSourceSet == outputSourceSet ||
+                // heuristic that says the input probably isn't a multiplatform source
+                inputSourceSet is String && inputSourceSet.lowercase() == inputSourceSet
     }
 }
 

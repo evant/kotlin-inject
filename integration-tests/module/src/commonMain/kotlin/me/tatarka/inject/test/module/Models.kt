@@ -32,3 +32,5 @@ abstract class ExternalParentComponent {
 
 @Component
 abstract class ExternalChildComponent(@Component val parent: ExternalParentComponent = ExternalParentComponent::class.create())
+
+expect abstract class PlatformComponent
