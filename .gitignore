@@ -2,3 +2,6 @@
 /build
 /.idea
 *.iml
+
+# For Android Studio
+local.properties
