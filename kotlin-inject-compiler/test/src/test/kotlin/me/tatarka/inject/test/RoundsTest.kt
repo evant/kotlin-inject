@@ -53,9 +53,9 @@ class RoundsTest {
                 """
                     import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Provides
-
+                    
                     @Component abstract class MyComponent : Invalid
-
+                    
                     fun use() = MyComponent::class.create()
                 """.trimIndent()
             ).compile()
@@ -74,11 +74,11 @@ class RoundsTest {
                 """
                     import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Provides
-
+                    
                     @Component abstract class MyComponent {
                         abstract val foo: Foo
                     }
-
+                    
                     fun use() = MyComponent::class.create()
                 """.trimIndent()
             ).compile()
@@ -97,12 +97,12 @@ class RoundsTest {
                 """
                     import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Provides
-
+                    
                     @Component abstract class MyComponent {
                         val foo: Foo
                             @Provides get() = TODO()
                     }
-
+                    
                     fun use() = MyComponent::class.create()
                 """.trimIndent()
             ).compile()
@@ -121,12 +121,12 @@ class RoundsTest {
                 """
                     import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Provides
-
+                    
                     @Component abstract class MyComponent {
                         @Provides
                         fun foo(foo: Foo): String = TODO()
                     }
-
+                    
                     fun use() = MyComponent::class.create()
                 """.trimIndent()
             ).compile()
@@ -145,12 +145,12 @@ class RoundsTest {
                 """
                     import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Provides
-
+                    
                     @Component abstract class MyComponent {
                         private fun invalid(): Foo = TODO()
                         private val invalid2: Foo get() = TODO()
                     }
-
+                    
                     fun use() = MyComponent::class.create()
                 """.trimIndent()
             ).compile()
@@ -169,12 +169,12 @@ class RoundsTest {
                 """
                     import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Provides
-
+                    
                     @Component abstract class MyComponent() {
                         val invalid2: Foo = TODO()
                         fun invalid(): Foo = TODO()
                     }
-
+                    
                     fun use() = MyComponent::class.create()
                 """.trimIndent()
             ).compile()
@@ -193,12 +193,12 @@ class RoundsTest {
                 """
                     import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Provides
-
+                    
                     @Component abstract class MyComponent {
                         @Provides
                         private fun invalid(): Foo = TODO()
                     }
-
+                    
                     fun use() = MyComponent::class.create()
                 """.trimIndent()
             ).compile()
@@ -217,15 +217,15 @@ class RoundsTest {
                 """
                     import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Provides
-
+                    
                     class Bar(val foo: Foo)
                     @Component abstract class MyComponent {
                         abstract val bar: Bar
-
+                    
                         @Provides
                         fun bar(): Bar = TODO()
                     }
-
+                    
                     fun use() = MyComponent::class.create()
                 """.trimIndent()
             ).compile()
@@ -245,7 +245,7 @@ class RoundsTest {
                 """
                     import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Provides
-
+                    
                     @Component abstract class MyComponent {
                         @Provides
                         fun foo(): Foo = TODO()
@@ -253,7 +253,7 @@ class RoundsTest {
                         @Provides
                         fun bar(): Bar = TODO()
                     }
-
+                    
                     fun use() = MyComponent::class.create()
                 """.trimIndent()
             ).compile()
