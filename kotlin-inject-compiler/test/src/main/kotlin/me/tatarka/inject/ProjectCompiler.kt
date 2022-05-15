@@ -7,6 +7,7 @@ import com.google.devtools.ksp.processing.SymbolProcessorProvider
 import me.tatarka.inject.compiler.Options
 import me.tatarka.inject.compiler.kapt.InjectCompiler
 import me.tatarka.inject.compiler.ksp.InjectProcessorProvider
+import org.intellij.lang.annotations.Language
 import java.io.File
 import javax.tools.Diagnostic
 
@@ -19,7 +20,7 @@ class ProjectCompiler(
     private var options: Options? = null
     private val symbolProcessors = mutableListOf<SymbolProcessorProvider>()
 
-    fun source(fileName: String, source: String): ProjectCompiler {
+    fun source(fileName: String, @Language("kotlin") source: String): ProjectCompiler {
         sourceFiles.add(Source.kotlin(fileName, source))
         return this
     }

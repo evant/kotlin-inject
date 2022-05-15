@@ -254,10 +254,10 @@ class FailureTest {
                     import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Scope
                     import me.tatarka.inject.annotations.Inject
-
+                    
                     @Scope annotation class MyScope
                     @MyScope @Inject class Foo
-
+                    
                     @Component abstract class MyComponent {
                         abstract val f: Foo
                     }
@@ -456,11 +456,11 @@ class FailureTest {
                 """
                import me.tatarka.inject.annotations.Component
                import me.tatarka.inject.annotations.Provides
-
+               
                @Component abstract class MyParentComponent {
                  @Provides protected fun providesFoo() = "foo"
                }
-
+               
                @Component abstract class MyChildComponent(@Component val parent: MyParentComponent) {
                  abstract val foo: String
                }
@@ -484,15 +484,15 @@ class FailureTest {
                 """
                import me.tatarka.inject.annotations.Inject
                import me.tatarka.inject.annotations.Component
-
+               
                @Component abstract class MyComponent {
                 abstract val foo: Foo
                }
-
+               
                @Inject class Foo(bar: Bar = Bar(""))
-
+               
                @Inject class Bar(value: String)
-
+               
                @Component abstract class MyChildComponent(@Component val parent: MyParentComponent) {
                  abstract val foo: String
                }
