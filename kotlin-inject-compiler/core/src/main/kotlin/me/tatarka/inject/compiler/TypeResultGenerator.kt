@@ -166,6 +166,21 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
     }
 
     private fun TypeResult.Scoped.generate(): CodeBlock {
+        fun TypeResultRef.detectLeaks(accessorInScope: Accessor) {
+            val result = result
+            if (result is TypeResult.Provides) {
+                val leaked = result.parameters.mapNotNull { param ->
+                    param.value.result as? TypeResult.Provides
+                }.any { param ->
+                    param.accessor.components.any { it != accessorInScope.toString() }
+                }
+
+                if (leaked) {
+                    throw FailedToGenerateException("Leak detected")
+                }
+            }
+        }
+
         return CodeBlock.builder().apply {
             val accessorInScope = implicitAccessor.resolve(accessor)
             if (accessor.size > 1) {
@@ -175,6 +190,7 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
                     add("(this as %T).", SCOPED_COMPONENT)
                 }
             } else if (accessorInScope.isNotEmpty()) {
+                result.detectLeaks(accessorInScope)
                 add("%L.", accessorInScope)
             }
             add("_scoped.get(")

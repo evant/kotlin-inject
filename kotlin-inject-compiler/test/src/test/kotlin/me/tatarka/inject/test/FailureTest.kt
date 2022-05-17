@@ -504,4 +504,52 @@ class FailureTest {
             )
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun fails_if_scope_leaks_into_longer_lived_scope(target: Target) {
+        val projectCompiler = ProjectCompiler(Target.KSP, workingDir)
+
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                import me.tatarka.inject.annotations.Component
+                import me.tatarka.inject.annotations.Inject
+                import me.tatarka.inject.annotations.Provides
+                import me.tatarka.inject.annotations.Scope
+                
+                @Scope
+                annotation class AppSingleton
+                
+                class Context {
+                  val contentResolver get() = ContentResolver(this)
+                }
+                
+                class ContentResolver(val context: Context)
+                
+                @Inject
+                class ResolverWrapper(val resolver: ContentResolver)
+                
+                @AppSingleton
+                @Component abstract class AppComponent {
+                  @Provides @AppSingleton fun providesContentResolver(
+                    context: Context
+                  ): ContentResolver = context.contentResolver
+                }
+                
+                @Component abstract class ActivityComponent(
+                  @Component val appComponent: AppComponent,
+                  @get:Provides @AppSingleton val activityContext: Context
+                ) {
+                  abstract val wrapper: ResolverWrapper
+                }
+                """.trimIndent()
+            ).compile().apply {
+                println(generatedSources.joinToString(separator = "\n\n") { it.contents })
+            }
+        }.isFailure().output().all {
+            contains("Leak detected")
+        }
+    }
 }
