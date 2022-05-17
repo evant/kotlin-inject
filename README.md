@@ -96,7 +96,7 @@ The building block of kotlin-inject is a component which you declare with an `@C
 class. An implementation of this component will be generated for you.
 
 ```kotlin
-    abstract val repo: Repository
+abstract val repo: Repository
 ```
 
 In your component you can declare abstract read-only properties or functions to return an instance of a given type. This
