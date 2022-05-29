@@ -41,6 +41,11 @@ publishing {
         }
         publications.all {
             if (this is MavenPublication) {
+                groupId = rootProject.group.toString()
+                // We want the artifactId to represent the full project path
+                artifactId = path
+                    .trimStart(':')
+                    .replace(":", "-")
                 artifact(javadocJar)
                 mavenCentralPom()
             }
