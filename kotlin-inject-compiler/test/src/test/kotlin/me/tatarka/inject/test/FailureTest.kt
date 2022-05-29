@@ -504,4 +504,53 @@ class FailureTest {
             )
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun fails_if_dep_from_smaller_scope_is_included_in_dep_with_wider_scope(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                import me.tatarka.inject.annotations.Scope
+                import me.tatarka.inject.annotations.Component
+                import me.tatarka.inject.annotations.Inject
+                import me.tatarka.inject.annotations.Provides
+                
+                @Scope annotation class ParentScope
+                @Scope annotation class ChildScope
+                @Scope annotation class ChildScope2
+                
+                @ParentScope @Inject class Foo(val bar: Bar)
+                @ParentScope @Inject class Foo2(val baz: Lazy<Baz>)
+                class Bar
+                class Baz
+                
+                @ParentScope
+                @Component abstract class ParentComponent
+                
+                @ChildScope @Component abstract class ChildComponent(@Component val parent: ParentComponent) {
+                    abstract val foo: Foo
+                    @Provides @ChildScope fun bar(): Bar = Bar()
+                }
+                
+                @ChildScope2 @Component abstract class ChildComponent2(@Component val parent: ChildComponent) {
+                    abstract val foo: Foo2
+                    @Provides @ChildScope2 fun baz(): Baz = Baz()
+                }
+                """.trimIndent()
+            ).compile()
+        }.isFailure().output().all {
+            contains(
+                "Cannot pass Bar to Foo(bar: Bar) as it's scoped to @ChildScope ChildComponent" +
+                        " which doesn't live as long as @ParentScope ParentComponent"
+            )
+            contains(
+                "Cannot pass Baz to Foo2(baz: Lazy<Baz>) as it's scoped to @ChildScope2 ChildComponent2" +
+                        " which doesn't live as long as @ParentScope ParentComponent"
+            )
+        }
+    }
 }

@@ -32,8 +32,8 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
      * Resolves the given type in this context. This will return a cached result if has already been resolved.
      * @throws FailedToGenerateException if cannot be found
      */
-    private fun resolve(context: Context, key: TypeKey): TypeResultRef {
-        return resolveOrNull(context, key)
+    private fun resolve(context: Context, element: AstElement, key: TypeKey): TypeResultRef {
+        return resolveOrNull(context, element, key)
             ?: throw FailedToGenerateException(cannotFind(key))
     }
 
@@ -41,8 +41,8 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
      * Resolves the given type in this context. This will return a cached result if has already been resolved. Returns
      * null if it cannot be found.
      */
-    private fun resolveOrNull(context: Context, key: TypeKey): TypeResultRef? {
-        val type = types[key] ?: context.findType(key)?.also {
+    private fun resolveOrNull(context: Context, element: AstElement, key: TypeKey): TypeResultRef? {
+        val type = types[key] ?: context.findType(element, key)?.also {
             if (it.isCacheable) {
                 types[key] = it
             }
@@ -54,7 +54,11 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
      * Resolves the given set of params. It will match position types in function args. If a param cannot be resolved,
      * but it has as default, it will be skipped.
      */
-    private fun resolveParams(context: Context, params: List<AstParam>): Map<String, TypeResultRef> {
+    private fun resolveParams(
+        context: Context,
+        element: AstElement,
+        params: List<AstParam>,
+    ): Map<String, TypeResultRef> {
         val size = params.size
         val args = context.args.asReversed()
         val paramsWithName = LinkedHashMap<String, TypeResultRef>(size)
@@ -69,7 +73,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
                     return@forEachIndexed
                 }
             }
-            val result = resolveOrNull(context, key)
+            val result = resolveOrNull(context, element, key)
             if (result != null) {
                 paramsWithName[param.name] = result
                 return@forEachIndexed
@@ -84,12 +88,13 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     /**
      * Find the given type.
      */
-    private fun Context.findType(key: TypeKey): TypeResult? {
+    private fun Context.findType(element: AstElement, key: TypeKey): TypeResult? {
         if (key.type.isError) {
             throw FailedToGenerateException(trace("Unresolved reference: $key"))
         }
         val typeCreator = types.resolve(key)
         if (typeCreator != null) {
+            types.checkScope(key, typeCreator.scopedComponent(), element, scopeComponent)
             return typeCreator.toResult(this, key, skipScoped)
         }
         if (key.type.isFunction()) {
@@ -111,12 +116,13 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             return Function(
                 this,
                 key = fKey,
+                element = element,
                 args = resolveType.arguments.dropLast(1)
             )
         }
         if (key.type.packageName == "kotlin" && key.type.simpleName == "Lazy") {
             val lKey = TypeKey(key.type.arguments[0], key.qualifier)
-            return Lazy(this, key = lKey)
+            return Lazy(this, element = element, key = lKey)
         }
         return null
     }
@@ -125,18 +131,26 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         return when (this@toResult) {
             is TypeCreator.Constructor ->
                 if (scopedComponent != null && skipScoped != constructor.type) {
-                    Scoped(context, accessor, key)
+                    Scoped(context, accessor, constructor, scopedComponent, key)
                 } else {
                     Constructor(context, constructor, key)
                 }
             is TypeCreator.Method ->
                 if (scopedComponent != null && skipScoped != method.returnType) {
-                    Scoped(context, accessor, key)
+                    Scoped(context, accessor, method, scopedComponent, key)
                 } else {
                     Provides(context, accessor, method, key)
                 }
             is TypeCreator.Container -> Container(context, creator.toString(), args)
             is TypeCreator.Object -> TypeResult.Object(astClass.type)
+        }
+    }
+
+    private fun TypeCreator.scopedComponent(): AstClass? {
+        return when (this) {
+            is TypeCreator.Constructor -> scopedComponent
+            is TypeCreator.Method -> scopedComponent
+            else -> null
         }
     }
 
@@ -148,7 +162,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         val returnType = method.returnTypeFor(astClass)
         val key = TypeKey(returnType, method.qualifier(options))
         val result = withCycleDetection(key, method) {
-            resolve(context.withoutProvider(returnType), key).result
+            resolve(context.withoutProvider(returnType), method, key).result
         }
         return TypeResult.Provider(
             name = method.name,
@@ -173,11 +187,11 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             accessor = accessor,
             receiver = method.receiverParameterType?.let {
                 val key = TypeKey(it, method.qualifier(options))
-                resolve(context, key)
+                resolve(context, method, key)
             },
             isProperty = method is AstProperty,
             parameters = (method as? AstFunction)?.let {
-                resolveParams(context, it.parameters)
+                resolveParams(context, method, it.parameters)
             } ?: emptyMap(),
         )
     }
@@ -185,18 +199,20 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     private fun Scoped(
         context: Context,
         accessor: Accessor,
+        element: AstElement,
+        scopedComponent: AstClass,
         key: TypeKey,
     ) = TypeResult.Scoped(
         key = key,
         accessor = accessor,
-        result = resolve(context.withoutScoped(key.type), key)
+        result = resolve(context.withoutScoped(key.type, scopedComponent), element, key)
     )
 
     private fun Constructor(context: Context, constructor: AstConstructor, key: TypeKey) =
         withCycleDetection(key, constructor) {
             TypeResult.Constructor(
                 type = constructor.type,
-                parameters = resolveParams(context, constructor.parameters),
+                parameters = resolveParams(context, constructor, constructor.parameters),
                 supportsNamedArguments = constructor.supportsNamedArguments
             )
         }
@@ -215,11 +231,12 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     private fun Function(
         context: Context,
         key: TypeKey,
+        element: AstElement,
         args: List<AstType>
     ): TypeResult? {
         cycleDetector.delayedConstruction()
         val namedArgs = args.mapIndexed { i, arg -> arg to "arg$i" }
-        val result = resolveOrNull(context.withArgs(namedArgs), key) ?: return null
+        val result = resolveOrNull(context.withArgs(namedArgs), element, key) ?: return null
         return TypeResult.Function(args = namedArgs.map { it.second }, result = result)
     }
 
@@ -238,13 +255,13 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         TypeResult.NamedFunction(
             name = function.toMemberName(),
             args = namedArgs.map { it.second },
-            parameters = resolveParams(context.withArgs(namedArgs), function.parameters),
+            parameters = resolveParams(context.withArgs(namedArgs), function, function.parameters),
         )
     }
 
-    private fun Lazy(context: Context, key: TypeKey): TypeResult? {
+    private fun Lazy(context: Context, element: AstElement, key: TypeKey): TypeResult? {
         cycleDetector.delayedConstruction()
-        val result = resolveOrNull(context, key) ?: return null
+        val result = resolveOrNull(context, element, key) ?: return null
         return maybeLateInit(key, TypeResult.Lazy(result))
     }
 
