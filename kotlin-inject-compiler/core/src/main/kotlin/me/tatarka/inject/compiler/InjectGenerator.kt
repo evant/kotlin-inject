@@ -167,6 +167,7 @@ class InjectGenerator(
             provider = provider,
             className = injectName,
             types = types,
+            scopeComponent = elementScopeClass,
             scopeInterface = if (scopeFromParent) elementScopeClass else null,
         )
     }

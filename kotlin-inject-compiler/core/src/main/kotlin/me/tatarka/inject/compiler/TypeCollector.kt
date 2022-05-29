@@ -40,6 +40,10 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
         // Map of scoped components and the accessors to obtain them
         private val scopedAccessors = mutableMapOf<AstType, ScopedComponent>()
 
+        // Map of scoped annotations to their parents. Used to ensure a child scoped dependency isn't injected into a
+        // parent scoped dependency as that can cause a leak.
+        private val scopeGraph = mutableMapOf<AstClass, MutableList<AstClass>>()
+
         @Suppress("ComplexMethod", "LongMethod", "NestedBlockDepth")
         internal fun collectTypes(
             astClass: AstClass,
@@ -105,6 +109,12 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                     if (parameter.isComponent()) {
                         val elemAstClass = parameter.type.toAstClass()
                         val elemTypeInfo = collectTypeInfo(elemAstClass)
+
+                        if (typeInfo.scopeClass != null && elemTypeInfo.scopeClass != null) {
+                            scopeGraph.getOrPut(typeInfo.scopeClass) { mutableListOf() }
+                                .add(elemTypeInfo.scopeClass)
+                        }
+
                         collectTypes(
                             astClass = elemAstClass,
                             accessor = accessor + parameter.name,
@@ -191,6 +201,31 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                 return TypeCreator.Object(astClass)
             }
             return null
+        }
+
+        fun checkScope(
+            key: TypeKey,
+            keyScopedComponent: AstClass?,
+            current: AstElement,
+            currentScopedComponent: AstClass?
+        ) {
+            if (keyScopedComponent == null || currentScopedComponent == null) return
+            val parentScopes = mutableListOf(keyScopedComponent)
+            do {
+                val scope = parentScopes.removeFirst()
+                val newScopes = scopeGraph[scope] ?: emptyList()
+                if (newScopes.contains(currentScopedComponent)) {
+                    provider.error(
+                        "Cannot pass $key to $current" +
+                                " as it's scoped to @${keyScopedComponent.scopeType(options)} $keyScopedComponent" +
+                                " which doesn't live as long as @${currentScopedComponent.scopeType(options)}" +
+                                " $currentScopedComponent",
+                        current
+                    )
+                    break
+                }
+                parentScopes.addAll(newScopes)
+            } while (parentScopes.isNotEmpty())
         }
     }
 
