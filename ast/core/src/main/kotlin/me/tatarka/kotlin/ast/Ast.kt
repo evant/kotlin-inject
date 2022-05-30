@@ -83,7 +83,7 @@ abstract class AstClass : AstElement(), AstAnnotated, AstHasModifiers {
     abstract override fun hashCode(): Int
 
     override fun toString(): String {
-        return if (packageName.isEmpty() || packageName == "kotlin") name else type.toString()
+        return type.toString()
     }
 
     abstract fun toClassName(): ClassName
