@@ -151,6 +151,25 @@ class FailureTest {
 
     @ParameterizedTest
     @EnumSource(Target::class)
+    fun fails_if_inner_type_is_missing_inject(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                import me.tatarka.inject.annotations.Component
+                class Foo { class Factory } 
+                @Component abstract class MyComponent {
+                    abstract fun provideFoo(): Foo.Factory
+                }
+                """.trimIndent()
+            ).compile()
+        }.isFailure().output()
+            .contains("Cannot find an @Inject constructor or provider for: Foo.Factory")
+    }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
     fun fails_if_type_cannot_be_provided_to_constructor(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
         assertThat {
