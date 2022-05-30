@@ -51,7 +51,16 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
             typeInfo: TypeInfo,
         ) {
             if (typeInfo.elementScope != null) {
-                scopedAccessors[typeInfo.elementScope] = ScopedComponent(astClass, accessor)
+                val currentElementScope = scopedAccessors[typeInfo.elementScope]
+                if (currentElementScope != null) {
+                    provider.error("Cannot apply scope: ${typeInfo.elementScope}", currentElementScope.type)
+                    provider.error(
+                        "as scope: ${typeInfo.elementScope} is already applied to parent",
+                        astClass,
+                    )
+                } else {
+                    scopedAccessors[typeInfo.elementScope] = ScopedComponent(astClass, accessor)
+                }
             }
 
             if (accessor.isNotEmpty()) {

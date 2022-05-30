@@ -419,6 +419,29 @@ class FailureTest {
 
     @ParameterizedTest
     @EnumSource(Target::class)
+    fun fails_if_scope_is_applied_to_both_parent_and_child_components(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                import me.tatarka.inject.annotations.Component
+                import me.tatarka.inject.annotations.Scope
+                
+                @Scope annotation class MyScope1
+                
+                @Component @MyScope1 abstract class ParentComponent
+                @Component @MyScope1 abstract class MyComponent(@Component val parent: ParentComponent)
+                """.trimIndent()
+            ).compile()
+        }.isFailure().output().all {
+            contains("Cannot apply scope: MyScope1")
+            contains("as scope: MyScope1 is already applied to parent")
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
     fun fails_with_missing_binding_with_nullable_provides_and_non_nullable_usage(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
         assertThat {
