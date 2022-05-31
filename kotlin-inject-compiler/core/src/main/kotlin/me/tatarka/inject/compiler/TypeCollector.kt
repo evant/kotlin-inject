@@ -74,10 +74,17 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
             for (method in typeInfo.providesMethods) {
                 val scopeType = method.scopeType(options)
                 if (scopeType != null && scopeType != typeInfo.elementScope) {
-                    provider.error(
-                        "@Provides scope: $scopeType must match component scope: ${typeInfo.elementScope}",
-                        method
-                    )
+                    if (typeInfo.elementScope != null) {
+                        provider.error(
+                            "@Provides with scope: $scopeType must match component scope: ${typeInfo.elementScope}",
+                            method
+                        )
+                    } else {
+                        provider.error(
+                            "@Provides with scope: $scopeType cannot be provided in an unscoped component",
+                            method
+                        )
+                    }
                 }
                 val scopedComponent = if (scopeType != null) astClass else null
                 if (method.hasAnnotation(INTO_MAP.packageName, INTO_MAP.simpleName)) {
