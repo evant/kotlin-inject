@@ -517,6 +517,57 @@ class FailureTest {
 
     @ParameterizedTest
     @EnumSource(Target::class)
+    fun fails_if_provides_has_scope_in_an_unscoped_component(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                import me.tatarka.inject.annotations.Component
+                import me.tatarka.inject.annotations.Provides
+                import me.tatarka.inject.annotations.Scope
+
+                 @Scope annotation class MyScope
+                 @Component abstract class MyComponent {
+                    @Provides @MyScope fun foo(): String = "foo"
+                 }
+                """.trimIndent()
+            ).compile()
+        }.isFailure().output().all {
+            contains(
+                "@Provides with scope: MyScope cannot be provided in an unscoped component"
+            )
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun fails_if_provides_scope_does_not_match_component_scope(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                import me.tatarka.inject.annotations.Component
+                import me.tatarka.inject.annotations.Provides
+                import me.tatarka.inject.annotations.Scope
+
+                @Scope annotation class MyScope1
+                @Scope annotation class MyScope2
+                @Component @MyScope1 abstract class MyComponent {
+                    @Provides @MyScope2 fun foo(): String = "foo"
+                }
+                """.trimIndent()
+            ).compile()
+        }.isFailure().output().all {
+            contains(
+                "@Provides with scope: MyScope2 must match component scope: MyScope1"
+            )
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
     fun fails_if_type_is_missing_arg_even_if_used_as_default_value(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
 
