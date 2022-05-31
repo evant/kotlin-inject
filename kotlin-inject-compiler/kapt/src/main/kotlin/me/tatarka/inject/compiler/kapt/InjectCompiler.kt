@@ -4,10 +4,10 @@ import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.compiler.FailedToGenerateException
 import me.tatarka.inject.compiler.InjectGenerator
 import me.tatarka.inject.compiler.Profiler
+import me.tatarka.kotlin.ast.ModelAstProvider
 import javax.annotation.processing.ProcessingEnvironment
 import javax.annotation.processing.RoundEnvironment
 import javax.lang.model.element.TypeElement
-import me.tatarka.kotlin.ast.ModelAstProvider
 
 class InjectCompiler(private val profiler: Profiler? = null) : BaseInjectCompiler() {
 

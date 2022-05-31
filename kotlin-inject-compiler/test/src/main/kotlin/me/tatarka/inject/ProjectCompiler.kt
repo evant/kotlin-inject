@@ -55,17 +55,19 @@ class ProjectCompiler(
 
         if (!result.success) {
             @Suppress("TooGenericExceptionThrown")
-            throw Exception(result.diagnostics
-                .filter { it.key == Diagnostic.Kind.ERROR }
-                .flatMap { it.value }.joinToString {
-                    StringBuilder().apply {
-                        append(it.msg)
-                        it.location?.source?.let {
-                            append(" ")
-                            append(it.relativePath)
-                        }
-                    }.toString()
-                })
+            throw Exception(
+                result.diagnostics
+                    .filter { it.key == Diagnostic.Kind.ERROR }
+                    .flatMap { it.value }.joinToString {
+                        StringBuilder().apply {
+                            append(it.msg)
+                            it.location?.source?.let {
+                                append(" ")
+                                append(it.relativePath)
+                            }
+                        }.toString()
+                    }
+            )
         }
 
         return result

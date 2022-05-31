@@ -221,7 +221,8 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         context: Context,
         creator: String,
         args: List<TypeCreator.Method>
-    ) = TypeResult.Container(creator = creator,
+    ) = TypeResult.Container(
+        creator = creator,
         args = args.map { arg ->
             val key = TypeKey(arg.method.returnType, arg.method.qualifier(options))
             TypeResultRef(key, Provides(context, arg.accessor, arg.method, key))

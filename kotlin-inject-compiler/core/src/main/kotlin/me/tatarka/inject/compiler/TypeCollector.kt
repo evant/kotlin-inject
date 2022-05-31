@@ -285,7 +285,8 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                                 """@Provides method must not return a platform type
                                 |This can happen when you call a platform method and leave off an explicit return type.
                                 |You can fix this be explicitly declaring the return type as $name or $name?"""
-                                    .trimMargin(), method
+                                    .trimMargin(),
+                                method
                             )
                             continue
                         }

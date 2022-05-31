@@ -1,7 +1,7 @@
 package me.tatarka.inject.compiler
 
-import me.tatarka.kotlin.ast.AstProvider
 import me.tatarka.kotlin.ast.AstClass
+import me.tatarka.kotlin.ast.AstProvider
 import me.tatarka.kotlin.ast.AstType
 
 /**
