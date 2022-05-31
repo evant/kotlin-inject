@@ -24,7 +24,7 @@ class CreateGenerator(private val astProvider: AstProvider, private val options:
                             |When you have the option me.tatarka.inject.generateCompanionExtensions=true you must declare a companion option on the component class for the extension function to apply to.
                             |You can do so by adding 'companion object' to the class.
                         """.trimMargin(),
-                            element
+                        element
                     )
                 }
             }
