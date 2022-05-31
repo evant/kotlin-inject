@@ -1,4 +1,5 @@
 /.gradle
 /build
-/.idea
 *.iml
+/.idea/*
+!/.idea/codeStyles

@@ -234,7 +234,7 @@ fun AstClass.toInjectName(): String =
 fun AstType.toVariableName(): String =
     simpleName.split(".")
         .joinToString("_") { it.decapitalize(Locale.US) } +
-            joinArgumentTypeNames()
+        joinArgumentTypeNames()
 
 private fun AstType.joinArgumentTypeNames(): String = when {
     arguments.isEmpty() -> ""
@@ -243,7 +243,7 @@ private fun AstType.joinArgumentTypeNames(): String = when {
             .simpleName
             .split(".")
             .joinToString("_") +
-                it.joinArgumentTypeNames()
+            it.joinArgumentTypeNames()
     }
 }
 

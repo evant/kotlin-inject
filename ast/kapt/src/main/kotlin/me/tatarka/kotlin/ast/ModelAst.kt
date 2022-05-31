@@ -179,7 +179,7 @@ private class ModelBasicElement(override val element: Element) : AstBasicElement
 }
 
 private class PrimitiveModelAstClass(
-    override val type: ModelAstType
+    override val type: ModelAstType,
 ) : AstClass() {
 
     override val isJavaClass: Boolean = false
@@ -341,7 +341,7 @@ private class ModelAstConstructor(
     override val provider: ModelAstProvider,
     private val parent: ModelAstClass,
     override val element: ExecutableElement,
-    private val kmConstructor: KmConstructor?
+    private val kmConstructor: KmConstructor?,
 ) : AstConstructor(parent), ModelAstAnnotated {
 
     override val parameters: List<AstParam>
@@ -372,7 +372,7 @@ private class ModelAstFunction(
     override val provider: ModelAstProvider,
     override val parent: AstClass,
     override val element: ExecutableElement,
-    private val kmFunction: KmFunction
+    private val kmFunction: KmFunction,
 ) : AstFunction(), ModelAstMethod {
 
     override val name: String get() = kmFunction.name
@@ -456,7 +456,7 @@ private class ModelAstProperty(
     override val provider: ModelAstProvider,
     override val parent: AstClass,
     override val element: ExecutableElement,
-    private val kmProperty: KmProperty
+    private val kmProperty: KmProperty,
 ) : AstProperty(), ModelAstMethod {
 
     override val name: String get() = kmProperty.name
@@ -511,7 +511,7 @@ private class ModelAstProperty(
 private class ModelAstType(
     private val provider: ModelAstProvider,
     val type: TypeMirror,
-    val kmType: KmType?
+    val kmType: KmType?,
 ) : AstType(), ModelAstElement {
 
     override val element: Element by lazy { provider.types.asElement(type) }
@@ -608,7 +608,7 @@ private class ModelAstType(
 private class ModelAstAnnotation(
     private val provider: ModelAstProvider,
     val mirror: AnnotationMirror,
-    private val kmAnnotation: KmAnnotation?
+    private val kmAnnotation: KmAnnotation?,
 ) : AstAnnotation(), ModelAstElement {
 
     override val element: Element get() = provider.types.asElement(mirror.annotationType)
@@ -634,11 +634,11 @@ private class ModelAstAnnotation(
     }
 }
 
-private fun AnnotationMirror.asString(): String =
-    "@$annotationType(${
-        elementValues.toList()
-            .joinToString(separator = ", ") { (element, value) -> "${element.simpleName}=${value.value}" }
-    })"
+private fun AnnotationMirror.asString(): String {
+    val values = elementValues.toList()
+        .joinToString(separator = ", ") { (element, value) -> "${element.simpleName}=${value.value}" }
+    return "@$annotationType($values)"
+}
 
 private fun KmAnnotation.asString(): String =
     "@$className(${arguments.toList().joinToString { (name, value) -> "$name=${value.asString()}" }})"
@@ -657,7 +657,7 @@ private class ModelAstParam(
     override val provider: ModelAstProvider,
     override val element: VariableElement,
     val kmParent: KmClass?,
-    val kmValueParameter: KmValueParameter?
+    val kmValueParameter: KmValueParameter?,
 ) : AstParam(), ModelAstAnnotated {
 
     override val name: String
