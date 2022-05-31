@@ -8,7 +8,7 @@ To contribute, fork our project on GitHub, then submit a pull request to our `ma
 ## Static Code Analysis
 
 PR's are checked [Detekt](https://github.com/detekt/detekt). We recommend you run `./gradlew detekt` locally. You can
-often fix formatting errors automatically with `./gradlew detekt -Pfix=true`.
+often fix formatting errors automatically with `./gradlew detekt --auto-correct`.
  
 ## Testing
 
