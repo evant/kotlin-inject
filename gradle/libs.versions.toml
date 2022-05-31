@@ -4,9 +4,11 @@ kotlin = "1.5.31"
 ksp = "1.5.31-1.0.1"
 kotlinpoet = "1.10.1"
 junit5 = "5.8.1"
+detekt = "1.19.0"
 [libraries]
 kotiln-gradle = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
-detekt-gradle = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version = "1.18.0" }
+detekt-gradle = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version.ref = "detekt" }
+detekt-formatting = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", version.ref = "detekt" }
 ksp = { module = "com.google.devtools.ksp:symbol-processing-api", version.ref = "ksp" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -26,7 +28,6 @@ junit5-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref
 javax-inject = { module = "javax.inject:javax.inject", version = "1" }
 kotlinpoet = { module = "com.squareup:kotlinpoet", version.ref = "kotlinpoet" }
 kotlinpoet-ksp = { module = "com.squareup:kotlinpoet-ksp", version.ref = "kotlinpoet" }
-detekt-formatting = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", version = "1.17.1" }
 [bundles]
 kotlin-compile-testing = [
 # switching to room-compiler-processing-testing for now because of https://github.com/tschuchortdev/kotlin-compile-testing/issues/72
