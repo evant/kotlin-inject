@@ -226,9 +226,9 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                 if (newScopes.contains(currentScopedComponent)) {
                     provider.error(
                         "Cannot pass $key to $current" +
-                                " as it's scoped to @${keyScopedComponent.scopeType(options)} $keyScopedComponent" +
-                                " which doesn't live as long as @${currentScopedComponent.scopeType(options)}" +
-                                " $currentScopedComponent",
+                            " as it's scoped to @${keyScopedComponent.scopeType(options)} $keyScopedComponent" +
+                            " which doesn't live as long as @${currentScopedComponent.scopeType(options)}" +
+                            " $currentScopedComponent",
                         current
                     )
                     break

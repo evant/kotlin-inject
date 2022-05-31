@@ -587,11 +587,11 @@ class FailureTest {
         }.isFailure().output().all {
             contains(
                 "Cannot pass Bar to Foo(bar: Bar) as it's scoped to @ChildScope ChildComponent" +
-                        " which doesn't live as long as @ParentScope ParentComponent"
+                    " which doesn't live as long as @ParentScope ParentComponent"
             )
             contains(
                 "Cannot pass Baz to Foo2(baz: Lazy<Baz>) as it's scoped to @ChildScope2 ChildComponent2" +
-                        " which doesn't live as long as @ParentScope ParentComponent"
+                    " which doesn't live as long as @ParentScope ParentComponent"
             )
         }
     }

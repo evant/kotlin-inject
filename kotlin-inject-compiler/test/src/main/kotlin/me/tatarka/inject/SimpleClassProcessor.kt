@@ -16,9 +16,9 @@ class SimpleClassProcessor(
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
         for (
-        declaration in resolver.getNewFiles()
-            .flatMap { it.declarations }
-            .filter { it.simpleName.asString() == targetInterface }
+            declaration in resolver.getNewFiles()
+                .flatMap { it.declarations }
+                .filter { it.simpleName.asString() == targetInterface }
         ) {
 
             generator.createNewFile(

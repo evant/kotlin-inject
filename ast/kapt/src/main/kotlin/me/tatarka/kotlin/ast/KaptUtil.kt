@@ -252,8 +252,8 @@ internal fun KmType.isFunction(): Boolean {
 
 private fun KmType.isSuspendFunction(): Boolean {
     return isFunction() &&
-            arguments.size >= 2 &&
-            arguments[arguments.size - 2].type?.classifier?.name == "kotlin/coroutines/Continuation"
+        arguments.size >= 2 &&
+        arguments[arguments.size - 2].type?.classifier?.name == "kotlin/coroutines/Continuation"
 }
 
 internal fun AnnotationMirror.eqv(other: AnnotationMirror): Boolean {
@@ -283,12 +283,12 @@ internal fun KmType.eqv(other: KmType): Boolean {
         }
     }
     return classifier == other.classifier &&
-            isNullable() == other.isNullable() &&
-            isPlatformType() == other.isPlatformType() &&
-            arguments.eqvItr(other.arguments) { a, b ->
-                a.variance == b.variance &&
-                        a.type.eqv(b.type, KmType::eqv)
-            }
+        isNullable() == other.isNullable() &&
+        isPlatformType() == other.isPlatformType() &&
+        arguments.eqvItr(other.arguments) { a, b ->
+            a.variance == b.variance &&
+                a.type.eqv(b.type, KmType::eqv)
+        }
 }
 
 internal fun KmType.eqvHashCode(collector: HashCollector = HashCollector()): Int {

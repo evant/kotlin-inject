@@ -41,10 +41,10 @@ class InjectProcessor(
         deferred = mutableListOf()
 
         for (
-        element in previousDiffered + resolver.getSymbolsWithClassAnnotation(
-            COMPONENT.packageName,
-            COMPONENT.simpleName,
-        )
+            element in previousDiffered + resolver.getSymbolsWithClassAnnotation(
+                COMPONENT.packageName,
+                COMPONENT.simpleName,
+            )
         ) {
             with(provider) {
                 val astClass = element.toAstClass()
@@ -86,16 +86,16 @@ class InjectProcessor(
                 when (node) {
                     is KSFunctionDeclaration ->
                         node.getVisibility() != Visibility.PRIVATE &&
-                                (node.isAbstract || node.hasAnnotation(PROVIDES.packageName, PROVIDES.simpleName))
+                            (node.isAbstract || node.hasAnnotation(PROVIDES.packageName, PROVIDES.simpleName))
                     is KSPropertyDeclaration ->
                         node.getVisibility() != Visibility.PRIVATE &&
-                                (
-                                        node.isAbstract() ||
-                                                node.getter?.hasAnnotation(
-                                                    PROVIDES.packageName,
-                                                    PROVIDES.simpleName
-                                                ) ?: true
-                                        )
+                            (
+                                node.isAbstract() ||
+                                    node.getter?.hasAnnotation(
+                                        PROVIDES.packageName,
+                                        PROVIDES.simpleName
+                                    ) ?: true
+                                )
                     else -> true
                 }
             },
