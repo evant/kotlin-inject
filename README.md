@@ -368,7 +368,7 @@ abstract class MyComponent {
 }
 ```
 
-### Function Support
+### Function Support & Assisted Injection
 
 Sometimes you want to delay the creation of a dependency or provide additional params manually. You can do this by
 injecting a function that returns the dependency instead of the dependency directly.
