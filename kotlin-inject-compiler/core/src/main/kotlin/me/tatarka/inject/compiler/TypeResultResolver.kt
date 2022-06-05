@@ -1,5 +1,6 @@
 package me.tatarka.inject.compiler
 
+import me.tatarka.inject.compiler.TypeResult.Object
 import me.tatarka.kotlin.ast.AstClass
 import me.tatarka.kotlin.ast.AstConstructor
 import me.tatarka.kotlin.ast.AstElement
@@ -92,65 +93,119 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         if (key.type.isError) {
             throw FailedToGenerateException(trace("Unresolved reference: $key"))
         }
-        val typeCreator = types.resolve(key)
-        if (typeCreator != null) {
-            types.checkScope(key, typeCreator.scopedComponent(), element, scopeComponent)
-            return typeCreator.toResult(this, key, skipScoped)
-        }
-        if (key.type.isFunction()) {
-            val resolveType = key.type.resolvedType()
-            if (key.type.isTypeAlias()) {
-                // Check to see if we have a function matching the type alias
-                val functions = provider.findFunctions(key.type.packageName, key.type.simpleName)
-                val injectedFunction = functions.find { it.isInject() }
-                if (injectedFunction != null) {
-                    return NamedFunction(
-                        this,
-                        function = injectedFunction,
-                        key = key,
-                        args = resolveType.arguments.dropLast(1)
-                    )
-                }
-            }
-            val fKey = TypeKey(resolveType.arguments.last(), key.qualifier)
-            return Function(
-                this,
-                key = fKey,
-                element = element,
-                args = resolveType.arguments.dropLast(1)
+
+        val providerResult = types.providerTypes[key]
+        if (providerResult != null) {
+            return Provides(
+                context = this,
+                accessor = providerResult.accessor,
+                method = providerResult.method,
+                key = key,
             )
         }
-        if (key.type.packageName == "kotlin" && key.type.simpleName == "Lazy") {
+
+        val result = types.types[key]
+        if (result != null) {
+            return typeCreator(element, key, result)
+        }
+
+        if (key.type.isFunction()) {
+            return functionType(element, key)
+        }
+
+        if (key.type.isLazy()) {
             val lKey = TypeKey(key.type.arguments[0], key.qualifier)
             return Lazy(this, element = element, key = lKey)
         }
+
+        val astClass = key.type.toAstClass()
+        val injectCtor = astClass.findInjectConstructors(provider.messenger, options)
+        if (injectCtor != null) {
+            return constructor(key, injectCtor, astClass)
+        }
+
+        if (astClass.isInject() && astClass.isObject) {
+            return Object(astClass.type)
+        }
+
         return null
     }
 
-    private fun TypeCreator.toResult(context: Context, key: TypeKey, skipScoped: AstType?): TypeResult {
-        return when (this@toResult) {
-            is TypeCreator.Constructor ->
-                if (scopedComponent != null && skipScoped != constructor.type) {
-                    Scoped(context, accessor, constructor, scopedComponent, key)
+    private fun Context.typeCreator(element: AstElement, key: TypeKey, creator: TypeCreator): TypeResult {
+        return when (creator) {
+            is TypeCreator.Method -> {
+                types.checkScope(key, creator.scopedComponent, element, scopeComponent)
+                if (creator.scopedComponent != null && skipScoped != creator.method.returnType) {
+                    Scoped(
+                        context = this,
+                        accessor = creator.accessor,
+                        element = creator.method,
+                        scopedComponent = creator.scopedComponent,
+                        key = key,
+                    )
                 } else {
-                    Constructor(context, constructor, key)
+                    Provides(
+                        context = this,
+                        accessor = creator.accessor,
+                        method = creator.method,
+                        key = key,
+                    )
                 }
-            is TypeCreator.Method ->
-                if (scopedComponent != null && skipScoped != method.returnType) {
-                    Scoped(context, accessor, method, scopedComponent, key)
-                } else {
-                    Provides(context, accessor, method, key)
-                }
-            is TypeCreator.Container -> Container(context, creator.toString(), args)
-            is TypeCreator.Object -> TypeResult.Object(astClass.type)
+            }
+
+            is TypeCreator.Container -> Container(
+                context = this,
+                creator = creator.creator.toString(),
+                args = creator.args,
+            )
         }
     }
 
-    private fun TypeCreator.scopedComponent(): AstClass? {
-        return when (this) {
-            is TypeCreator.Constructor -> scopedComponent
-            is TypeCreator.Method -> scopedComponent
-            else -> null
+    private fun Context.functionType(element: AstElement, key: TypeKey): TypeResult? {
+        val resolveType = key.type.resolvedType()
+        if (key.type.isTypeAlias()) {
+            // Check to see if we have a function matching the type alias
+            val functions = provider.findFunctions(key.type.packageName, key.type.simpleName)
+            val injectedFunction = functions.find { it.isInject() }
+            if (injectedFunction != null) {
+                return NamedFunction(
+                    context = this,
+                    function = injectedFunction,
+                    key = key,
+                    args = resolveType.arguments.dropLast(1),
+                )
+            }
+        }
+        val fKey = TypeKey(resolveType.arguments.last(), key.qualifier)
+        return Function(
+            context = this,
+            key = fKey,
+            element = element,
+            args = resolveType.arguments.dropLast(1)
+        )
+    }
+
+    private fun Context.constructor(key: TypeKey, injectCtor: AstConstructor, astClass: AstClass): TypeResult? {
+        val scope = astClass.scopeType(options)
+        val scopedComponent = if (scope != null) types.scopedAccessors[scope] else null
+        if (scope != null && scopedComponent == null) {
+            provider.error("Cannot find component with scope: @$scope to inject $astClass", astClass)
+            return null
+        }
+        return if (scopedComponent != null && skipScoped != injectCtor.type) {
+            Scoped(
+                context = this,
+                accessor = scopedComponent.accessor,
+                element = injectCtor,
+                scopedComponent = scopedComponent.type,
+                key = key,
+            )
+        } else {
+            Constructor(
+                context = this,
+                constructor = injectCtor,
+                key = key,
+            )
         }
     }
 
@@ -220,7 +275,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     private fun Container(
         context: Context,
         creator: String,
-        args: List<TypeCreator.Method>
+        args: List<TypeCreator.Method>,
     ) = TypeResult.Container(
         creator = creator,
         args = args.map { arg ->
@@ -233,7 +288,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         context: Context,
         key: TypeKey,
         element: AstElement,
-        args: List<AstType>
+        args: List<AstType>,
     ): TypeResult? {
         cycleDetector.delayedConstruction()
         val namedArgs = args.mapIndexed { i, arg -> arg to "arg$i" }
@@ -245,7 +300,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         context: Context,
         function: AstFunction,
         key: TypeKey,
-        args: List<AstType>
+        args: List<AstType>,
     ) = withCycleDetection(key, function) {
         // Drop receiver from args
         val namedArgs = if (function.receiverParameterType != null) {
@@ -269,7 +324,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     private fun LateInit(
         name: String,
         key: TypeKey,
-        typeResult: TypeResult
+        typeResult: TypeResult,
     ): TypeResult.LateInit {
         return TypeResult.LateInit(
             name = name,
@@ -280,7 +335,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     private fun withCycleDetection(
         key: TypeKey,
         source: AstElement,
-        f: () -> TypeResult
+        f: () -> TypeResult,
     ): TypeResult {
         val result = cycleDetector.check(key, source) { cycleResult ->
             when (cycleResult) {
@@ -323,4 +378,6 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         }
         return true
     }
+
+    private fun AstType.isLazy(): Boolean = packageName == "kotlin" && simpleName == "Lazy"
 }
