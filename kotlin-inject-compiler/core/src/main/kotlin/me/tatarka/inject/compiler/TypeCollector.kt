@@ -3,7 +3,6 @@ package me.tatarka.inject.compiler
 import me.tatarka.inject.compiler.ContainerCreator.mapOf
 import me.tatarka.inject.compiler.ContainerCreator.setOf
 import me.tatarka.kotlin.ast.AstClass
-import me.tatarka.kotlin.ast.AstConstructor
 import me.tatarka.kotlin.ast.AstElement
 import me.tatarka.kotlin.ast.AstMember
 import me.tatarka.kotlin.ast.AstProvider
@@ -31,14 +30,14 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
         val valid: Boolean,
     ) {
         // Map of types to inject and how to obtain them.
-        private val types = mutableMapOf<TypeKey, TypeCreator>()
+        val types = mutableMapOf<TypeKey, TypeCreator>()
 
         // Map of types obtained from generated provider methods. This can be used for lookup when the underlying method
         // is not available (ex: because we only see an interface, or it's marked protected).
-        private val providerTypes = mutableMapOf<TypeKey, TypeCreator>()
+        val providerTypes = mutableMapOf<TypeKey, ProviderMethod>()
 
         // Map of scoped components and the accessors to obtain them
-        private val scopedAccessors = mutableMapOf<AstType, ScopedComponent>()
+        val scopedAccessors = mutableMapOf<AstType, ScopedComponent>()
 
         // Map of scoped annotations to their parents. Used to ensure a child scoped dependency isn't injected into a
         // parent scoped dependency as that can cause a leak.
@@ -174,7 +173,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
         private fun addProviderMethod(key: TypeKey, method: AstMember, accessor: Accessor) {
             // Skip adding if already provided by child component.
             if (!providerTypes.containsKey(key)) {
-                providerTypes[key] = method(method, accessor, scopedComponent = null)
+                providerTypes[key] = ProviderMethod(method, accessor)
             }
         }
 
@@ -187,36 +186,6 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
         private fun duplicate(key: TypeKey, newValue: AstElement, oldValue: AstElement) {
             provider.error("Cannot provide: $key", newValue)
             provider.error("as it is already provided", oldValue)
-        }
-
-        fun resolve(key: TypeKey): TypeCreator? {
-            val providerResult = providerTypes[key]
-            if (providerResult != null) {
-                return providerResult
-            }
-            val result = types[key]
-            if (result != null) {
-                return result
-            }
-            val astClass = key.type.toAstClass()
-            val injectCtor = astClass.findInjectConstructors(provider.messenger, options)
-            if (injectCtor != null) {
-                val scope = astClass.scopeType(options)
-                val scopedComponent = if (scope != null) scopedAccessors[scope] else null
-                if (scope != null && scopedComponent == null) {
-                    provider.error("Cannot find component with scope: @$scope to inject $astClass", astClass)
-                    return null
-                }
-                return TypeCreator.Constructor(
-                    injectCtor,
-                    accessor = scopedComponent?.accessor.orEmpty(),
-                    scopedComponent = scopedComponent?.type
-                )
-            }
-            if (astClass.isInject() && astClass.isObject) {
-                return TypeCreator.Object(astClass)
-            }
-            return null
         }
 
         fun checkScope(
@@ -334,15 +303,12 @@ class TypeInfo(
     val valid: Boolean = true,
 )
 
+class ProviderMethod(
+    val method: AstMember,
+    val accessor: Accessor,
+)
+
 sealed class TypeCreator(val source: AstElement) {
-
-    class Object(val astClass: AstClass) : TypeCreator(astClass)
-
-    class Constructor(
-        val constructor: AstConstructor,
-        val accessor: Accessor = Accessor.Empty,
-        val scopedComponent: AstClass? = null
-    ) : TypeCreator(constructor)
 
     class Method(
         val method: AstMember,
