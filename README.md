@@ -346,7 +346,7 @@ abstract class MyComponent {
     protected fun provideFoo1(): Foo = Foo("1")
 
     @IntoSet
-    @Provdies
+    @Provides
     protected fun provideFoo2(): Foo = Foo("2")
 }
 ```
