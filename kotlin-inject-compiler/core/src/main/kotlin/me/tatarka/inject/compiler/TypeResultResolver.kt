@@ -94,19 +94,21 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             throw FailedToGenerateException(trace("Unresolved reference: $key"))
         }
 
-        val providerResult = types.providerTypes[key]
+        val providerResult = types.providerType(key)
         if (providerResult != null) {
+            val (method, types) = providerResult
             return Provides(
-                context = this,
-                accessor = providerResult.accessor,
-                method = providerResult.method,
+                context = withTypes(types),
+                accessor = method.accessor,
+                method = method.method,
                 key = key,
             )
         }
 
-        val result = types.types[key]
+        val result = types.type(key)
         if (result != null) {
-            return method(element, key, result)
+            val (creator, types) = result
+            return withTypes(types).method(key, creator)
         }
 
         if (key.type.isSet()) {
@@ -141,8 +143,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         return null
     }
 
-    private fun Context.method(element: AstElement, key: TypeKey, creator: TypeCreator.Method): TypeResult {
-        types.checkScope(key, creator.scopedComponent, element, scopeComponent)
+    private fun Context.method(key: TypeKey, creator: Method): TypeResult {
         return if (creator.scopedComponent != null && skipScoped != creator.method.returnType) {
             Scoped(
                 context = this,
@@ -165,12 +166,13 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         val innerType = key.type.arguments[0].resolvedType()
         if (innerType.isFunction()) {
             val containerKey = ContainerKey.SetKey(innerType.arguments.last(), key.qualifier)
-            val container = types.containerTypes[containerKey] ?: return null
+            val args = types.containerArgs(containerKey)
+            if (args.isEmpty()) return null
             return Container(
                 creator = containerKey.creator,
-                container = container,
-                mapArg = { key, arg ->
-                    Function(this, args = innerType.arguments.dropLast(1)) { context ->
+                args = args,
+                mapArg = { key, arg, types ->
+                    Function(withTypes(types), args = innerType.arguments.dropLast(1)) { context ->
                         TypeResultRef(key, Provides(context, arg.accessor, arg.method, key))
                     }
                 }
@@ -178,26 +180,27 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         }
         if (innerType.isLazy()) {
             val containerKey = ContainerKey.SetKey(innerType.arguments[0], key.qualifier)
-            val container = types.containerTypes[containerKey] ?: return null
+            val args = types.containerArgs(containerKey)
+            if (args.isEmpty()) return null
             return Container(
                 creator = containerKey.creator,
-                container = container,
-                mapArg = { key, arg ->
+                args = args,
+                mapArg = { key, arg, types ->
                     Lazy(key) {
-                        TypeResultRef(key, Provides(this, arg.accessor, arg.method, key))
+                        TypeResultRef(key, Provides(withTypes(types), arg.accessor, arg.method, key))
                     }
                 }
             )
         }
 
         val containerKey = ContainerKey.SetKey(innerType, key.qualifier)
-        val container = types.containerTypes[containerKey] ?: return null
-
+        val args = types.containerArgs(containerKey)
+        if (args.isEmpty()) return null
         return Container(
             creator = containerKey.creator,
-            container = container,
-            mapArg = { key, arg ->
-                Provides(this, arg.accessor, arg.method, key)
+            args = args,
+            mapArg = { key, arg, types ->
+                Provides(withTypes(types), arg.accessor, arg.method, key)
             }
         )
     }
@@ -205,13 +208,13 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     private fun Context.map(key: TypeKey): TypeResult? {
         val type = key.type.resolvedType()
         val containerKey = ContainerKey.MapKey(type.arguments[0], type.arguments[1], key.qualifier)
-        val container = types.containerTypes[containerKey] ?: return null
-
+        val args = types.containerArgs(containerKey)
+        if (args.isEmpty()) return null
         return Container(
             creator = containerKey.creator,
-            container = container,
-            mapArg = { key, arg ->
-                Provides(this, arg.accessor, arg.method, key)
+            args = args,
+            mapArg = { key, arg, types ->
+                Provides(withTypes(types), arg.accessor, arg.method, key)
             }
         )
     }
@@ -239,14 +242,15 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
 
     private fun Context.constructor(key: TypeKey, injectCtor: AstConstructor, astClass: AstClass): TypeResult? {
         val scope = astClass.scopeType(options)
-        val scopedComponent = if (scope != null) types.scopedAccessors[scope] else null
-        if (scope != null && scopedComponent == null) {
+        val scopedResult = if (scope != null) types.scopedAccessor(scope) else null
+        if (scope != null && scopedResult == null) {
             provider.error("Cannot find component with scope: @$scope to inject $astClass", astClass)
             return null
         }
-        return if (scopedComponent != null && skipScoped != injectCtor.type) {
+        return if (scopedResult != null && skipScoped != injectCtor.type) {
+            val (scopedComponent, types) = scopedResult
             Scoped(
-                context = this,
+                context = withTypes(types),
                 accessor = scopedComponent.accessor,
                 element = injectCtor,
                 scopedComponent = scopedComponent.type,
@@ -326,14 +330,14 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
 
     private fun Container(
         creator: String,
-        container: TypeCreator.Container,
-        mapArg: (TypeKey, TypeCreator.Method) -> TypeResult,
+        args: List<Pair<Method, TypeCollector.Result>>,
+        mapArg: (TypeKey, Method, TypeCollector.Result) -> TypeResult,
     ): TypeResult {
         return TypeResult.Container(
             creator = creator,
-            args = container.args.map { arg ->
+            args = args.map { (arg, types) ->
                 val key = TypeKey(arg.method.returnType, arg.method.qualifier(options))
-                TypeResultRef(key, mapArg(key, arg))
+                TypeResultRef(key, mapArg(key, arg, types))
             }
         )
     }
