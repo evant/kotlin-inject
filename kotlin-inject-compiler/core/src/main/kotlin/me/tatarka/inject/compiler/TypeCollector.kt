@@ -1,7 +1,6 @@
 package me.tatarka.inject.compiler
 
-import me.tatarka.inject.compiler.ContainerCreator.mapOf
-import me.tatarka.inject.compiler.ContainerCreator.setOf
+import me.tatarka.kotlin.ast.AstAnnotation
 import me.tatarka.kotlin.ast.AstClass
 import me.tatarka.kotlin.ast.AstElement
 import me.tatarka.kotlin.ast.AstMember
@@ -16,9 +15,9 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
     fun collect(astClass: AstClass, accessor: Accessor = Accessor.Empty): Result {
         val typeInfo = collectTypeInfo(astClass)
         return if (!typeInfo.valid) {
-            Result(null, emptyList(), false)
+            Result(null, emptyList())
         } else {
-            val result = Result(typeInfo.scopeClass, typeInfo.providerMethods, true)
+            val result = Result(typeInfo.scopeClass, typeInfo.providerMethods)
             result.collectTypes(astClass, accessor, typeInfo)
             result
         }
@@ -27,10 +26,12 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
     inner class Result internal constructor(
         val scopeClass: AstClass?,
         val providerMethods: List<AstMember>,
-        val valid: Boolean,
     ) {
         // Map of types to inject and how to obtain them.
-        val types = mutableMapOf<TypeKey, TypeCreator>()
+        val types = mutableMapOf<TypeKey, TypeCreator.Method>()
+
+        // Map of container types to inject. Used for multibinding.
+        val containerTypes = mutableMapOf<ContainerKey, TypeCreator.Container>()
 
         // Map of types obtained from generated provider methods. This can be used for lookup when the underlying method
         // is not available (ex: because we only see an interface, or it's marked protected).
@@ -88,21 +89,23 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                 val scopedComponent = if (scopeType != null) astClass else null
                 if (method.hasAnnotation(INTO_MAP.packageName, INTO_MAP.simpleName)) {
                     // Pair<A, B> -> Map<A, B>
-                    val type = method.returnTypeFor(astClass)
-                    val resolvedType = type.resolvedType()
-                    if (resolvedType.packageName == "kotlin" && resolvedType.simpleName == "Pair") {
-                        val typeArgs = resolvedType.arguments
-                        val mapType = TypeKey(
-                            provider.declaredTypeOf(Map::class, typeArgs[0], typeArgs[1]), method.qualifier(options)
+                    val returnType = method.returnTypeFor(astClass)
+                    val key = TypeKey(returnType, method.qualifier(options))
+                    val resolvedType = returnType.resolvedType()
+                    if (resolvedType.isPair()) {
+                        val containerKey = ContainerKey.MapKey(
+                            resolvedType.arguments[0], resolvedType.arguments[1], key.qualifier
                         )
-                        addContainerType(mapType, mapOf, method, accessor, scopedComponent)
+                        addContainerType(provider, key, containerKey, method, accessor, scopedComponent)
                     } else {
                         provider.error("@IntoMap must have return type of type Pair", method)
                     }
                 } else if (method.hasAnnotation(INTO_SET.packageName, INTO_SET.simpleName)) {
                     // A -> Set<A>
-                    val setType = TypeKey(provider.declaredTypeOf(Set::class, method.returnTypeFor(astClass)))
-                    addContainerType(setType, setOf, method, accessor, scopedComponent)
+                    val returnType = method.returnTypeFor(astClass)
+                    val key = TypeKey(returnType, method.qualifier(options))
+                    val containerKey = ContainerKey.SetKey(returnType, key.qualifier)
+                    addContainerType(provider, key, containerKey, method, accessor, scopedComponent)
                 } else {
                     val returnType = method.returnTypeFor(astClass)
                     val key = TypeKey(returnType, method.qualifier(options))
@@ -141,33 +144,46 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
         }
 
         private fun addContainerType(
+            provider: AstProvider,
             key: TypeKey,
-            creator: ContainerCreator,
+            containerKey: ContainerKey,
             method: AstMember,
             accessor: Accessor,
-            scopedComponent: AstClass?
+            scopedComponent: AstClass?,
         ) {
-            val current = types[key]
-            if (current == null) {
-                types[key] = TypeCreator.Container(
-                    creator = creator,
+            val current = types[containerKey.containerTypeKey(provider)]
+            if (current != null) {
+                duplicate(key, newValue = method, oldValue = current.source)
+            }
+
+            val currentContainer = containerTypes[containerKey]
+            if (currentContainer == null) {
+                containerTypes[containerKey] = TypeCreator.Container(
                     source = method,
                     args = mutableListOf(method(method, accessor, scopedComponent))
                 )
-            } else if (current is TypeCreator.Container && current.creator == creator) {
-                current.args.add(method(method, accessor, scopedComponent))
             } else {
-                duplicate(key, newValue = method, oldValue = current.source)
+                currentContainer.args.add(method(method, accessor, scopedComponent))
             }
         }
 
         private fun addMethod(key: TypeKey, method: AstMember, accessor: Accessor, scopedComponent: AstClass?) {
             val oldValue = types[key]
-            if (oldValue == null) {
-                types[key] = method(method, accessor, scopedComponent)
-            } else {
+            if (oldValue != null) {
                 duplicate(key, newValue = method, oldValue = oldValue.source)
+                return
             }
+
+            val containerKey = ContainerKey.fromContainer(key)
+            if (containerKey != null) {
+                val oldSetValue = containerTypes[containerKey]
+                if (oldSetValue != null) {
+                    duplicate(key, newValue = method, oldValue = oldSetValue.source)
+                    return
+                }
+            }
+
+            types[key] = method(method, accessor, scopedComponent)
         }
 
         private fun addProviderMethod(key: TypeKey, method: AstMember, accessor: Accessor) {
@@ -192,7 +208,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
             key: TypeKey,
             keyScopedComponent: AstClass?,
             current: AstElement,
-            currentScopedComponent: AstClass?
+            currentScopedComponent: AstClass?,
         ) {
             if (keyScopedComponent == null || currentScopedComponent == null) return
             val parentScopes = mutableListOf(keyScopedComponent)
@@ -313,22 +329,49 @@ sealed class TypeCreator(val source: AstElement) {
     class Method(
         val method: AstMember,
         val accessor: Accessor = Accessor.Empty,
-        val scopedComponent: AstClass? = null
+        val scopedComponent: AstClass? = null,
     ) : TypeCreator(method)
 
     class Container(
-        val creator: ContainerCreator,
         val args: MutableList<Method>,
-        source: AstElement
+        source: AstElement,
     ) : TypeCreator(source)
 }
 
-@Suppress("EnumNaming")
-enum class ContainerCreator {
-    mapOf, setOf
+sealed class ContainerKey {
+    abstract val creator: String
+    abstract fun containerTypeKey(provider: AstProvider): TypeKey
+
+    data class SetKey(val type: AstType, val qualifier: AstAnnotation? = null) : ContainerKey() {
+        override val creator: String = "setOf"
+
+        override fun containerTypeKey(provider: AstProvider): TypeKey {
+            return TypeKey(provider.declaredTypeOf(Set::class, type), qualifier)
+        }
+    }
+
+    data class MapKey(val key: AstType, val value: AstType, val qualifier: AstAnnotation? = null) : ContainerKey() {
+        override val creator: String = "mapOf"
+
+        override fun containerTypeKey(provider: AstProvider): TypeKey {
+            return TypeKey(provider.declaredTypeOf(Map::class, key, value), qualifier)
+        }
+    }
+
+    companion object {
+        fun fromContainer(key: TypeKey): ContainerKey? {
+            if (key.type.isSet()) {
+                return SetKey(key.type.arguments[0], key.qualifier)
+            }
+            if (key.type.isMap()) {
+                return MapKey(key.type.arguments[0], key.type.arguments[1], key.qualifier)
+            }
+            return null
+        }
+    }
 }
 
 data class ScopedComponent(
     val type: AstClass,
-    val accessor: Accessor
+    val accessor: Accessor,
 )
