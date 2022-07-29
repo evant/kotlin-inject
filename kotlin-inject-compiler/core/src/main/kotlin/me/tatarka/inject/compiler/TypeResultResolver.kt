@@ -106,7 +106,15 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
 
         val result = types.types[key]
         if (result != null) {
-            return typeCreator(element, key, result)
+            return method(element, key, result)
+        }
+
+        if (key.type.isSet()) {
+            return set(key)
+        }
+
+        if (key.type.isMap()) {
+            return map(key)
         }
 
         if (key.type.isFunction()) {
@@ -115,7 +123,9 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
 
         if (key.type.isLazy()) {
             val lKey = TypeKey(key.type.arguments[0], key.qualifier)
-            return Lazy(this, element = element, key = lKey)
+            return Lazy(key = lKey) {
+                resolveOrNull(this, element = element, key = lKey) ?: return null
+            }
         }
 
         val astClass = key.type.toAstClass()
@@ -131,34 +141,79 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         return null
     }
 
-    private fun Context.typeCreator(element: AstElement, key: TypeKey, creator: TypeCreator): TypeResult {
-        return when (creator) {
-            is TypeCreator.Method -> {
-                types.checkScope(key, creator.scopedComponent, element, scopeComponent)
-                if (creator.scopedComponent != null && skipScoped != creator.method.returnType) {
-                    Scoped(
-                        context = this,
-                        accessor = creator.accessor,
-                        element = creator.method,
-                        scopedComponent = creator.scopedComponent,
-                        key = key,
-                    )
-                } else {
-                    Provides(
-                        context = this,
-                        accessor = creator.accessor,
-                        method = creator.method,
-                        key = key,
-                    )
-                }
-            }
-
-            is TypeCreator.Container -> Container(
+    private fun Context.method(element: AstElement, key: TypeKey, creator: TypeCreator.Method): TypeResult {
+        types.checkScope(key, creator.scopedComponent, element, scopeComponent)
+        return if (creator.scopedComponent != null && skipScoped != creator.method.returnType) {
+            Scoped(
                 context = this,
-                creator = creator.creator.toString(),
-                args = creator.args,
+                accessor = creator.accessor,
+                element = creator.method,
+                scopedComponent = creator.scopedComponent,
+                key = key,
+            )
+        } else {
+            Provides(
+                context = this,
+                accessor = creator.accessor,
+                method = creator.method,
+                key = key,
             )
         }
+    }
+
+    private fun Context.set(key: TypeKey): TypeResult? {
+        val innerType = key.type.arguments[0].resolvedType()
+        if (innerType.isFunction()) {
+            val containerKey = ContainerKey.SetKey(innerType.arguments.last(), key.qualifier)
+            val container = types.containerTypes[containerKey] ?: return null
+            return Container(
+                creator = containerKey.creator,
+                container = container,
+                mapArg = { key, arg ->
+                    Function(this, args = innerType.arguments.dropLast(1)) { context ->
+                        TypeResultRef(key, Provides(context, arg.accessor, arg.method, key))
+                    }
+                }
+            )
+        }
+        if (innerType.isLazy()) {
+            val containerKey = ContainerKey.SetKey(innerType.arguments[0], key.qualifier)
+            val container = types.containerTypes[containerKey] ?: return null
+            return Container(
+                creator = containerKey.creator,
+                container = container,
+                mapArg = { key, arg ->
+                    Lazy(key) {
+                        TypeResultRef(key, Provides(this, arg.accessor, arg.method, key))
+                    }
+                }
+            )
+        }
+
+        val containerKey = ContainerKey.SetKey(innerType, key.qualifier)
+        val container = types.containerTypes[containerKey] ?: return null
+
+        return Container(
+            creator = containerKey.creator,
+            container = container,
+            mapArg = { key, arg ->
+                Provides(this, arg.accessor, arg.method, key)
+            }
+        )
+    }
+
+    private fun Context.map(key: TypeKey): TypeResult? {
+        val type = key.type.resolvedType()
+        val containerKey = ContainerKey.MapKey(type.arguments[0], type.arguments[1], key.qualifier)
+        val container = types.containerTypes[containerKey] ?: return null
+
+        return Container(
+            creator = containerKey.creator,
+            container = container,
+            mapArg = { key, arg ->
+                Provides(this, arg.accessor, arg.method, key)
+            }
+        )
     }
 
     private fun Context.functionType(element: AstElement, key: TypeKey): TypeResult? {
@@ -177,12 +232,9 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             }
         }
         val fKey = TypeKey(resolveType.arguments.last(), key.qualifier)
-        return Function(
-            context = this,
-            key = fKey,
-            element = element,
-            args = resolveType.arguments.dropLast(1)
-        )
+        return Function(this, args = resolveType.arguments.dropLast(1)) { context ->
+            resolveOrNull(context, element = element, key = fKey) ?: return null
+        }
     }
 
     private fun Context.constructor(key: TypeKey, injectCtor: AstConstructor, astClass: AstClass): TypeResult? {
@@ -273,27 +325,27 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         }
 
     private fun Container(
-        context: Context,
         creator: String,
-        args: List<TypeCreator.Method>,
-    ) = TypeResult.Container(
-        creator = creator,
-        args = args.map { arg ->
-            val key = TypeKey(arg.method.returnType, arg.method.qualifier(options))
-            TypeResultRef(key, Provides(context, arg.accessor, arg.method, key))
-        }
-    )
+        container: TypeCreator.Container,
+        mapArg: (TypeKey, TypeCreator.Method) -> TypeResult,
+    ): TypeResult {
+        return TypeResult.Container(
+            creator = creator,
+            args = container.args.map { arg ->
+                val key = TypeKey(arg.method.returnType, arg.method.qualifier(options))
+                TypeResultRef(key, mapArg(key, arg))
+            }
+        )
+    }
 
-    private fun Function(
+    private inline fun Function(
         context: Context,
-        key: TypeKey,
-        element: AstElement,
         args: List<AstType>,
-    ): TypeResult? {
+        result: (context: Context) -> TypeResultRef,
+    ): TypeResult {
         cycleDetector.delayedConstruction()
         val namedArgs = args.mapIndexed { i, arg -> arg to "arg$i" }
-        val result = resolveOrNull(context.withArgs(namedArgs), element, key) ?: return null
-        return TypeResult.Function(args = namedArgs.map { it.second }, result = result)
+        return TypeResult.Function(args = namedArgs.map { it.second }, result = result(context.withArgs(namedArgs)))
     }
 
     private fun NamedFunction(
@@ -315,10 +367,9 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         )
     }
 
-    private fun Lazy(context: Context, element: AstElement, key: TypeKey): TypeResult? {
+    private inline fun Lazy(key: TypeKey, result: () -> TypeResultRef): TypeResult {
         cycleDetector.delayedConstruction()
-        val result = resolveOrNull(context, element, key) ?: return null
-        return maybeLateInit(key, TypeResult.Lazy(result))
+        return maybeLateInit(key, TypeResult.Lazy(result()))
     }
 
     private fun LateInit(
