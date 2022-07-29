@@ -26,7 +26,6 @@ tasks.withType<Detekt>().configureEach {
 }
 
 tasks.withType<Test>().configureEach {
-    ignoreFailures = true
     testLogging {
         events("passed", "skipped", "failed")
     }
