@@ -1,5 +1,3 @@
-@file:Suppress("UNUSED_PARAMETER")
-
 package me.tatarka.inject.test
 
 import assertk.assertThat
@@ -12,12 +10,15 @@ import me.tatarka.inject.annotations.Provides
 import kotlin.test.Test
 
 class Inner {
-    @Inject class Bar(val foo: Foo)
+    @Inject
+    class Bar(val foo: Foo)
 }
 
-@Inject class Bar4(val bar: Inner.Bar)
+@Inject
+class Bar4(val bar: Inner.Bar)
 
-@Inject class Bar5(val bar: Inner.Bar)
+@Inject
+class Bar5(val bar: Inner.Bar)
 
 @Component
 abstract class CommonGetterComponent {
@@ -70,7 +71,10 @@ abstract class MultipleScopedConstructionComponent {
     abstract val bar2: BarImpl2
 
     @Provides
-    fun providesIBar(foo: IFoo): IBar = object : IBar {}
+    fun providesIBar(
+        @Suppress("UNUSED_PARAMETER")
+        foo: IFoo,
+    ): IBar = object : IBar {}
 
     val Foo.bind: IFoo
         @Provides @CustomScope get() = this

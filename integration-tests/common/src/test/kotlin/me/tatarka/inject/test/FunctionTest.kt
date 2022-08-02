@@ -66,7 +66,7 @@ data class Person(val house: House.Factory, val name: String) {
 }
 
 @Inject
-class House(@Suppress("unused") val bricks: Int) {
+data class House(val bricks: Int) {
     @Inject
     class Factory(val create: (Int) -> House)
 }

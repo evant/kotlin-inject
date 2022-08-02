@@ -1,5 +1,3 @@
-@file:Suppress("UNUSED_VARIABLE")
-
 // package is omitted to place this in the root to catch issues where inner class of the same name were not seen as
 // district. See https://github.com/evant/kotlin-inject/issues/192
 

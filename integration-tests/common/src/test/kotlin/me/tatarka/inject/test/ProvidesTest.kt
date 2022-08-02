@@ -1,5 +1,3 @@
-@file:Suppress("UNUSED_PARAMETER")
-
 package me.tatarka.inject.test
 
 import assertk.assertThat
@@ -106,7 +104,10 @@ abstract class ProvidesOverloadsComponent {
     fun foo2a() = Foo1()
 
     @Provides
-    fun foo2a(bar: ProvidesBar) = Foo2()
+    fun foo2a(
+        @Suppress("UNUSED_PARAMETER")
+        bar: ProvidesBar,
+    ) = Foo2()
 
     val foo
         @Provides get() = Foo3()
@@ -136,7 +137,7 @@ class BasicTypes(
     val stringArray: Array<String>,
     val intFoo: IntFoo,
     val intArrayFoo: IntArrayFoo,
-    val stringArrayFoo: StringArrayFoo
+    val stringArrayFoo: StringArrayFoo,
 )
 
 @Component
@@ -192,13 +193,13 @@ abstract class ProvidesBasicTypes {
 @Inject
 class ValConstructorBasicTypes(
     val boolean: Boolean,
-    val string: String
+    val string: String,
 )
 
 @Component
 abstract class ProvidesValConstructorBasicTypes(
     @get:Provides val boolean: Boolean,
-    @get:Provides val string: String
+    @get:Provides val string: String,
 ) {
     abstract val basicType: ValConstructorBasicTypes
 }
