@@ -1,5 +1,3 @@
-@file:Suppress("unused")
-
 package me.tatarka.inject.test
 
 import assertk.assertThat
@@ -58,10 +56,6 @@ abstract class NestedFunctionComponent {
     abstract val bar: () -> FunctionBar
 }
 
-
-class MyDep
-
-
 @Inject
 data class Person(val house: House.Factory, val name: String) {
 
@@ -72,7 +66,7 @@ data class Person(val house: House.Factory, val name: String) {
 }
 
 @Inject
-class House(val bricks: Int) {
+class House(@Suppress("unused") val bricks: Int) {
     @Inject
     class Factory(val create: (Int) -> House)
 }
