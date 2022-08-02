@@ -7,6 +7,7 @@ import assertk.assertions.isSameAs
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Provides
+import me.tatarka.inject.annotations.Scope
 import me.tatarka.inject.test.different.DifferentPackageFoo
 import me.tatarka.inject.test.different.DifferentPackageScopedComponent
 import me.tatarka.inject.test.different.create
@@ -154,30 +155,48 @@ class Parameterized<E, S>
 @CustomScope
 @Inject
 class ParameterizedFoo(
-  private val p1: Parameterized<List<Int>, List<String>>,
-  private val p2: Parameterized<List<String>, List<String>>,
-  private val bar: ParameterizedBar
+    private val p1: Parameterized<List<Int>, List<String>>,
+    private val p2: Parameterized<List<String>, List<String>>,
+    private val bar: ParameterizedBar
 )
 
 @CustomScope
 @Inject
 class ParameterizedBar(
-  private val p1: Parameterized<List<Int>, List<String>>,
-  private val p2: Parameterized<List<String>, List<String>>
+    private val p1: Parameterized<List<Int>, List<String>>,
+    private val p2: Parameterized<List<String>, List<String>>
 )
 
 @CustomScope
 @Component
 abstract class MultipleSameTypedScopedProvidesComponent {
-  abstract val foo: ParameterizedFoo
+    abstract val foo: ParameterizedFoo
 
-  @CustomScope
-  @Provides
-  protected fun parameterized1() = Parameterized<List<Int>, List<String>>()
+    @CustomScope
+    @Provides
+    protected fun parameterized1() = Parameterized<List<Int>, List<String>>()
 
-  @CustomScope
-  @Provides
-  protected fun parameterized2() = Parameterized<List<String>, List<String>>()
+    @CustomScope
+    @Provides
+    protected fun parameterized2() = Parameterized<List<String>, List<String>>()
+}
+
+@Scope annotation class ChildScope
+
+@CustomScope
+@Component
+abstract class ParentChildScopesParentComponent {
+    val foo: IFoo
+        @Provides @CustomScope get() = Foo()
+}
+
+@ChildScope
+@Component
+abstract class ParentChildScopesChildComponent(@Component val parent: ParentChildScopesParentComponent) {
+    abstract val bar: BarImpl
+
+    @Provides @ChildScope
+    fun barImpl(foo: IFoo): BarImpl = BarImpl(foo)
 }
 
 class ScopeTest {
@@ -283,10 +302,17 @@ class ScopeTest {
         assertThat(component.foo).isSameAs(component.foo)
     }
 
-  @Test
-  fun generates_a_component_when_multiple_scoped_provides_funs_have_the_same_return_type_with_different_type_args() {
-    val component = MultipleSameTypedScopedProvidesComponent::class.create()
+    @Test
+    fun generates_a_component_when_multiple_scoped_provides_funs_have_the_same_return_type_with_different_type_args() {
+        val component = MultipleSameTypedScopedProvidesComponent::class.create()
 
-    assertThat(component.foo).isSameAs(component.foo)
- }
+        assertThat(component.foo).isSameAs(component.foo)
+    }
+
+    @Test
+    fun generates_a_component_that_injects_a_parent_scoped_dep_into_a_child_scoped_dep() {
+        val component = ParentChildScopesChildComponent::class.create(ParentChildScopesParentComponent::class.create())
+
+        assertThat(component.bar).isNotNull()
+    }
 }

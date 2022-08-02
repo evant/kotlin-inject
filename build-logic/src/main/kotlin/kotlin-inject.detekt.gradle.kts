@@ -1,3 +1,4 @@
+import io.gitlab.arturbosch.detekt.Detekt
 import org.gradle.accessors.dm.LibrariesForLibs
 import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.dependencies
@@ -10,23 +11,21 @@ plugins {
 
 val libs = the<LibrariesForLibs>()
 
-detekt {
-    parallel = true
-    buildUponDefaultConfig = true
-    config.from(file(rootProject.projectDir.resolve(".static/detekt-config.yml")))
-    autoCorrect = findProperty("fix") == "true"
-    reports {
-        html.enabled = true
-        xml.enabled = false
-    }
-}
-
 dependencies {
     detektPlugins(libs.detekt.formatting)
 }
 
+tasks.withType<Detekt>().configureEach {
+    parallel = true
+    buildUponDefaultConfig = true
+    config.from(file(rootProject.projectDir.resolve(".static/detekt-config.yml")))
+    reports {
+        html.required.set(true)
+        xml.required.set(false)
+    }
+}
+
 tasks.withType<Test>().configureEach {
-    ignoreFailures = true
     testLogging {
         events("passed", "skipped", "failed")
     }

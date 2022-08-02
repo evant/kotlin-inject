@@ -414,7 +414,13 @@ private class KSAstType private constructor(
     }
 
     override fun toString(): String {
-        return typeRef.toString().shortenPackage()
+        // rely on KotlinPoet's toString() as it includes type params
+        // we check for error first because KotlinPoet will throw an exception
+        return if (type.isError) {
+            typeRef.toString()
+        } else {
+            typeRef.toTypeName().toString()
+        }.shortenPackage()
     }
 
     override fun toTypeName(): TypeName {
@@ -462,7 +468,7 @@ private class KSAstAnnotation(private val resolver: Resolver, val annotation: KS
 
     override fun toString(): String {
         return "$annotation(${
-            annotation.arguments.joinToString(", ") { arg -> "${arg.name?.asString()}=${arg.value}" }
+        annotation.arguments.joinToString(", ") { arg -> "${arg.name?.asString()}=${arg.value}" }
         })"
     }
 }

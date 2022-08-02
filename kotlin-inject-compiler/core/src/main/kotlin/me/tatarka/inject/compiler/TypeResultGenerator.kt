@@ -145,21 +145,21 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
         return CodeBlock.builder().apply {
             add("%T(", type.toTypeName())
             if (parameters.isNotEmpty()) {
-              add("\n⇥")
-              val isNamedArgumentsSupported = supportsNamedArguments
-              parameters.entries.forEachIndexed { i, (paramName, param) ->
-                if (i != 0) {
-                  add(",\n")
+                add("\n⇥")
+                val isNamedArgumentsSupported = supportsNamedArguments
+                parameters.entries.forEachIndexed { i, (paramName, param) ->
+                    if (i != 0) {
+                        add(",\n")
+                    }
+                    when {
+                        isNamedArgumentsSupported -> {
+                            add("$paramName = ")
+                            add(param.generate())
+                        }
+                        else -> add(param.generate())
+                    }
                 }
-                when {
-                  isNamedArgumentsSupported -> {
-                    add("$paramName = ")
-                    add(param.generate())
-                  }
-                  else -> add(param.generate())
-                }
-              }
-              add("\n⇤")
+                add("\n⇤")
             }
             add(")")
         }.build()

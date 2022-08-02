@@ -3,13 +3,24 @@ package me.tatarka.inject.compiler.kapt
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.compiler.FailedToGenerateException
 import me.tatarka.inject.compiler.InjectGenerator
+import me.tatarka.inject.compiler.Options
 import me.tatarka.inject.compiler.Profiler
+import me.tatarka.kotlin.ast.ModelAstProvider
+import javax.annotation.processing.AbstractProcessor
+import javax.annotation.processing.Filer
 import javax.annotation.processing.ProcessingEnvironment
 import javax.annotation.processing.RoundEnvironment
+import javax.lang.model.SourceVersion
 import javax.lang.model.element.TypeElement
-import me.tatarka.kotlin.ast.ModelAstProvider
+import javax.tools.Diagnostic
 
-class InjectCompiler(private val profiler: Profiler? = null) : BaseInjectCompiler() {
+private const val OPTION_GENERATE_COMPANION_EXTENSIONS = "me.tatarka.inject.generateCompanionExtensions"
+
+class InjectCompiler(private val profiler: Profiler? = null) : AbstractProcessor() {
+
+    private lateinit var env: ProcessingEnvironment
+    private lateinit var options: Options
+    private lateinit var filer: Filer
 
     private val annotationNames = mutableSetOf<String>()
     private lateinit var provider: ModelAstProvider
@@ -21,8 +32,19 @@ class InjectCompiler(private val profiler: Profiler? = null) : BaseInjectCompile
 
     override fun init(processingEnv: ProcessingEnvironment) {
         super.init(processingEnv)
+        env = processingEnv
+        options = Options.from(processingEnv.options)
+        filer = processingEnv.filer
         provider = ModelAstProvider(env)
         generator = InjectGenerator(provider, options)
+
+        processingEnv.messager.printMessage(
+            Diagnostic.Kind.WARNING,
+            "The kotlin-inject kapt backend is deprecated and will be removed in a future version.\n" +
+                "Please migrate to ksp https://github.com/google/ksp\n" +
+                "You should replace: kapt(\"me.tatarka.inject:kotlin-inject-compiler-kapt:<version>\")\n" +
+                "with:               ksp(\"me.tatarka.inject:kotlin-inject-compiler-ksp:<version>\")"
+        )
     }
 
     @Suppress("LoopWithTooManyJumpStatements")
@@ -57,4 +79,6 @@ class InjectCompiler(private val profiler: Profiler? = null) : BaseInjectCompile
     }
 
     override fun getSupportedAnnotationTypes(): Set<String> = annotationNames
+    override fun getSupportedSourceVersion(): SourceVersion = SourceVersion.latestSupported()
+    override fun getSupportedOptions(): Set<String> = setOf(OPTION_GENERATE_COMPANION_EXTENSIONS)
 }

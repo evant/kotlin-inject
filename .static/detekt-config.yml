@@ -95,7 +95,7 @@ style:
     active: true
   UnnecessaryAbstractClass:
     active: true
-    excludeAnnotatedClasses: ["Component"]
+    ignoreAnnotated: ["Component"]
     excludes: "**/test/**,**/integration-tests/**,**/*.Test.kt"
   UnnecessaryApply:
     active: true

@@ -151,6 +151,25 @@ class FailureTest {
 
     @ParameterizedTest
     @EnumSource(Target::class)
+    fun fails_if_inner_type_is_missing_inject(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                import me.tatarka.inject.annotations.Component
+                class Foo { class Factory } 
+                @Component abstract class MyComponent {
+                    abstract fun provideFoo(): Foo.Factory
+                }
+                """.trimIndent()
+            ).compile()
+        }.isFailure().output()
+            .contains("Cannot find an @Inject constructor or provider for: Foo.Factory")
+    }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
     fun fails_if_type_cannot_be_provided_to_constructor(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
         assertThat {
@@ -254,10 +273,10 @@ class FailureTest {
                     import me.tatarka.inject.annotations.Component
                     import me.tatarka.inject.annotations.Scope
                     import me.tatarka.inject.annotations.Inject
-
+                    
                     @Scope annotation class MyScope
                     @MyScope @Inject class Foo
-
+                    
                     @Component abstract class MyComponent {
                         abstract val f: Foo
                     }
@@ -400,6 +419,29 @@ class FailureTest {
 
     @ParameterizedTest
     @EnumSource(Target::class)
+    fun fails_if_scope_is_applied_to_both_parent_and_child_components(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                import me.tatarka.inject.annotations.Component
+                import me.tatarka.inject.annotations.Scope
+                
+                @Scope annotation class MyScope1
+                
+                @Component @MyScope1 abstract class ParentComponent
+                @Component @MyScope1 abstract class MyComponent(@Component val parent: ParentComponent)
+                """.trimIndent()
+            ).compile()
+        }.isFailure().output().all {
+            contains("Cannot apply scope: MyScope1")
+            contains("as scope: MyScope1 is already applied to parent")
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
     fun fails_with_missing_binding_with_nullable_provides_and_non_nullable_usage(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
         assertThat {
@@ -456,11 +498,11 @@ class FailureTest {
                 """
                import me.tatarka.inject.annotations.Component
                import me.tatarka.inject.annotations.Provides
-
+               
                @Component abstract class MyParentComponent {
                  @Provides protected fun providesFoo() = "foo"
                }
-
+               
                @Component abstract class MyChildComponent(@Component val parent: MyParentComponent) {
                  abstract val foo: String
                }
@@ -469,6 +511,57 @@ class FailureTest {
         }.isFailure().output().all {
             contains(
                 "@Provides method is not accessible"
+            )
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun fails_if_provides_has_scope_in_an_unscoped_component(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                import me.tatarka.inject.annotations.Component
+                import me.tatarka.inject.annotations.Provides
+                import me.tatarka.inject.annotations.Scope
+
+                 @Scope annotation class MyScope
+                 @Component abstract class MyComponent {
+                    @Provides @MyScope fun foo(): String = "foo"
+                 }
+                """.trimIndent()
+            ).compile()
+        }.isFailure().output().all {
+            contains(
+                "@Provides with scope: MyScope cannot be provided in an unscoped component"
+            )
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun fails_if_provides_scope_does_not_match_component_scope(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                import me.tatarka.inject.annotations.Component
+                import me.tatarka.inject.annotations.Provides
+                import me.tatarka.inject.annotations.Scope
+
+                @Scope annotation class MyScope1
+                @Scope annotation class MyScope2
+                @Component @MyScope1 abstract class MyComponent {
+                    @Provides @MyScope2 fun foo(): String = "foo"
+                }
+                """.trimIndent()
+            ).compile()
+        }.isFailure().output().all {
+            contains(
+                "@Provides with scope: MyScope2 must match component scope: MyScope1"
             )
         }
     }
@@ -484,15 +577,15 @@ class FailureTest {
                 """
                import me.tatarka.inject.annotations.Inject
                import me.tatarka.inject.annotations.Component
-
+               
                @Component abstract class MyComponent {
                 abstract val foo: Foo
                }
-
+               
                @Inject class Foo(bar: Bar = Bar(""))
-
+               
                @Inject class Bar(value: String)
-
+               
                @Component abstract class MyChildComponent(@Component val parent: MyParentComponent) {
                  abstract val foo: String
                }
@@ -501,6 +594,50 @@ class FailureTest {
         }.isFailure().output().all {
             contains(
                 "Cannot find an @Inject constructor or provider for: String"
+            )
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun fails_if_parent_provides_depends_on_child_provides(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                import me.tatarka.inject.annotations.Component
+                import me.tatarka.inject.annotations.Inject
+                import me.tatarka.inject.annotations.Provides
+                
+                class Foo(val bar: Bar)
+                class Foo2(val baz: Lazy<Baz>)
+                class Bar
+                class Baz
+                
+                @Component abstract class ParentComponent {
+                    @Provides fun foo(bar: Bar): Foo = Foo(bar)
+                    @Provides fun foo2(baz: Lazy<Baz>): Foo2 = Foo2(baz)
+                }
+                
+                @Component abstract class ChildComponent(@Component val parent: ParentComponent) {
+                    abstract val foo: Foo
+                    @Provides fun bar(): Bar = Bar()
+                }
+                
+                @Component abstract class ChildComponent2(@Component val parent: ChildComponent) {
+                    abstract val foo: Foo2
+                    @Provides fun baz(): Baz = Baz()
+                }
+                """.trimIndent()
+            ).compile()
+        }.isFailure().output().all {
+            contains(
+                "Cannot find an @Inject constructor or provider for: Bar"
+            )
+            contains(
+                "Cannot find an @Inject constructor or provider for: Lazy<Baz>"
             )
         }
     }

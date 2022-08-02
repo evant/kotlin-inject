@@ -55,7 +55,7 @@ val KSDeclaration.shortName: String
 
 fun KSAnnotation.eqv(other: KSAnnotation): Boolean {
     return annotationType.resolve() == other.annotationType.resolve() &&
-            arguments == other.arguments
+        arguments == other.arguments
 }
 
 fun KSTypeReference.eqv(other: KSTypeReference): Boolean {
@@ -64,13 +64,13 @@ fun KSTypeReference.eqv(other: KSTypeReference): Boolean {
 
 fun KSType.eqv(other: KSType): Boolean {
     return hasSameName(other) &&
-            nullability == other.nullability &&
-            arguments.eqvItr(other.arguments) { a, b ->
-                a.variance == b.variance && a.type.eqv(
-                    b.type,
-                    KSTypeReference::eqv
-                )
-            }
+        nullability == other.nullability &&
+        arguments.eqvItr(other.arguments) { a, b ->
+            a.variance == b.variance && a.type.eqv(
+                b.type,
+                KSTypeReference::eqv
+            )
+        }
 }
 
 private fun KSType.hasSameName(other: KSType): Boolean {

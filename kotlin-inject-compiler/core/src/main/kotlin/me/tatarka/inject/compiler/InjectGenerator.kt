@@ -167,6 +167,7 @@ class InjectGenerator(
             provider = provider,
             className = injectName,
             types = types,
+            scopeComponent = elementScopeClass,
             scopeInterface = if (scopeFromParent) elementScopeClass else null,
         )
     }
@@ -236,14 +237,14 @@ fun AstType.toVariableName(): String =
         joinArgumentTypeNames()
 
 private fun AstType.joinArgumentTypeNames(): String = when {
-  arguments.isEmpty() -> ""
-  else -> arguments.joinToString(separator = "") {
-    it
-      .simpleName
-      .split(".")
-      .joinToString("_") +
-      it.joinArgumentTypeNames()
-  }
+    arguments.isEmpty() -> ""
+    else -> arguments.joinToString(separator = "") {
+        it
+            .simpleName
+            .split(".")
+            .joinToString("_") +
+            it.joinArgumentTypeNames()
+    }
 }
 
 private fun dumpGraph(astClass: AstClass, entries: List<TypeResult.Provider>): String {

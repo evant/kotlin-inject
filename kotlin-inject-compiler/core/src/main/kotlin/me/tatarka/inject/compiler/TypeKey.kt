@@ -1,7 +1,7 @@
 package me.tatarka.inject.compiler
 
-import me.tatarka.kotlin.ast.AstType
 import me.tatarka.kotlin.ast.AstAnnotation
+import me.tatarka.kotlin.ast.AstType
 
 class TypeKey(val type: AstType, val qualifier: AstAnnotation? = null) {
 
