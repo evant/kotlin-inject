@@ -1,5 +1,6 @@
 package me.tatarka.inject.compiler
 
+import com.squareup.kotlinpoet.NameAllocator
 import me.tatarka.kotlin.ast.AstClass
 import me.tatarka.kotlin.ast.AstConstructor
 import me.tatarka.kotlin.ast.AstElement
@@ -17,6 +18,7 @@ import me.tatarka.kotlin.ast.AstType
 class TypeResultResolver(private val provider: AstProvider, private val options: Options) {
 
     private val cycleDetector = CycleDetector()
+    private val nameAllocator = NameAllocator()
     private val types = mutableMapOf<TypeKey, TypeResult>()
 
     /**
@@ -129,12 +131,14 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
                 } else {
                     Constructor(context, constructor, key)
                 }
+
             is TypeCreator.Method ->
                 if (scopedComponent != null && skipScoped != method.returnType) {
                     Scoped(context, accessor, key)
                 } else {
                     Provides(context, accessor, method, key)
                 }
+
             is TypeCreator.Container -> Container(context, creator.toString(), args)
             is TypeCreator.Object -> TypeResult.Object(astClass.type)
         }
@@ -218,7 +222,9 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         args: List<AstType>
     ): TypeResult? {
         cycleDetector.delayedConstruction()
-        val namedArgs = args.mapIndexed { i, arg -> arg to "arg$i" }
+        val namedArgs = args.mapIndexed { i, arg ->
+            arg to nameAllocator.newName("arg$i")
+        }
         val result = resolveOrNull(context.withArgs(namedArgs), key) ?: return null
         return TypeResult.Function(args = namedArgs.map { it.second }, result = result)
     }
@@ -234,7 +240,9 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             args.drop(1)
         } else {
             args
-        }.mapIndexed { i, arg -> arg to "arg$i" }
+        }.mapIndexed { i, arg ->
+            arg to nameAllocator.newName("arg$i")
+        }
         TypeResult.NamedFunction(
             name = function.toMemberName(),
             args = namedArgs.map { it.second },

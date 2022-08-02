@@ -1,3 +1,5 @@
+@file:Suppress("UNUSED_PARAMETER")
+
 package me.tatarka.inject.test
 
 import assertk.assertThat
@@ -74,7 +76,6 @@ abstract class MultipleScopedConstructionComponent {
         @Provides @CustomScope get() = this
 }
 
-@OptIn(ExperimentalStdlibApi::class)
 class MultipleConstructionTest {
 
     @Test

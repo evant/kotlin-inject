@@ -1,3 +1,5 @@
+@file:Suppress("UNUSED_VARIABLE")
+
 package me.tatarka.inject.test
 
 import me.tatarka.inject.annotations.Component

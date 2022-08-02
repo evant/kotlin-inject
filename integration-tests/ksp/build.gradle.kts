@@ -34,6 +34,19 @@ kotlin {
                 implementation(libs.javax.inject)
             }
         }
+        all {
+            languageSettings {
+                optIn("kotlin.RequiresOptIn")
+            }
+        }
+    }
+
+    targets.all {
+        compilations.all {
+            kotlinOptions {
+                allWarningsAsErrors = true
+            }
+        }
     }
 }
 
