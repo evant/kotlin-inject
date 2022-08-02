@@ -67,7 +67,7 @@ data class Person(val house: House.Factory, val name: String) {
 
     @Inject
     class Factory(
-        val create: (String) -> Person
+        val create: (String) -> Person,
     )
 }
 
@@ -85,7 +85,7 @@ abstract class NestedNestedFunctionComponent {
 class FunctionTest {
 
     @Test
-    fun nestedNamesGenerated() {
+    fun nested_arguments_do_not_cause_name_clash() {
         val component = NestedNestedFunctionComponent::class.create()
         assertThat(component.personFactory.create("Alice").name).isEqualTo("Alice")
     }
