@@ -23,4 +23,10 @@ data class Context(
     fun withoutProvider(provider: AstType) = copy(skipProvider = provider)
 
     fun withArgs(args: List<Pair<AstType, String>>) = copy(args = args)
+
+    fun withTypes(types: TypeCollector.Result) = if (this.types === types) {
+        this
+    } else {
+        copy(types = types)
+    }
 }

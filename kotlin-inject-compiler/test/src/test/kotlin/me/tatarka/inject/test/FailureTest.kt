@@ -600,49 +600,44 @@ class FailureTest {
 
     @ParameterizedTest
     @EnumSource(Target::class)
-    fun fails_if_dep_from_smaller_scope_is_included_in_dep_with_wider_scope(target: Target) {
+    fun fails_if_parent_provides_depends_on_child_provides(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
 
         assertThat {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
-                import me.tatarka.inject.annotations.Scope
                 import me.tatarka.inject.annotations.Component
                 import me.tatarka.inject.annotations.Inject
                 import me.tatarka.inject.annotations.Provides
                 
-                @Scope annotation class ParentScope
-                @Scope annotation class ChildScope
-                @Scope annotation class ChildScope2
-                
-                @ParentScope @Inject class Foo(val bar: Bar)
-                @ParentScope @Inject class Foo2(val baz: Lazy<Baz>)
+                class Foo(val bar: Bar)
+                class Foo2(val baz: Lazy<Baz>)
                 class Bar
                 class Baz
                 
-                @ParentScope
-                @Component abstract class ParentComponent
-                
-                @ChildScope @Component abstract class ChildComponent(@Component val parent: ParentComponent) {
-                    abstract val foo: Foo
-                    @Provides @ChildScope fun bar(): Bar = Bar()
+                @Component abstract class ParentComponent {
+                    @Provides fun foo(bar: Bar): Foo = Foo(bar)
+                    @Provides fun foo2(baz: Lazy<Baz>): Foo2 = Foo2(baz)
                 }
                 
-                @ChildScope2 @Component abstract class ChildComponent2(@Component val parent: ChildComponent) {
+                @Component abstract class ChildComponent(@Component val parent: ParentComponent) {
+                    abstract val foo: Foo
+                    @Provides fun bar(): Bar = Bar()
+                }
+                
+                @Component abstract class ChildComponent2(@Component val parent: ChildComponent) {
                     abstract val foo: Foo2
-                    @Provides @ChildScope2 fun baz(): Baz = Baz()
+                    @Provides fun baz(): Baz = Baz()
                 }
                 """.trimIndent()
             ).compile()
         }.isFailure().output().all {
             contains(
-                "Cannot pass Bar to Foo(bar: Bar) as it's scoped to @ChildScope ChildComponent" +
-                    " which doesn't live as long as @ParentScope ParentComponent"
+                "Cannot find an @Inject constructor or provider for: Bar"
             )
             contains(
-                "Cannot pass Baz to Foo2(baz: Lazy<Baz>) as it's scoped to @ChildScope2 ChildComponent2" +
-                    " which doesn't live as long as @ParentScope ParentComponent"
+                "Cannot find an @Inject constructor or provider for: Lazy<Baz>"
             )
         }
     }

@@ -14,9 +14,11 @@ import kotlin.test.Test
 
 class ProvidesFoo(val bar: ProvidesBar? = null)
 
-@Inject class ProvidesBar
+@Inject
+class ProvidesBar
 
-@Component abstract class ProvidesFunctionComponent {
+@Component
+abstract class ProvidesFunctionComponent {
     var providesCalled = false
 
     abstract val foo: ProvidesFoo
@@ -25,7 +27,8 @@ class ProvidesFoo(val bar: ProvidesBar? = null)
     fun foo2() = ProvidesFoo().also { providesCalled = true }
 }
 
-@Component abstract class ProvidesFunctionArgComponent {
+@Component
+abstract class ProvidesFunctionArgComponent {
     var providesCalled = false
 
     abstract val foo: ProvidesFoo
@@ -34,7 +37,8 @@ class ProvidesFoo(val bar: ProvidesBar? = null)
     fun foo2(bar: ProvidesBar) = ProvidesFoo(bar).also { providesCalled = true }
 }
 
-@Component abstract class ProvidesValComponent {
+@Component
+abstract class ProvidesValComponent {
     var providesCalled = false
 
     abstract val foo: ProvidesFoo
@@ -43,7 +47,8 @@ class ProvidesFoo(val bar: ProvidesBar? = null)
         @Provides get() = ProvidesFoo().also { providesCalled = true }
 }
 
-@Component abstract class ProvidesExtensionFunctionComponent {
+@Component
+abstract class ProvidesExtensionFunctionComponent {
     var providesCalled = false
 
     abstract val foo: ProvidesFoo
@@ -52,7 +57,8 @@ class ProvidesFoo(val bar: ProvidesBar? = null)
     fun ProvidesBar.provideFoo() = ProvidesFoo(this).also { providesCalled = true }
 }
 
-@Component abstract class ProvidesExtensionValComponent {
+@Component
+abstract class ProvidesExtensionValComponent {
     var providesCalled = false
 
     abstract val foo: ProvidesFoo
@@ -61,14 +67,16 @@ class ProvidesFoo(val bar: ProvidesBar? = null)
         @Provides get() = ProvidesFoo(this).also { providesCalled = true }
 }
 
-@Component abstract class ProvidesValConstructorComponent(@get:Provides val provideFoo: ProvidesFoo) {
+@Component
+abstract class ProvidesValConstructorComponent(@get:Provides val provideFoo: ProvidesFoo) {
     abstract val foo: ProvidesFoo
 }
 
 class Foo1
 class Foo2
 
-@Inject class Foo3 : IFoo {
+@Inject
+class Foo3 : IFoo {
     private val value = 1
 
     override fun toString(): String = "Foo3"
@@ -85,7 +93,8 @@ class Foo2
     }
 }
 
-@Component abstract class ProvidesOverloadsComponent {
+@Component
+abstract class ProvidesOverloadsComponent {
     abstract val foo1: Foo1
     abstract val foo2: Foo2
     abstract val foo3: Foo3
@@ -95,7 +104,10 @@ class Foo2
     fun foo2a() = Foo1()
 
     @Provides
-    fun foo2a(bar: ProvidesBar) = Foo2()
+    fun foo2a(
+        @Suppress("UNUSED_PARAMETER")
+        bar: ProvidesBar,
+    ) = Foo2()
 
     val foo
         @Provides get() = Foo3()
@@ -110,7 +122,8 @@ class IntArrayFoo(val intArray: IntArray)
 
 class StringArrayFoo(val stringArray: Array<String>)
 
-@Inject class BasicTypes(
+@Inject
+class BasicTypes(
     val boolean: Boolean,
     val byte: Byte,
     val char: Char,
@@ -124,10 +137,11 @@ class StringArrayFoo(val stringArray: Array<String>)
     val stringArray: Array<String>,
     val intFoo: IntFoo,
     val intArrayFoo: IntArrayFoo,
-    val stringArrayFoo: StringArrayFoo
+    val stringArrayFoo: StringArrayFoo,
 )
 
-@Component abstract class ProvidesBasicTypes {
+@Component
+abstract class ProvidesBasicTypes {
     abstract val basicType: BasicTypes
 
     val boolean
@@ -176,32 +190,37 @@ class StringArrayFoo(val stringArray: Array<String>)
         @Provides get() = StringArrayFoo(this)
 }
 
-@Inject class ValConstructorBasicTypes(
+@Inject
+class ValConstructorBasicTypes(
     val boolean: Boolean,
-    val string: String
+    val string: String,
 )
 
-@Component abstract class ProvidesValConstructorBasicTypes(
+@Component
+abstract class ProvidesValConstructorBasicTypes(
     @get:Provides val boolean: Boolean,
-    @get:Provides val string: String
+    @get:Provides val string: String,
 ) {
     abstract val basicType: ValConstructorBasicTypes
 }
 
-@Component abstract class ProvidesInnerClassComponent {
+@Component
+abstract class ProvidesInnerClassComponent {
     abstract val fooFactory: DifferentPackageFoo.Factory
 }
 
 class ProvidesTest {
 
-    @Test fun generates_a_component_that_provides_a_dep_from_a_function() {
+    @Test
+    fun generates_a_component_that_provides_a_dep_from_a_function() {
         val component = ProvidesFunctionComponent::class.create()
 
         component.foo
         assertThat(component.providesCalled).isTrue()
     }
 
-    @Test fun generates_a_component_that_provides_a_dep_from_a_function_with_arg() {
+    @Test
+    fun generates_a_component_that_provides_a_dep_from_a_function_with_arg() {
         val component = ProvidesFunctionArgComponent::class.create()
         val foo: ProvidesFoo = component.foo
 
@@ -209,35 +228,40 @@ class ProvidesTest {
         assertThat(component.providesCalled).isTrue()
     }
 
-    @Test fun generates_a_component_that_provides_a_dep_from_a_val() {
+    @Test
+    fun generates_a_component_that_provides_a_dep_from_a_val() {
         val component = ProvidesValComponent::class.create()
 
         component.foo
         assertThat(component.providesCalled).isTrue()
     }
 
-    @Test fun generates_a_component_that_provides_a_deb_from_an_extension_function() {
+    @Test
+    fun generates_a_component_that_provides_a_deb_from_an_extension_function() {
         val component = ProvidesExtensionFunctionComponent::class.create()
 
         assertThat(component.foo.bar).isNotNull()
         assertThat(component.providesCalled).isTrue()
     }
 
-    @Test fun generates_a_component_that_provides_a_deb_from_an_extension_val() {
+    @Test
+    fun generates_a_component_that_provides_a_deb_from_an_extension_val() {
         val component = ProvidesExtensionValComponent::class.create()
 
         assertThat(component.foo.bar).isNotNull()
         assertThat(component.providesCalled).isTrue()
     }
 
-    @Test fun generates_a_component_that_provides_a_dep_from_a_constructor_val() {
+    @Test
+    fun generates_a_component_that_provides_a_dep_from_a_constructor_val() {
         val foo = ProvidesFoo()
         val component = ProvidesValConstructorComponent::class.create(foo)
 
         assertThat(component.foo).isSameAs(foo)
     }
 
-    @Test fun generates_a_component_that_provides_from_functions_with_the_same_name() {
+    @Test
+    fun generates_a_component_that_provides_from_functions_with_the_same_name() {
         val component = ProvidesOverloadsComponent::class.create()
 
         assertThat(component.foo1).isNotNull()
@@ -246,7 +270,8 @@ class ProvidesTest {
         assertThat(component.foo4).isNotNull()
     }
 
-    @Test fun generates_a_component_that_provides_basic_types() {
+    @Test
+    fun generates_a_component_that_provides_basic_types() {
         val component = ProvidesBasicTypes::class.create()
 
         assertThat(component.basicType.boolean).isTrue()
@@ -265,7 +290,8 @@ class ProvidesTest {
         assertThat(component.basicType.stringArrayFoo.stringArray).containsExactly("c")
     }
 
-    @Test fun generates_a_component_that_provides_val_constructor_basic_types() {
+    @Test
+    fun generates_a_component_that_provides_val_constructor_basic_types() {
         val component = ProvidesValConstructorBasicTypes::class.create(
             true,
             "a"
@@ -275,7 +301,8 @@ class ProvidesTest {
         assertThat(component.basicType.string).isEqualTo("a")
     }
 
-    @Test fun generates_a_component_that_references_an_inner_class() {
+    @Test
+    fun generates_a_component_that_references_an_inner_class() {
         val component = ProvidesInnerClassComponent::class.create()
 
         assertThat(component.fooFactory).isNotNull()

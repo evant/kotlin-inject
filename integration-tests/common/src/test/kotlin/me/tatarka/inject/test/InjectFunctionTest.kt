@@ -19,7 +19,7 @@ typealias F = String
 typealias foo = (F) -> String
 
 @Inject
-fun foo(dep: Foo, arg: F): String = arg
+fun foo(@Suppress("UNUSED_PARAMETER") dep: Foo, arg: F): String = arg
 
 typealias bar = () -> String
 
@@ -29,7 +29,10 @@ fun bar(foo: foo): String = foo("test")
 typealias receiverFun = String.(arg: NamedFoo) -> String
 
 @Inject
-fun String.receiverFun(dep: Foo, arg: NamedFoo): String = this
+fun String.receiverFun(
+    @Suppress("UNUSED_PARAMETER") dep: Foo,
+    @Suppress("UNUSED_PARAMETER") arg: NamedFoo,
+): String = this
 
 @Component
 abstract class ReceiverFunctionInjectionComponent {

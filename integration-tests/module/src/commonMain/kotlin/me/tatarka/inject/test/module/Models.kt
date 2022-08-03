@@ -18,7 +18,7 @@ class ScopedExternalFoo : IExternalFoo
 typealias externalFunction = () -> String
 
 @Inject
-@Suppress("FunctionOnlyReturningConstant")
+@Suppress("FunctionOnlyReturningConstant", "UNUSED_PARAMETER")
 fun externalFunction(foo: ExternalFoo): String = "external"
 
 interface IExternalFoo

@@ -1,5 +1,7 @@
 package me.tatarka.inject.compiler
 
+import me.tatarka.kotlin.ast.AstType
+
 fun <T> Iterable<T>.eqvItr(other: Iterable<T>, eqv: (T, T) -> Boolean): Boolean {
     val itr1 = iterator()
     val itr2 = other.iterator()
@@ -67,3 +69,7 @@ private fun <T> renderTree(node: T, visitor: TreeVisitor<T>, indent: String, isL
     }
     renderTree(node, visitor, newIndent, out)
 }
+
+fun AstType.isSet(): Boolean = packageName == "kotlin.collections" && simpleName == "Set"
+fun AstType.isMap(): Boolean = packageName == "kotlin.collections" && simpleName == "Map"
+fun AstType.isPair(): Boolean = packageName == "kotlin" && simpleName == "Pair"

@@ -14,6 +14,10 @@ data class FooValue(val name: String)
 abstract class SetComponent {
     abstract val items: Set<FooValue>
 
+    abstract val funItems: Set<() -> FooValue>
+
+    abstract val lazyItems: Set<Lazy<FooValue>>
+
     @Provides
     @IntoSet
     fun fooValue1() = FooValue("1")
@@ -75,8 +79,22 @@ typealias Factory<T> = () -> T
 abstract class TypeAliasIntoMapDependencyComponent {
     abstract val items: Map<String, () -> Any?>
 
-    @Provides @IntoMap
+    @Provides
+    @IntoMap
     fun foo(f: Factory<Foo>): Pair<String, () -> Any?> = "test" to f
+}
+
+@Component
+abstract class AssistedSetComponent {
+    abstract val items: Set<(String) -> FooValue>
+
+    @Provides
+    @IntoSet
+    fun fooValue1(arg: String): FooValue = FooValue("${arg}1")
+
+    @Provides
+    @IntoSet
+    fun fooValue2(arg: String): FooValue = FooValue("${arg}2")
 }
 
 class MultibindsTest {
@@ -86,6 +104,8 @@ class MultibindsTest {
         val component = SetComponent::class.create()
 
         assertThat(component.items).containsOnly(FooValue("1"), FooValue("2"))
+        assertThat(component.funItems.map { it() }).containsOnly(FooValue("1"), FooValue("2"))
+        assertThat(component.lazyItems.map { it.value }).containsOnly(FooValue("1"), FooValue("2"))
     }
 
     @Test
@@ -116,6 +136,15 @@ class MultibindsTest {
         assertThat(component.items).containsOnly(
             "1" to FooValue("1"),
             "2" to FooValue("2")
+        )
+    }
+
+    @Test
+    fun generates_a_component_that_provides_set_with_an_assisted_arg() {
+        val component = AssistedSetComponent::class.create()
+
+        assertThat(component.items.map { it("arg") }).containsOnly(
+            FooValue("arg1"), FooValue("arg2")
         )
     }
 }
