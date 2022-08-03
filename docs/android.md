@@ -216,8 +216,6 @@ class MyActivity : Activity() {
         setContent {
             home()
         }
-        // ...
-        myScreen.loadImage(imageLoader)
     }
 }
 ```
