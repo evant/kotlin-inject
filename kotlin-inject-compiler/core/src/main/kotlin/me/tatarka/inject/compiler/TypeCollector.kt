@@ -90,19 +90,6 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
             accessor: Accessor,
             typeInfo: TypeInfo,
         ) {
-            if (typeInfo.elementScope != null) {
-                val currentElementScope = scopedAccessors[typeInfo.elementScope]
-                if (currentElementScope != null) {
-                    provider.error("Cannot apply scope: ${typeInfo.elementScope}", currentElementScope.type)
-                    provider.error(
-                        "as scope: ${typeInfo.elementScope} is already applied to parent",
-                        astClass,
-                    )
-                } else {
-                    scopedAccessors[typeInfo.elementScope] = ScopedComponent(astClass, accessor)
-                }
-            }
-
             if (accessor.isNotEmpty()) {
                 for (method in typeInfo.providerMethods) {
                     val returnType = method.returnTypeFor(astClass)
@@ -176,6 +163,20 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                             typeInfo = elemTypeInfo
                         )
                     }
+                }
+            }
+
+            if (typeInfo.elementScope != null) {
+                val result = scopedAccessor(typeInfo.elementScope)
+                if (result != null) {
+                    val (component, _) = result
+                    provider.error("Cannot apply scope: ${typeInfo.elementScope}", typeInfo.elementScope)
+                    provider.error(
+                        "as scope: ${typeInfo.elementScope} is already applied to parent",
+                        component.type,
+                    )
+                } else {
+                    scopedAccessors[typeInfo.elementScope] = ScopedComponent(astClass, accessor)
                 }
             }
         }
