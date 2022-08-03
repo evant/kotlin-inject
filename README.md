@@ -35,23 +35,9 @@ val appComponent = AppComponent::class.create()
 val repo = appComponent.repo
 ```
 
-## Download
+## Download 
 
-```groovy
-plugins {
-    id("org.jetbrains.kotlin.jvm") version "1.5.31"
-    id("org.jetbrains.kotlin.kapt") version "1.5.31"
-}
-
-dependencies {
-    kapt("me.tatarka.inject:kotlin-inject-compiler-kapt:0.4.1")
-    implementation("me.tatarka.inject:kotlin-inject-runtime:0.4.1")
-}
-```
-
-### or with KSP
-
-You can use [ksp](https://github.com/google/ksp) instead of kapt.
+Using [ksp](https://github.com/google/ksp)
 
 `settings.gradle`
 
@@ -68,8 +54,8 @@ pluginManagement {
 
 ```groovy
 plugins {
-    id("org.jetbrains.kotlin.jvm") version "1.5.31"
-    id("com.google.devtools.ksp") version "1.5.31-1.0.1"
+    id("org.jetbrains.kotlin.jvm") version "1.7.0"
+    id("com.google.devtools.ksp") version "1.7.0-1.0.6"
 }
 
 repositories {
@@ -78,8 +64,22 @@ repositories {
 }
 
 dependencies {
-    ksp("me.tatarka.inject:kotlin-inject-compiler-ksp:0.4.1")
-    implementation("me.tatarka.inject:kotlin-inject-runtime:0.4.1")
+    ksp("me.tatarka.inject:kotlin-inject-compiler-ksp:0.5.0")
+    implementation("me.tatarka.inject:kotlin-inject-runtime:0.5.0")
+}
+```
+
+### or with KAPT (deprecated)
+
+```groovy
+plugins {
+  id("org.jetbrains.kotlin.jvm") version "1.7.0"
+  id("org.jetbrains.kotlin.kapt") version "1.7.0"
+}
+
+dependencies {
+  kapt("me.tatarka.inject:kotlin-inject-compiler-kapt:0.5.0")
+  implementation("me.tatarka.inject:kotlin-inject-runtime:0.5.0")
 }
 ```
 

@@ -5,6 +5,66 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] 2022-07-02
+
+### Changed
+
+- The kapt backend is now deprecated and will be removed in a future release. Please migrate to ksp instead.
+- Introduced some stricter checks to catch issues with certain graph setups. This may cause graphs that compiled before
+  to no longer compile. Specifically:
+
+  ```kotlin
+  @MyScope @Component abstract class ParentComponent
+  @MyScope @Component abstract class ChildComponent(@Component val parent: ParentComponent)
+  ```
+  will fail with:
+
+  ```
+  Cannot apply scope: @MyScope ChildComponent
+  as scope @MyScope is already applied to parent ParentComponent
+  ```
+  as it's ambiguous what the lifetime of the given scope should be. And:
+
+  ```kotlin
+  @Component abstract class ParentComponent {
+    @Provides fun foo(bar: Bar): Foo = ...
+  } 
+  @Component abstract class ChildComponent(@Component val parent: ParentComponent) {
+    abstract val foo: Foo
+    @Provides fun bar(): Bar = ...
+  }
+  ```
+  will fail with:
+
+  ```
+  Cannot find an @Inject constructor or provider for: Bar 
+  ```
+  In other words a parent component can no longer depend on a dependency provided by a child component. Not only does 
+  this lead to confusing graphs, but it can lead to memory leaks if the parent component lives longer than the child and
+  ends holding on to that child dependency.
+
+### Added
+
+- You can now use function and `Lazy` types in `Set`. This allows you to lazily construct its entries without having to
+  change the type on your `@IntoSet` methods.
+  ```kotlin
+  @Component abstract class MyComponent {
+    val funSet: Set<() -> Foo>
+    val lazySet: Set<Lazy<Foo>> 
+    
+    @Provides @IntoSet fun foo1(): Foo = ...
+    @Provides @IntoSet fun foo2(): Foo = ...
+  }
+  ```
+
+### Fixed
+
+- Fixed issue with name collisions when generating arguments. This could cause invalid code to be generated as the inner
+  arg would shadow the outer arg that was attempted to be used.
+- Improved the error message for scoped provides in unscoped component.
+- Fixed printing of an inner type to include the outer class. i.e. You will now get `Parent.Child` in error messages
+  instead of just `Child` which can make it easier to find the location of the error. 
+
 ## [0.4.1] 2022-01-01
 
 ### Changed
