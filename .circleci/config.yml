@@ -18,15 +18,22 @@ commands:
     steps:
       - restore_cache:
           key: >-
-            gradle-<< parameters.cache_key >>-{{ checksum "gradle/libs.versions.toml" }}-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
+            gradle-cache-<< parameters.cache_key >>-{{ checksum "gradle/libs.versions.toml" }}-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
+      - restore_cache:
+          key: >-
+            konan-<< parameters.cache_key >>-{{ checksum "gradle/libs.versions.toml" }}-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
       - steps:
           << parameters.steps >>
       - save_cache:
           key: >-
-            gradle-<< parameters.cache_key >>-{{ checksum "gradle/libs.versions.toml" }}-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
+            gradle-cache-<< parameters.cache_key >>-{{ checksum "gradle/libs.versions.toml" }}-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
           paths:
             - ~/.gradle/caches
             - ~/.gradle/wrapper
+      - save_cache:
+          key: >-
+            konan-<< parameters.cache_key >>-{{ checksum "gradle/libs.versions.toml" }}-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
+          paths:
             - ~/.konan
   gradle_publish:
     description: "Publishes to sonatype/maven central"
