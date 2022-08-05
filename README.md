@@ -64,8 +64,8 @@ repositories {
 }
 
 dependencies {
-    ksp("me.tatarka.inject:kotlin-inject-compiler-ksp:0.5.0")
-    implementation("me.tatarka.inject:kotlin-inject-runtime:0.5.0")
+    ksp("me.tatarka.inject:kotlin-inject-compiler-ksp:0.5.1")
+    implementation("me.tatarka.inject:kotlin-inject-runtime:0.5.1")
 }
 ```
 
@@ -78,8 +78,8 @@ plugins {
 }
 
 dependencies {
-  kapt("me.tatarka.inject:kotlin-inject-compiler-kapt:0.5.0")
-  implementation("me.tatarka.inject:kotlin-inject-runtime:0.5.0")
+  kapt("me.tatarka.inject:kotlin-inject-compiler-kapt:0.5.1")
+  implementation("me.tatarka.inject:kotlin-inject-runtime:0.5.1")
 }
 ```
 
