@@ -6,7 +6,7 @@ plugins {
 
 dependencies {
     implementation(project(":kotlin-inject-runtime"))
-    api(project(":ast:core"))
+    api(project(":ast:ast-core"))
 
     testImplementation(libs.kotlin.test)
     testImplementation(libs.assertk)

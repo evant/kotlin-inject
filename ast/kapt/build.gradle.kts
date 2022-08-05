@@ -5,7 +5,7 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":ast:core"))
+    implementation(project(":ast:ast-core"))
     implementation(libs.kotlinx.metadata.jvm)
     compileOnly(libs.jdk.compiler)
 }

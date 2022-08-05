@@ -6,6 +6,7 @@ plugins {
 }
 
 version = rootProject.version
+group = rootProject.group
 
 fun MavenPublication.mavenCentralPom() {
     pom {
@@ -41,7 +42,6 @@ publishing {
         }
         publications.all {
             if (this is MavenPublication) {
-                groupId = rootProject.group.toString()
                 artifact(javadocJar)
                 mavenCentralPom()
             }
@@ -64,11 +64,6 @@ publishing {
             create<MavenPublication>("lib") {
                 from(components["java"])
                 mavenCentralPom()
-                groupId = rootProject.group.toString()
-                // We want the artifactId to represent the full project path
-                artifactId = path
-                    .trimStart(':')
-                    .replace(":", "-")
             }
         }
     }

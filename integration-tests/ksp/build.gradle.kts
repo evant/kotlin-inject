@@ -6,7 +6,7 @@ plugins {
 }
 
 dependencies {
-    ksp(project(":kotlin-inject-compiler:ksp"))
+    ksp(project(":kotlin-inject-compiler:kotlin-inject-compiler-ksp"))
 }
 
 kotlin {
