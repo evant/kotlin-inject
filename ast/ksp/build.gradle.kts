@@ -7,7 +7,7 @@ plugins {
 }
 
 dependencies {
-    api(project(":ast:core"))
+    api(project(":ast:ast-core"))
     api(libs.ksp)
     implementation(libs.kotlinpoet.ksp)
 }

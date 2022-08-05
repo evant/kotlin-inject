@@ -6,8 +6,8 @@ plugins {
 
 dependencies {
     implementation(project(":kotlin-inject-runtime"))
-    implementation(project(":kotlin-inject-compiler:core"))
-    implementation(project(":ast:kapt"))
+    implementation(project(":kotlin-inject-compiler:kotlin-inject-compiler-core"))
+    implementation(project(":ast:ast-kapt"))
     implementation(libs.kotlinx.metadata.jvm)
     compileOnly(libs.jdk.compiler)
 }

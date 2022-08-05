@@ -6,7 +6,7 @@ plugins {
 }
 
 dependencies {
-    add("kspMetadata", project(":kotlin-inject-compiler:ksp"))
+    add("kspMetadata", project(":kotlin-inject-compiler:kotlin-inject-compiler-ksp"))
 }
 
 kotlin {

@@ -5,9 +5,9 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":kotlin-inject-compiler:core"))
-    implementation(project(":kotlin-inject-compiler:kapt"))
-    implementation(project(":kotlin-inject-compiler:ksp"))
+    implementation(project(":kotlin-inject-compiler:kotlin-inject-compiler-core"))
+    implementation(project(":kotlin-inject-compiler:kotlin-inject-compiler-kapt"))
+    implementation(project(":kotlin-inject-compiler:kotlin-inject-compiler-ksp"))
     implementation(libs.bundles.kotlin.compile.testing)
 
     testImplementation(libs.bundles.kotlin.test.junit5)
