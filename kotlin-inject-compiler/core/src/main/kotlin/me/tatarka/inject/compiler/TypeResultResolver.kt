@@ -64,29 +64,104 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         element: AstElement,
         params: List<AstParam>,
     ): Map<String, TypeResultRef> {
+        return if (params.any { it.isAssisted() }) {
+            resolveParamsNew(context, element, params)
+        } else {
+            resolveParamsLegacy(context, element, params)
+        }
+    }
+
+    // new behavior where we only consider args annotated with @Assisted
+    @Suppress("NestedBlockDepth")
+    private fun resolveParamsNew(
+        context: Context,
+        element: AstElement,
+        params: List<AstParam>,
+    ): Map<String, TypeResultRef> {
+        val paramsWithName = LinkedHashMap<String, TypeResultRef>(context.args.size)
+        var assistedFailed = false
+        val args = context.args.toMutableList()
+        for (param in params) {
+            val key = TypeKey(param.type, param.qualifier(options))
+            if (param.isAssisted()) {
+                val arg = args.removeFirstOrNull()
+                if (arg != null) {
+                    val (type, name) = arg
+                    if (type.isAssignableFrom(key.type)) {
+                        paramsWithName[param.name] = TypeResultRef(key, TypeResult.Arg(name))
+                    }
+                } else {
+                    assistedFailed = true
+                }
+            } else {
+                val result = resolveOrNull(context, element, key)
+                if (result != null) {
+                    paramsWithName[param.name] = result
+                } else if (!param.hasDefault) {
+                    throw FailedToGenerateException(cannotFind(key))
+                }
+            }
+        }
+
+        if (assistedFailed) {
+            throw FailedToGenerateException(
+                """
+                    Mismatched @Assisted parameters.
+                    Expected: [${
+                params.filter { it.isAssisted() }.joinToString()
+                }]"
+                    But got:  [${
+                args.joinToString { (type, _) -> type.toString() }
+                }"]
+                """.trimIndent(),
+                element
+            )
+        }
+        return paramsWithName
+    }
+
+    // old behavior where the last args are used, warn.
+    private fun resolveParamsLegacy(
+        context: Context,
+        element: AstElement,
+        params: List<AstParam>,
+    ): Map<String, TypeResultRef> {
         val size = params.size
-        val args = context.args.asReversed()
         val paramsWithName = LinkedHashMap<String, TypeResultRef>(size)
-        params.forEachIndexed { i, param ->
+        val args = context.args.asReversed()
+        val resolvedImplicitly = mutableListOf<Pair<String, AstType>>()
+        for ((i, param) in params.withIndex()) {
             val indexFromEnd = size - i - 1
             val key = TypeKey(param.type, param.qualifier(options))
             val arg = args.getOrNull(indexFromEnd)
             if (arg != null) {
                 val (type, name) = arg
                 if (type.isAssignableFrom(key.type)) {
+                    resolvedImplicitly.add(param.name to key.type)
                     paramsWithName[param.name] = TypeResultRef(key, TypeResult.Arg(name))
-                    return@forEachIndexed
+                    continue
                 }
             }
             val result = resolveOrNull(context, element, key)
             if (result != null) {
                 paramsWithName[param.name] = result
-                return@forEachIndexed
-            }
-            if (!param.hasDefault) {
+            } else if (!param.hasDefault) {
                 throw FailedToGenerateException(cannotFind(key))
             }
         }
+
+        if (resolvedImplicitly.isNotEmpty()) {
+            provider.warn(
+                """
+                Implicit assisted parameters are deprecated and will be removed in a future version.
+                Annotate the following with @Assisted: [${
+                resolvedImplicitly.joinToString { (name, type) -> "$name: ${type.simpleName}" }
+                }]
+                """.trimIndent(),
+                element
+            )
+        }
+
         return paramsWithName
     }
 
@@ -225,6 +300,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
 
     private fun Context.functionType(element: AstElement, key: TypeKey): TypeResult? {
         val resolveType = key.type.resolvedType()
+        val args = resolveType.arguments.dropLast(1)
         if (key.type.isTypeAlias()) {
             // Check to see if we have a function matching the type alias
             val functions = provider.findFunctions(key.type.packageName, key.type.simpleName)
@@ -234,12 +310,12 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
                     context = this,
                     function = injectedFunction,
                     key = key,
-                    args = resolveType.arguments.dropLast(1),
+                    args = args,
                 )
             }
         }
         val fKey = TypeKey(resolveType.arguments.last(), key.qualifier)
-        return Function(this, args = resolveType.arguments.dropLast(1)) { context ->
+        return Function(this, args = args) { context ->
             resolveOrNull(context, element = element, key = fKey) ?: return null
         }
     }
@@ -443,4 +519,6 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     }
 
     private fun AstType.isLazy(): Boolean = packageName == "kotlin" && simpleName == "Lazy"
+
+    private fun AstParam.isAssisted(): Boolean = hasAnnotation(ASSISTED.packageName, ASSISTED.simpleName)
 }

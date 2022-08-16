@@ -27,6 +27,7 @@ val SCOPE = ClassName(ANNOTATION_PACKAGE_NAME, "Scope")
 val INJECT = ClassName(ANNOTATION_PACKAGE_NAME, "Inject")
 val INTO_MAP = ClassName(ANNOTATION_PACKAGE_NAME, "IntoMap")
 val INTO_SET = ClassName(ANNOTATION_PACKAGE_NAME, "IntoSet")
+val ASSISTED = ClassName(ANNOTATION_PACKAGE_NAME, "Assisted")
 
 val JAVAX_SCOPE = ClassName("javax.inject", "Scope")
 val JAVAX_INJECT = ClassName("javax.inject", "Inject")

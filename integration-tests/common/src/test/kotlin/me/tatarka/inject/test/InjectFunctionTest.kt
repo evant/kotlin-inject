@@ -2,6 +2,7 @@ package me.tatarka.inject.test
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import me.tatarka.inject.annotations.Assisted
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.test.module.externalFunction
@@ -19,7 +20,8 @@ typealias F = String
 typealias foo = (F) -> String
 
 @Inject
-fun foo(@Suppress("UNUSED_PARAMETER") dep: Foo, arg: F): String = arg
+@Suppress("UNUSED_PARAMETER")
+fun foo(dep: Foo, @Assisted arg: F): String = arg
 
 typealias bar = () -> String
 
@@ -29,10 +31,8 @@ fun bar(foo: foo): String = foo("test")
 typealias receiverFun = String.(arg: NamedFoo) -> String
 
 @Inject
-fun String.receiverFun(
-    @Suppress("UNUSED_PARAMETER") dep: Foo,
-    @Suppress("UNUSED_PARAMETER") arg: NamedFoo,
-): String = this
+@Suppress("UNUSED_PARAMETER")
+fun String.receiverFun(dep: Foo, @Assisted arg: NamedFoo): String = this
 
 @Component
 abstract class ReceiverFunctionInjectionComponent {

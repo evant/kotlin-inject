@@ -4,6 +4,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotNull
 import assertk.assertions.isSameAs
+import me.tatarka.inject.annotations.Assisted
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
 import kotlin.test.Test
@@ -17,7 +18,7 @@ abstract class FunctionComponent {
 }
 
 @Inject
-class PartialFunctionBar(val foo: FunctionFoo, val name: String)
+class PartialFunctionBar(val foo: FunctionFoo, @Assisted val name: String)
 
 @Component
 abstract class PartialFunctionComponent {
@@ -25,13 +26,18 @@ abstract class PartialFunctionComponent {
 }
 
 @Inject
-data class ArityFunctionBar2(val arg1: String, val arg2: String)
+data class ArityFunctionBar2(@Assisted val arg1: String, @Assisted val arg2: String)
 
 @Inject
-data class ArityFunctionBar3(val arg1: String, val arg2: String, val arg3: String)
+data class ArityFunctionBar3(@Assisted val arg1: String, @Assisted val arg2: String, @Assisted val arg3: String)
 
 @Inject
-data class ArityFunctionBar4(val arg1: String, val arg2: String, val arg3: String, val arg4: String)
+data class ArityFunctionBar4(
+    @Assisted val arg1: String,
+    @Assisted val arg2: String,
+    @Assisted val arg3: String,
+    @Assisted val arg4: String,
+)
 
 @Component
 abstract class FunctionArityComponent {
@@ -41,7 +47,7 @@ abstract class FunctionArityComponent {
 }
 
 @Inject
-class NullableFunctionBar(val foo: FunctionFoo?)
+class NullableFunctionBar(@Assisted val foo: FunctionFoo?)
 
 @Component
 abstract class NullableFunctionComponent {
@@ -57,7 +63,7 @@ abstract class NestedFunctionComponent {
 }
 
 @Inject
-data class Person(val house: House.Factory, val name: String) {
+data class Person(val house: House.Factory, @Assisted val name: String) {
 
     @Inject
     class Factory(
@@ -66,7 +72,7 @@ data class Person(val house: House.Factory, val name: String) {
 }
 
 @Inject
-data class House(val bricks: Int) {
+data class House(@Assisted val bricks: Int) {
     @Inject
     class Factory(val create: (Int) -> House)
 }
