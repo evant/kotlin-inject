@@ -36,12 +36,3 @@ val checkApple by tasks.creating
 
 check.finalizedBy(testReport, copyTestResults)
 checkApple.finalizedBy(testReportApple, copyTestResultsApple)
-
-// Heavy-weight patch for this KGP+Gradle bug that can cause deadlocks
-// https://github.com/gradle/gradle/issues/17812
-// https://youtrack.jetbrains.com/issue/KT-47853
-allprojects {
-    tasks.withType<org.jetbrains.kotlin.gradle.internal.KaptWithoutKotlincTask> {
-        // realize all KaptWithoutKotlincTask tasks
-    }
-}
