@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
-
 plugins {
     id("kotlin-inject.multiplatform")
     id("kotlin-inject.detekt")
@@ -39,5 +37,17 @@ ksp {
     arg("me.tatarka.inject.generateCompanionExtensions", "true")
 }
 
-val SourceSet.kotlin: SourceDirectorySet
-    get() = withConvention(KotlinSourceSet::class) { kotlin }
+// Fix gradle warning of execution optimizations have been disabled for task
+// https://github.com/google/ksp/issues/975
+tasks {
+    metadataJar.configure {
+        dependsOn("kspCommonMainKotlinMetadata")
+    }
+    jsLegacyJar.configure {
+        dependsOn("kspKotlinJsIr")
+    }
+    jsIrJar.configure {
+        dependsOn("kspKotlinJsLegacy")
+    }
+}
+
