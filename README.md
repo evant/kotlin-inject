@@ -404,7 +404,7 @@ class MyClass(fooCreator: (arg1: String, arg2: String) -> Foo) {
 
 ### Lazy
 
-Similarly, you can inject a `Lazy<MyType>` to construct and re-use and instance lazily.
+Similarly, you can inject a `Lazy<MyType>` to construct an re-use and instance lazily.
 
 ```kotlin
 @Inject
