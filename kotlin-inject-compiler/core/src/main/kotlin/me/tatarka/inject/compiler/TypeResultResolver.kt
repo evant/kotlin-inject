@@ -1,6 +1,5 @@
 package me.tatarka.inject.compiler
 
-import com.squareup.kotlinpoet.NameAllocator
 import me.tatarka.inject.compiler.TypeResult.Object
 import me.tatarka.kotlin.ast.AstClass
 import me.tatarka.kotlin.ast.AstConstructor
@@ -19,7 +18,7 @@ import me.tatarka.kotlin.ast.AstType
 class TypeResultResolver(private val provider: AstProvider, private val options: Options) {
 
     private val cycleDetector = CycleDetector()
-    private val nameAllocator = NameAllocator()
+    private val nameAllocator = ArgNameAllocator()
     private val types = mutableMapOf<TypeKey, TypeResult>()
 
     /**
@@ -27,6 +26,9 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
      */
     fun resolveAll(context: Context, astClass: AstClass): List<TypeResult.Provider> {
         return context.types.providerMethods.map { method ->
+            // reset the name allocator between methods so that arg names are not unique across
+            // all functions of a component
+            nameAllocator.reset()
             Provider(context, astClass, method)
         }
     }
@@ -351,7 +353,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     ): TypeResult {
         cycleDetector.delayedConstruction()
         val namedArgs = args.mapIndexed { i, arg ->
-            arg to nameAllocator.newName("arg$i")
+            arg to nameAllocator.newName(i)
         }
         return TypeResult.Function(args = namedArgs.map { it.second }, result = result(context.withArgs(namedArgs)))
     }
@@ -368,7 +370,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         } else {
             args
         }.mapIndexed { i, arg ->
-            arg to nameAllocator.newName("arg$i")
+            arg to nameAllocator.newName(i)
         }
         TypeResult.NamedFunction(
             name = function.toMemberName(),
@@ -426,7 +428,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     private fun cannotFind(key: TypeKey): String = trace("Cannot find an @Inject constructor or provider for: $key")
 
     private val TypeResult.isCacheable: Boolean
-        // don't cache local vars as the may not be in scope when requesting the type from a different location
+        // don't cache local vars as they may not be in scope when requesting the type from a different location
         get() = this !is TypeResult.LocalVar && children.all {
             it.result is TypeResult.LateInit || it.result.isCacheable
         }
