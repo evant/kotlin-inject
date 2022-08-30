@@ -1,6 +1,7 @@
 package me.tatarka.inject.compiler
 
 import assertk.assertThat
+import assertk.assertions.isEqualTo
 import kotlin.test.Test
 
 internal class ArgNameAllocatorTest {
@@ -28,6 +29,6 @@ internal class ArgNameAllocatorTest {
     }
 
     private fun ArgNameAllocator.assert(index: Int, expected: String) {
-        assertThat(newName(index), "arg$expected")
+        assertThat(newName(index)).isEqualTo(expected)
     }
 }
