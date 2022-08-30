@@ -9,26 +9,22 @@ internal class ArgNameAllocatorTest {
     @Test
     fun `same indices lead to different arg names`() {
         val allocator = ArgNameAllocator()
-        allocator.assert(1, "arg1")
-        allocator.assert(1, "arg1_")
+        assertThat(allocator.newName(1)).isEqualTo("arg1")
+        assertThat(allocator.newName(1)).isEqualTo("arg1_")
     }
 
     @Test
     fun `reset leads to same arg names`() {
         val allocator = ArgNameAllocator()
-        allocator.assert(1, "arg1")
+        assertThat(allocator.newName(1)).isEqualTo("arg1")
         allocator.reset()
-        allocator.assert(1, "arg1")
+        assertThat(allocator.newName(1)).isEqualTo("arg1")
     }
 
     @Test
     fun `different indices lead to different arg names`() {
         val allocator = ArgNameAllocator()
-        allocator.assert(0, "arg0")
-        allocator.assert(1, "arg1")
-    }
-
-    private fun ArgNameAllocator.assert(index: Int, expected: String) {
-        assertThat(newName(index)).isEqualTo(expected)
+        assertThat(allocator.newName(0)).isEqualTo("arg0")
+        assertThat(allocator.newName(1)).isEqualTo("arg1")
     }
 }
