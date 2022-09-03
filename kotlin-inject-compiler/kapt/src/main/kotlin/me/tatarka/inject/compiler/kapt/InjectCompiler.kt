@@ -40,10 +40,11 @@ class InjectCompiler(private val profiler: Profiler? = null) : AbstractProcessor
 
         processingEnv.messager.printMessage(
             Diagnostic.Kind.WARNING,
-            "The kotlin-inject kapt backend is deprecated and will be removed in a future version.\n" +
-                "Please migrate to ksp https://github.com/google/ksp\n" +
-                "You should replace: kapt(\"me.tatarka.inject:kotlin-inject-compiler-kapt:<version>\")\n" +
-                "with:               ksp(\"me.tatarka.inject:kotlin-inject-compiler-ksp:<version>\")"
+            """The kotlin-inject kapt backend is deprecated and will be removed in a future version.
+               Please migrate to ksp https://github.com/google/ksp
+               You should replace: kapt("me.tatarka.inject:kotlin-inject-compiler-kapt:<version>")
+               with:               ksp("me.tatarka.inject:kotlin-inject-compiler-ksp:<version>")
+            """.trimIndent()
         )
     }
 

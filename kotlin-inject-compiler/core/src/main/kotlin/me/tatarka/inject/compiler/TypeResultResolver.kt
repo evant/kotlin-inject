@@ -89,6 +89,8 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
                     val (type, name) = arg
                     if (type.isAssignableFrom(key.type)) {
                         paramsWithName[param.name] = TypeResultRef(key, TypeResult.Arg(name))
+                    } else {
+                        assistedFailed = true
                     }
                 } else {
                     assistedFailed = true
@@ -103,16 +105,20 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             }
         }
 
+        if (args.isNotEmpty()) {
+            assistedFailed = true
+        }
+
         if (assistedFailed) {
             throw FailedToGenerateException(
                 """
                     Mismatched @Assisted parameters.
                     Expected: [${
                 params.filter { it.isAssisted() }.joinToString()
-                }]"
+                }]
                     But got:  [${
-                args.joinToString { (type, _) -> type.toString() }
-                }"]
+                context.args.joinToString { (type, _) -> type.toString() }
+                }]
                 """.trimIndent(),
                 element
             )
@@ -129,7 +135,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         val size = params.size
         val paramsWithName = LinkedHashMap<String, TypeResultRef>(size)
         val args = context.args.asReversed()
-        val resolvedImplicitly = mutableListOf<Pair<String, AstType>>()
+        val resolvedImplicitly = mutableListOf<AstParam>()
         for ((i, param) in params.withIndex()) {
             val indexFromEnd = size - i - 1
             val key = TypeKey(param.type, param.qualifier(options))
@@ -137,7 +143,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             if (arg != null) {
                 val (type, name) = arg
                 if (type.isAssignableFrom(key.type)) {
-                    resolvedImplicitly.add(param.name to key.type)
+                    resolvedImplicitly.add(param)
                     paramsWithName[param.name] = TypeResultRef(key, TypeResult.Arg(name))
                     continue
                 }
@@ -154,9 +160,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             provider.warn(
                 """
                 Implicit assisted parameters are deprecated and will be removed in a future version.
-                Annotate the following with @Assisted: [${
-                resolvedImplicitly.joinToString { (name, type) -> "$name: ${type.simpleName}" }
-                }]
+                Annotate the following with @Assisted: [${resolvedImplicitly.joinToString()}]
                 """.trimIndent(),
                 element
             )

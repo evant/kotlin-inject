@@ -1,5 +1,6 @@
 package me.tatarka.inject
 
+import androidx.room.compiler.processing.util.DiagnosticMessage
 import androidx.room.compiler.processing.util.Source
 import androidx.room.compiler.processing.util.compiler.TestCompilationArguments
 import androidx.room.compiler.processing.util.compiler.TestCompilationResult
@@ -58,19 +59,26 @@ class ProjectCompiler(
             throw Exception(
                 result.diagnostics
                     .filter { it.key == Diagnostic.Kind.ERROR }
-                    .flatMap { it.value }.joinToString {
-                        StringBuilder().apply {
-                            append(it.msg)
-                            it.location?.source?.let {
-                                append(" ")
-                                append(it.relativePath)
-                            }
-                        }.toString()
-                    }
+                    .flatMap { it.value }
+                    .convertToString()
             )
         }
-
         return result
+    }
+}
+
+fun TestCompilationResult.output(kind: Diagnostic.Kind): String = diagnostics
+    .filter { it.key == Diagnostic.Kind.WARNING }
+    .flatMap { it.value }
+    .convertToString()
+
+private fun List<DiagnosticMessage>.convertToString(): String = joinToString {
+    buildString {
+        append(it.msg)
+        it.location?.source?.let {
+            append(" ")
+            append(it.relativePath)
+        }
     }
 }
 
@@ -78,3 +86,6 @@ enum class Target {
     KAPT,
     KSP
 }
+
+class TestCompilationResultException(result: TestCompilationResult) :
+    Exception(result.output(Diagnostic.Kind.ERROR))
