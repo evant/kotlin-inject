@@ -75,6 +75,15 @@ abstract class OrderedAssistedComponent {
     abstract val orderedBar: (String, String) -> OrderedAssistedBar
 }
 
+@Inject
+data class DefaultAssistedBar(@Assisted val one: String, @Assisted val two: Int = 2)
+
+@Component
+abstract class DefaultAssistedComponent {
+    abstract val withoutDefault: (String, Int) -> DefaultAssistedBar
+    abstract val withDefault: (String) -> DefaultAssistedBar
+}
+
 class AssistedTest {
 
     @Test
@@ -115,5 +124,13 @@ class AssistedTest {
             prop(OrderedAssistedBar::one).isEqualTo("one")
             prop(OrderedAssistedBar::three).isEqualTo("three")
         }
+    }
+
+    @Test
+    fun generates_a_component_that_allows_omitting_an_assisted_param_with_a_default_value() {
+        val component = DefaultAssistedComponent::class.create()
+
+        assertThat(component.withoutDefault("one", 2)).isEqualTo(DefaultAssistedBar("one", 2))
+        assertThat(component.withDefault("one")).isEqualTo(DefaultAssistedBar("one", 2))
     }
 }

@@ -19,7 +19,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
 
     private val cycleDetector = CycleDetector()
     private val nameAllocator = ArgNameAllocator()
-    private val types = mutableMapOf<TypeKey, TypeResult>()
+    private val typeCache = mutableMapOf<TypeCacheKey, TypeResult>()
 
     /**
      * Resolves all [TypeResult] for provider methods in the given class.
@@ -47,9 +47,10 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
      * null if it cannot be found.
      */
     private fun resolveOrNull(context: Context, element: AstElement, key: TypeKey): TypeResultRef? {
-        val type = types[key] ?: context.findType(element, key)?.also {
+        val cacheKey = TypeCacheKey(key, context.args)
+        val type = typeCache[cacheKey] ?: context.findType(element, key)?.also {
             if (it.isCacheable) {
-                types[key] = it
+                typeCache[cacheKey] = it
             }
         }
         return type?.let { TypeResultRef(key, it) }
@@ -92,7 +93,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
                     } else {
                         assistedFailed = true
                     }
-                } else {
+                } else if (!param.hasDefault) {
                     assistedFailed = true
                 }
             } else {
@@ -525,4 +526,11 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     private fun AstType.isLazy(): Boolean = packageName == "kotlin" && simpleName == "Lazy"
 
     private fun AstParam.isAssisted(): Boolean = hasAnnotation(ASSISTED.packageName, ASSISTED.simpleName)
+
+    private data class TypeCacheKey(
+        val type: TypeKey,
+        // Include args in scope because a different call may be made for the same type depending on which args with
+        // default values are present.
+        val args: List<Pair<AstType, String>>,
+    )
 }
