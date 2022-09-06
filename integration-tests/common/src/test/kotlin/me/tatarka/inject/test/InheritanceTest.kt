@@ -13,6 +13,12 @@ interface ComponentInterface {
 }
 
 @Component
+abstract class InterfaceComponentWithIdenticalProvides(
+    @get:Provides
+    override val foo: Foo,
+) : ComponentInterface
+
+@Component
 abstract class InterfaceComponent : ComponentInterface
 
 interface GenericComponentInterface<T> {
@@ -48,6 +54,13 @@ class InheritanceTest {
     @Test
     fun generates_a_component_that_provides_a_dep_defined_in_an_implemented_interface() {
         val component = InterfaceComponent::class.create()
+
+        assertThat(component.foo).isNotNull()
+    }
+
+    @Test
+    fun test() {
+        val component = InterfaceComponentWithIdenticalProvides::class.create(Foo())
 
         assertThat(component.foo).isNotNull()
     }
