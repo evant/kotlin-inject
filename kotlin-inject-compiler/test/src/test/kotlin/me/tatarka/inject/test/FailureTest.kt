@@ -641,4 +641,121 @@ class FailureTest {
             )
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun fails_if_assisted_param_is_missing(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                import me.tatarka.inject.annotations.Component
+                import me.tatarka.inject.annotations.Inject
+                import me.tatarka.inject.annotations.Provides
+                import me.tatarka.inject.annotations.Assisted
+                
+                @Inject class Bar
+                @Inject class Foo(val bar: Bar, @Assisted assisted: String)
+                
+                @Component abstract class MyComponent {
+                    abstract fun foo(): Foo
+                }
+                """.trimIndent()
+            ).compile()
+        }.isFailure().output().all {
+            contains("Mismatched @Assisted parameters.")
+            contains("Expected: [assisted: String]")
+            contains("But got:  []")
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun fails_if_assisted_param_is_the_wrong_type(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                import me.tatarka.inject.annotations.Component
+                import me.tatarka.inject.annotations.Inject
+                import me.tatarka.inject.annotations.Provides
+                import me.tatarka.inject.annotations.Assisted
+                
+                @Inject class Bar
+                @Inject class Foo(val bar: Bar, @Assisted assisted: String)
+                
+                @Component abstract class MyComponent {
+                    abstract fun foo(): (Int) -> Foo
+                }
+                """.trimIndent()
+            ).compile()
+        }.isFailure().output().all {
+            contains("Mismatched @Assisted parameters.")
+            contains("Expected: [assisted: String]")
+            contains("But got:  [Int]")
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun fails_if_extra_assisted_param(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                import me.tatarka.inject.annotations.Component
+                import me.tatarka.inject.annotations.Inject
+                import me.tatarka.inject.annotations.Provides
+                import me.tatarka.inject.annotations.Assisted
+                
+                @Inject class Bar
+                @Inject class Foo(val bar: Bar, @Assisted assisted: String)
+                
+                @Component abstract class MyComponent {
+                    abstract fun foo(): (String, Int) -> Foo
+                }
+                """.trimIndent()
+            ).compile()
+        }.isFailure().output().all {
+            contains("Mismatched @Assisted parameters.")
+            contains("Expected: [assisted: String]")
+            contains("But got:  [String, Int]")
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun fails_if_assisted_param_is_missing_for_function(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                import me.tatarka.inject.annotations.Component
+                import me.tatarka.inject.annotations.Inject
+                import me.tatarka.inject.annotations.Provides
+                import me.tatarka.inject.annotations.Assisted
+                
+                @Inject class Bar
+                @Inject fun Foo(val bar: Bar, @Assisted assisted: String): String = assisted
+                typealias Foo = () -> String
+                
+                @Component abstract class MyComponent {
+                    abstract fun foo(): Foo
+                }
+                """.trimIndent()
+            ).compile()
+        }.isFailure().output().all {
+            contains("Mismatched @Assisted parameters.")
+            contains("Expected: [assisted: String]")
+            contains("But got:  []")
+        }
+    }
 }

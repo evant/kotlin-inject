@@ -2,6 +2,7 @@ package me.tatarka.inject.test
 
 import assertk.assertThat
 import assertk.assertions.containsOnly
+import me.tatarka.inject.annotations.Assisted
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.IntoMap
 import me.tatarka.inject.annotations.IntoSet
@@ -90,11 +91,11 @@ abstract class AssistedSetComponent {
 
     @Provides
     @IntoSet
-    fun fooValue1(arg: String): FooValue = FooValue("${arg}1")
+    fun fooValue1(@Assisted arg: String): FooValue = FooValue("${arg}1")
 
     @Provides
     @IntoSet
-    fun fooValue2(arg: String): FooValue = FooValue("${arg}2")
+    fun fooValue2(@Assisted arg: String): FooValue = FooValue("${arg}2")
 }
 
 class MultibindsTest {

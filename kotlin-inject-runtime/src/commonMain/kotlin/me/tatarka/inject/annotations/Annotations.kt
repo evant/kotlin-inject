@@ -24,3 +24,6 @@ annotation class IntoSet
 
 @Target(FUNCTION, PROPERTY_GETTER)
 annotation class IntoMap
+
+@Target(VALUE_PARAMETER)
+annotation class Assisted
