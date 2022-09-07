@@ -242,7 +242,6 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
         return typeInfoCache.getOrPut(astClass.toString()) {
             val isComponent = astClass.isComponent()
 
-            val concreteMethods = mutableSetOf<AstMember>()
             val providesMethods = mutableListOf<AstMember>()
             val providerMethods = mutableListOf<AstMember>()
 
@@ -263,48 +262,40 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                         )
                     }
                 }
+            }
 
-                for (method in parentClass.methods) {
-                    val abstract = method.isAbstract
-                    if (isComponent && !abstract) {
-                        concreteMethods.add(method)
+            for (method in astClass.allMethods) {
+                val abstract = method.isAbstract
+                if (method.isProvides()) {
+                    if (method.visibility == AstVisibility.PRIVATE) {
+                        provider.error("@Provides method must not be private", method)
+                        continue
                     }
-                    if (method.isProvides()) {
-                        if (method.visibility == AstVisibility.PRIVATE) {
-                            provider.error("@Provides method must not be private", method)
-                            continue
-                        }
-                        if (method.returnType.isUnit()) {
-                            provider.error("@Provides method must return a value", method)
-                            continue
-                        }
-                        if (method.returnType.isPlatform()) {
-                            val name = method.returnType.simpleName
-                            provider.error(
-                                """@Provides method must not return a platform type
+                    if (method.returnType.isUnit()) {
+                        provider.error("@Provides method must return a value", method)
+                        continue
+                    }
+                    if (method.returnType.isPlatform()) {
+                        val name = method.returnType.simpleName
+                        provider.error(
+                            """@Provides method must not return a platform type
                                 |This can happen when you call a platform method and leave off an explicit return type.
                                 |You can fix this be explicitly declaring the return type as $name or $name?"""
-                                    .trimMargin(),
-                                method
-                            )
-                            continue
-                        }
+                                .trimMargin(),
+                            method
+                        )
+                        continue
+                    }
 
-                        if (isComponent && abstract) {
-                            val providesImpl = concreteMethods.find { it.overrides(method) }
-                            if (providesImpl == null) {
-                                provider.error("@Provides method must have a concrete implementation", method)
-                                continue
-                            }
-                            concreteMethods.remove(providesImpl)
-                            providesMethods.add(providesImpl)
-                        } else {
-                            providesMethods.add(method)
-                        }
+                    if (isComponent && abstract) {
+                        provider.error("@Provides method must have a concrete implementation", method)
+                        continue
+                    } else {
+                        providesMethods.add(method)
                     }
-                    if (method.isProvider()) {
-                        providerMethods.add(method)
-                    }
+                }
+                if (method.isProvider()) {
+                    providerMethods.add(method)
                 }
             }
 

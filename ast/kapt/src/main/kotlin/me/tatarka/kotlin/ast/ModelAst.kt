@@ -194,6 +194,7 @@ private class PrimitiveModelAstClass(
     override val primaryConstructor: AstConstructor? = null
     override val constructors: Sequence<AstConstructor> = emptySequence()
     override val methods: List<AstMember> = emptyList()
+    override val allMethods: List<AstMember> = emptyList()
 
     override fun toClassName(): ClassName = throw UnsupportedOperationException()
 
@@ -324,6 +325,18 @@ private class ModelAstClass(
             }
 
             return result
+        }
+
+    override val allMethods: List<AstMember>
+        get() = mutableListOf<AstMember>().apply {
+            addAll(methods)
+            for (superType in superTypes) {
+                for (superMethod in superType.allMethods) {
+                    if (none { it.overrides(superMethod) }) {
+                        add(superMethod)
+                    }
+                }
+            }
         }
 
     override val type: AstType
