@@ -4,6 +4,7 @@ import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSDeclaration
 import com.google.devtools.ksp.symbol.KSType
+import com.google.devtools.ksp.symbol.KSTypeAlias
 import com.google.devtools.ksp.symbol.KSTypeParameter
 import com.google.devtools.ksp.symbol.KSTypeReference
 import me.tatarka.kotlin.ast.internal.HashCollector
@@ -26,10 +27,17 @@ internal fun KSAnnotated.hasAnnotation(packageName: String, simpleName: String):
 }
 
 private fun KSAnnotation.hasName(packageName: String, simpleName: String): Boolean {
-    // we can skip resolving if the short name doesn't match
-    if (shortName.asString() != simpleName) return false
     val declaration = annotationType.resolve().declaration
-    return declaration.packageName.asString() == packageName
+    return when {
+        shortName.asString() == simpleName -> declaration.packageName.asString() == packageName
+        declaration is KSTypeAlias -> declaration.isTypeAliasForName(packageName, simpleName)
+        else -> false
+    }
+}
+
+private fun KSTypeAlias.isTypeAliasForName(packageName: String, simpleName: String): Boolean {
+    val aliasedType = type.resolve()
+    return aliasedType.declaration.packageName.asString() == packageName && aliasedType.toString() == simpleName
 }
 
 /**
