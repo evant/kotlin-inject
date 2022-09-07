@@ -263,4 +263,57 @@ class RoundsTest {
             doesNotContain("Cannot provide", "as it is already provided")
         }
     }
+
+    @Test
+    fun can_generate_for_inject_typealias_on_primary_constructor() {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                    import me.tatarka.inject.annotations.Component
+                    import me.tatarka.inject.annotations.Inject
+
+                    typealias InjectTypealias = Inject
+
+                    class FooWithPrimaryInject @InjectTypealias constructor()
+
+                    @Component
+                    abstract class MyComponent {
+
+                        abstract val primaryInject: FooWithPrimaryInject
+                    }
+                    
+                    fun use() = MyComponent::class.create()
+                """.trimIndent()
+            ).compile()
+        }.isSuccess()
+    }
+
+    @Test
+    fun can_generate_for_inject_typealias_on_class() {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+        assertThat {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                    import me.tatarka.inject.annotations.Component
+                    import me.tatarka.inject.annotations.Inject
+
+                    typealias InjectTypealias = Inject
+
+                    @InjectTypealias
+                    class FooWithInject
+
+                    @Component
+                    abstract class MyComponent {
+
+                        abstract val primaryInject: FooWithInject
+                    }
+                   
+                    fun use() = MyComponent::class.create()
+                """.trimIndent()
+            ).compile()
+        }.isSuccess()
+    }
 }
