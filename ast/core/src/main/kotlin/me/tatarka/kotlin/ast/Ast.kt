@@ -63,6 +63,11 @@ abstract class AstClass : AstElement(), AstAnnotated, AstHasModifiers {
 
     abstract val methods: List<AstMember>
 
+    /**
+     * Returns methods of this class and it's superclasses.
+     */
+    abstract val allMethods: List<AstMember>
+
     abstract val type: AstType
 
     fun inheritanceChain(): Sequence<AstClass> = sequence {

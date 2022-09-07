@@ -173,19 +173,31 @@ private class KSAstClass(override val resolver: Resolver, override val declarati
         get() = declaration.getConstructors().map { KSAstConstructor(resolver, this, it) }
 
     override val methods: List<AstMember>
-        get() {
-            return mutableListOf<AstMember>().apply {
-                addAll(
-                    declaration.getDeclaredProperties().map {
-                        KSAstProperty(resolver, it)
-                    }
-                )
-                addAll(
-                    declaration.getDeclaredFunctions().map {
-                        KSAstFunction(resolver, it)
-                    }
-                )
-            }
+        get() = mutableListOf<AstMember>().apply {
+            addAll(
+                declaration.getDeclaredProperties().map {
+                    KSAstProperty(resolver, it)
+                }
+            )
+            addAll(
+                declaration.getDeclaredFunctions().map {
+                    KSAstFunction(resolver, it)
+                }
+            )
+        }
+
+    override val allMethods: List<AstMember>
+        get() = mutableListOf<AstMember>().apply {
+            addAll(
+                declaration.getAllProperties().map {
+                    KSAstProperty(resolver, it)
+                }
+            )
+            addAll(
+                declaration.getAllFunctions().map {
+                    KSAstFunction(resolver, it)
+                }
+            )
         }
 
     override val type: AstType
