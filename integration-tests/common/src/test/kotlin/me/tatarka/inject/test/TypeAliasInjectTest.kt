@@ -36,7 +36,7 @@ abstract class InjectTypeAliasComponent {
     abstract val functionWithInjectTypeAlias: fooWithPrimaryCreator
 }
 
-class TypeAliasedInjectTest {
+class TypeAliasInjectTest {
 
     @Test
     fun can_generate_for_inject_typealias_on_primary_constructor() {
