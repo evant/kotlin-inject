@@ -4,7 +4,7 @@ import assertk.assertThat
 import assertk.assertions.isNotNull
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
-import org.junit.Test
+import kotlin.test.Test
 
 typealias InjectTypeAlias = Inject
 
