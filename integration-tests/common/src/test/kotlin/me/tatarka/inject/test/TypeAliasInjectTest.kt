@@ -24,6 +24,13 @@ typealias fooWithPrimaryCreator = () -> FooWithPrimaryConstructorInjectTypeAlias
 @InjectTypeAlias
 fun fooWithPrimaryCreator(foo: FooWithPrimaryConstructorInjectTypeAlias) = foo
 
+typealias TypeAliasToInjectTypeAlias = InjectTypeAlias
+
+typealias TypeAliasToTypeAliasToInjectTypeAlias = TypeAliasToInjectTypeAlias
+
+@TypeAliasToTypeAliasToInjectTypeAlias
+class FooWithTypeAliasToTypeAliasToTypeAlias
+
 @Component
 abstract class InjectTypeAliasComponent {
 
@@ -34,6 +41,8 @@ abstract class InjectTypeAliasComponent {
     abstract val classWithInjectTypeAlias: FooWithInjectTypeAlias
 
     abstract val functionWithInjectTypeAlias: fooWithPrimaryCreator
+
+    abstract val fooWithTypeAliasToTypeAliasToTypeAlias: FooWithTypeAliasToTypeAliasToTypeAlias
 }
 
 class TypeAliasInjectTest {
@@ -64,5 +73,12 @@ class TypeAliasInjectTest {
         val component = InjectTypeAliasComponent::class.create()
 
         assertThat(component.functionWithInjectTypeAlias).isNotNull()
+    }
+
+    @Test
+    fun can_generate_for_type_alias_to_type_alias_to_inject_type_alias_on_class() {
+        val component = InjectTypeAliasComponent::class.create()
+
+        assertThat(component.fooWithTypeAliasToTypeAliasToTypeAlias).isNotNull()
     }
 }
