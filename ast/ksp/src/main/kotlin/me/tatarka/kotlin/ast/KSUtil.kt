@@ -26,19 +26,17 @@ internal fun KSAnnotated.hasAnnotation(packageName: String, simpleName: String):
     return annotations.any { it.hasName(packageName, simpleName) }
 }
 
-private fun KSAnnotation.hasName(packageName: String, simpleName: String): Boolean {
-    val declaration = annotationType.resolve().declaration
-    return when {
-        shortName.asString() == simpleName -> declaration.packageName.asString() == packageName
-        declaration is KSTypeAlias -> declaration.isTypeAliasForName(packageName, simpleName)
-        else -> false
+private fun KSAnnotation.hasName(packageName: String, simpleName: String): Boolean =
+    when (val declaration = annotationType.resolve().declaration) {
+        is KSTypeAlias -> declaration.isTypeAliasForName(packageName, simpleName)
+        else -> shortName.asString() == simpleName && declaration.packageName.asString() == packageName
     }
-}
 
-private fun KSTypeAlias.isTypeAliasForName(packageName: String, simpleName: String): Boolean {
-    val aliasedType = type.resolve()
-    return aliasedType.declaration.packageName.asString() == packageName && aliasedType.toString() == simpleName
-}
+private tailrec fun KSTypeAlias.isTypeAliasForName(packageName: String, simpleName: String): Boolean =
+    when (val aliasedType = type.resolve().declaration) {
+        is KSTypeAlias -> aliasedType.isTypeAliasForName(packageName, simpleName)
+        else -> aliasedType.toString() == simpleName && aliasedType.packageName.asString() == packageName
+    }
 
 /**
  * package name except root is "" instead of "<root>"
