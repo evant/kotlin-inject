@@ -27,15 +27,12 @@ internal fun KSAnnotated.hasAnnotation(packageName: String, simpleName: String):
 }
 
 private fun KSAnnotation.hasName(packageName: String, simpleName: String): Boolean =
-    when (val declaration = annotationType.resolve().declaration) {
-        is KSTypeAlias -> declaration.isTypeAliasForName(packageName, simpleName)
-        else -> shortName.asString() == simpleName && declaration.packageName.asString() == packageName
-    }
+    annotationType.resolve().declaration.hasName(packageName, simpleName)
 
-private tailrec fun KSTypeAlias.isTypeAliasForName(packageName: String, simpleName: String): Boolean =
-    when (val aliasedType = type.resolve().declaration) {
-        is KSTypeAlias -> aliasedType.isTypeAliasForName(packageName, simpleName)
-        else -> aliasedType.toString() == simpleName && aliasedType.packageName.asString() == packageName
+private tailrec fun KSDeclaration.hasName(packageName: String, simpleName: String): Boolean =
+    when (this) {
+        is KSTypeAlias -> type.resolve().declaration.hasName(packageName, simpleName)
+        else -> this.simpleName.asString() == simpleName && this.packageName.asString() == packageName
     }
 
 /**
