@@ -1,8 +1,8 @@
 [versions]
 kotlin-inject = "0.5.2-SNAPSHOT"
-kotlin = "1.5.31"
-ksp = "1.5.31-1.0.1"
-kotlinpoet = "1.10.1"
+kotlin = "1.7.0"
+ksp = "1.7.0-1.0.6"
+kotlinpoet = "1.12.0"
 junit5 = "5.8.1"
 detekt = "1.19.0"
 [libraries]
@@ -14,11 +14,11 @@ kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref =
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-compiler-embeddable = { module = "org.jetbrains.kotlin:kotlin-compiler-embeddable", version.ref = "kotlin" }
 kotlin-compile-testing = { module = "com.github.tschuchortdev:kotlin-compile-testing-ksp", version = "1.4.5" }
-room-compiler-processing-testing = { module = "androidx.room:room-compiler-processing-testing", version = "2.4.0-beta01" }
+room-compiler-processing-testing = { module = "androidx.room:room-compiler-processing-testing", version = "2.4.0" }
 kotlin-annotation-processing-embeddable = { module = "org.jetbrains.kotlin:kotlin-annotation-processing-embeddable", version.ref = "kotlin" }
-kotlinx-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version = "1.5.2" }
-kotlinx-metadata-jvm = { module = "org.jetbrains.kotlinx:kotlinx-metadata-jvm", version = "0.3.0" }
-kotlinx-atomicfu = { module = "org.jetbrains.kotlinx:atomicfu", version = "0.16.3" }
+kotlinx-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version = "1.6.3" }
+kotlinx-metadata-jvm = { module = "org.jetbrains.kotlinx:kotlinx-metadata-jvm", version = "0.5.0" }
+kotlinx-atomicfu = { module = "org.jetbrains.kotlinx:atomicfu", version = "0.18.2" }
 jdk-compiler = { module = "io.earcam.wrapped:jdk.compiler", version = "1.8.132" }
 assertk = { module = "com.willowtreeapps.assertk:assertk", version = "0.25" }
 burst-junit4 = { module = "com.squareup.burst:burst-junit4", version = "1.2.0" }
