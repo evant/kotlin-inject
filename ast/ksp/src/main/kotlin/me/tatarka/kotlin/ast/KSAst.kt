@@ -6,6 +6,7 @@ import com.google.devtools.ksp.getDeclaredFunctions
 import com.google.devtools.ksp.getDeclaredProperties
 import com.google.devtools.ksp.getVisibility
 import com.google.devtools.ksp.isAbstract
+import com.google.devtools.ksp.isConstructor
 import com.google.devtools.ksp.isPrivate
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
@@ -187,17 +188,41 @@ private class KSAstClass(override val resolver: Resolver, override val declarati
         }
 
     override val allMethods: List<AstMember>
-        get() = mutableListOf<AstMember>().apply {
-            addAll(
-                declaration.getAllProperties().map {
-                    KSAstProperty(resolver, it)
+        get() {
+            // TODO: switch to getAllProperties/getAllFunctions when
+            // https://github.com/google/ksp/issues/1103 is fixed
+            fun KSClassDeclaration.inheritanceChain(): Sequence<KSClassDeclaration> = sequence {
+                yield(this@inheritanceChain)
+                for (
+                    parent in this@inheritanceChain
+                        .superTypes
+                        .mapNotNull { type -> type.resolve().declaration as? KSClassDeclaration }
+                ) {
+                    yieldAll(parent.inheritanceChain())
                 }
-            )
-            addAll(
-                declaration.getAllFunctions().map {
-                    KSAstFunction(resolver, it)
+            }
+
+            val declarations = mutableListOf<KSDeclaration>()
+            for (type in declaration.inheritanceChain()) {
+                for (declaration in type.declarations) {
+                    if (declaration is KSPropertyDeclaration) {
+                        if (declarations.none { resolver.overrides(it, declaration) }) {
+                            declarations.add(declaration)
+                        }
+                    } else if (declaration is KSFunctionDeclaration && !declaration.isConstructor()) {
+                        if (declarations.none { resolver.overrides(it, declaration) }) {
+                            declarations.add(declaration)
+                        }
+                    }
                 }
-            )
+            }
+            return declarations.map {
+                when (it) {
+                    is KSPropertyDeclaration -> KSAstProperty(resolver, it)
+                    is KSFunctionDeclaration -> KSAstFunction(resolver, it)
+                    else -> error("unexpected declaration: $it")
+                }
+            }
         }
 
     override val type: AstType
@@ -221,7 +246,7 @@ private class KSAstClass(override val resolver: Resolver, override val declarati
 private class KSAstConstructor(
     override val resolver: Resolver,
     private val parent: KSAstClass,
-    override val declaration: KSFunctionDeclaration
+    override val declaration: KSFunctionDeclaration,
 ) : AstConstructor(parent), KSAstAnnotated {
 
     override val parameters: List<AstParam>
@@ -354,7 +379,7 @@ private class KSAstProperty(override val resolver: Resolver, override val declar
 private class KSAstType private constructor(
     private val resolver: Resolver,
     private val typeRef: KSTypeReference,
-    val type: KSType
+    val type: KSType,
 ) : AstType() {
 
     constructor(resolver: Resolver, typeRef: KSTypeReference) : this(resolver, typeRef, typeRef.resolve())
@@ -443,7 +468,7 @@ private class KSAstType private constructor(
 private class KSAstParam(
     override val resolver: Resolver,
     val parentClass: KSClassDeclaration?,
-    override val declaration: KSValueParameter
+    override val declaration: KSValueParameter,
 ) : AstParam(),
     KSAstAnnotated {
 
