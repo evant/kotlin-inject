@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] 2202-12-21
+
+### Changed
+
+- Added the ability to explicitly mark assisted injection parameters with an `@Assisted` annotation. Not providing them
+  will currently warn which will become an error in the future. This allows better documentation on which params are
+  injected and which ones are provided by the caller. It also allows more flexibility for parameter ordering, you can
+  put the assisted params at the start instead of at the end if you so choose.
+
+  For example, if you have:
+
+  ```kotlin
+  @Inject class AssistedClass(arg1: One , arg2: Two, arg3: Three)
+  @Inject Usage(createAssistedClass: (Two, Three) -> AssistedClass)
+  ```
+
+  you should update it to:
+  ```kotlin
+  @Inject class AssistedClass(arg1: One , @Assisted arg2: Two, @Assisted arg3: Three)
+  ```
+
+### Fixed
+- `@Inject` annotations being ignored if used through a typealias, ex:
+  ```kotlin
+  typealias MyInject = Inject
+  @MyInject class MyClassToInject
+  ```
+
 ## [0.5.1] 2022-07-05
 
 ### Fixed

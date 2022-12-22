@@ -387,12 +387,12 @@ class MyClass(fooCreator: () -> Foo) {
 }
 ```
 
-If you define args, you can use these to assist the creation of the dependency. These are passed in as the _last_
-arguments to the dependency.
+If you define args, you can use these to assist the creation of the dependency. To do so, mark these args with the
+`@Assisted` annotation. The function should take the same number of assisted args in the same order.
 
 ```kotlin
 @Inject
-class Foo(bar: Bar, arg1: String, arg2: String)
+class Foo(bar: Bar, @Assisted arg1: String, @Assisted arg2: String)
 
 @Inject
 class MyClass(fooCreator: (arg1: String, arg2: String) -> Foo) {
