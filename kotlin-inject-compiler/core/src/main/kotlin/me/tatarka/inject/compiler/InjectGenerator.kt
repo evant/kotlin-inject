@@ -5,6 +5,7 @@ import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.NameAllocator
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 import me.tatarka.kotlin.ast.AstAnnotated
@@ -170,6 +171,14 @@ class InjectGenerator(
             types = types,
             scopeComponent = elementScopeClass,
             scopeInterface = if (scopeFromParent) elementScopeClass else null,
+            nameAllocator = NameAllocator().apply {
+                // don't conflict with properties
+                for (prop in astClass.methods) {
+                    if (prop is AstProperty) {
+                        newName(prop.name)
+                    }
+                }
+            }
         )
     }
 }

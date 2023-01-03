@@ -18,7 +18,6 @@ import me.tatarka.kotlin.ast.AstType
 class TypeResultResolver(private val provider: AstProvider, private val options: Options) {
 
     private val cycleDetector = CycleDetector()
-    private val nameAllocator = ArgNameAllocator()
     private val typeCache = mutableMapOf<TypeCacheKey, TypeResult>()
 
     /**
@@ -28,8 +27,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         return context.types.providerMethods.map { method ->
             // reset the name allocator between methods so that arg names are not unique across
             // all functions of a component
-            nameAllocator.reset()
-            Provider(context, astClass, method)
+            Provider(context.copyNameAllocator(), astClass, method)
         }
     }
 
@@ -434,7 +432,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     ): TypeResult {
         cycleDetector.delayedConstruction()
         val namedArgs = args.mapIndexed { i, arg ->
-            arg to nameAllocator.newName(i)
+            arg to context.nameAllocator.newName("arg$i")
         }
         return TypeResult.Function(args = namedArgs.map { it.second }, result = result(context.withArgs(namedArgs)))
     }
@@ -451,7 +449,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         } else {
             args
         }.mapIndexed { i, arg ->
-            arg to nameAllocator.newName(i)
+            arg to context.nameAllocator.newName("arg$i")
         }
         TypeResult.NamedFunction(
             name = function.toMemberName(),
