@@ -1,5 +1,6 @@
 package me.tatarka.inject.compiler
 
+import com.squareup.kotlinpoet.NameAllocator
 import me.tatarka.kotlin.ast.AstClass
 import me.tatarka.kotlin.ast.AstProvider
 import me.tatarka.kotlin.ast.AstType
@@ -12,7 +13,8 @@ data class Context(
     val className: String,
     val types: TypeCollector.Result,
     val scopeComponent: AstClass?,
-    val scopeInterface: AstClass? = null,
+    val scopeInterface: AstClass?,
+    val nameAllocator: NameAllocator,
     val args: List<Pair<AstType, String>> = emptyList(),
     val skipScoped: AstType? = null,
     val skipProvider: AstType? = null,
@@ -29,4 +31,6 @@ data class Context(
     } else {
         copy(types = types)
     }
+
+    fun copyNameAllocator() = copy(nameAllocator = nameAllocator.copy())
 }
