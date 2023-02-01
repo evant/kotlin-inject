@@ -59,9 +59,9 @@ jobs:
       - run:
           name: Install libtinfo5
           command: sudo apt update && sudo apt install -y libtinfo5
+      - checkout
       - browser-tools/install-chrome
       - browser-tools/install-chromedriver
-      - checkout
       - with_cache:
           cache_key: linux
           steps:
