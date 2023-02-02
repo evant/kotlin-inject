@@ -26,6 +26,8 @@ data class Context(
 
     fun withArgs(args: List<Pair<AstType, String>>) = copy(args = args)
 
+    fun withoutArgs() = copy(args = emptyList())
+
     fun withTypes(types: TypeCollector.Result) = if (this.types === types) {
         this
     } else {

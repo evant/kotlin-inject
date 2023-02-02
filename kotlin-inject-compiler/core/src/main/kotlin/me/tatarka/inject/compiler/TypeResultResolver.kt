@@ -95,7 +95,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
                     assistedFailed = true
                 }
             } else {
-                val result = resolveOrNull(context, element, key)
+                val result = resolveOrNull(context.withoutArgs(), element, key)
                 if (result != null) {
                     paramsWithName[param.name] = result
                 } else if (!param.hasDefault) {
@@ -147,7 +147,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
                     continue
                 }
             }
-            val result = resolveOrNull(context, element, key)
+            val result = resolveOrNull(context.withoutArgs(), element, key)
             if (result != null) {
                 paramsWithName[param.name] = result
             } else if (!param.hasDefault) {
