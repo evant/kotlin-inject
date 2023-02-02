@@ -8,6 +8,7 @@ import assertk.assertions.prop
 import me.tatarka.inject.annotations.Assisted
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
+import me.tatarka.inject.annotations.Provides
 import kotlin.test.Test
 
 @Inject
@@ -84,6 +85,23 @@ abstract class DefaultAssistedComponent {
     abstract val withDefault: (String) -> DefaultAssistedBar
 }
 
+@Inject
+class UnrelatedDependency(val someString: String)
+
+@Inject
+class AssistedAndUnrelatedDep(
+    @Assisted val assistedString: String,
+    val unrelatedDependency: UnrelatedDependency,
+)
+
+@Component
+abstract class AssistedWithOtherDependency {
+    abstract val test: (String) -> AssistedAndUnrelatedDep
+
+    @Provides
+    fun string() = "provided"
+}
+
 class AssistedTest {
 
     @Test
@@ -132,5 +150,16 @@ class AssistedTest {
 
         assertThat(component.withoutDefault("one", 2)).isEqualTo(DefaultAssistedBar("one", 2))
         assertThat(component.withDefault("one")).isEqualTo(DefaultAssistedBar("one", 2))
+    }
+
+    @Test
+    fun generates_a_component_that_separates_assisted_and_provided_values() {
+        val component = AssistedWithOtherDependency::class.create()
+
+        assertThat(component.test("assisted")).all {
+            prop(AssistedAndUnrelatedDep::assistedString).isEqualTo("assisted")
+            prop(AssistedAndUnrelatedDep::unrelatedDependency).prop(UnrelatedDependency::someString)
+                .isEqualTo("provided")
+        }
     }
 }
