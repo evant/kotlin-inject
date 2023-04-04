@@ -195,10 +195,10 @@ class HomeFragment(homeViewModel: (SavedStateHandle) -> HomeViewModel) : Fragmen
 kotlin-inject's [function injection](../README.md#function-injection) works quite nicely with compose.
 
 ```kotlin
-typealias Home = @Composeable () -> Unit
+typealias Home = @Composable () -> Unit
 
 @Inject
-@Composeable
+@Composable
 fun Home(repo: HomeRepository) {
      // ...
 }
