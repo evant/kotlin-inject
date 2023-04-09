@@ -15,7 +15,7 @@ we will go through each one of these steps in turn.
 ### Kotlin AST
 
 This represents the kotlin source code. In order to support kapt and ksp, there is a wrapper of the two back-ends. The
-interface is defined in `koltin-inject-compiler/core/Ast` and the implementations are in
+interface is defined in `kotlin-inject-compiler/core/Ast` and the implementations are in
 `kotlin-inject-compiler/kapt/ModelAst` and `kotlin-inject-compiler/ksp/KSAst`. Note: the wrappers aren't a full
 implementation of the AST but provide only what's necessary for this project. There is additional glue-code in
 `kotlin-inject-compiler/kapt` and `kotlin-inject-compiler/ksp` to run the respective processors. Everything else is in

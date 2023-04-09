@@ -224,7 +224,7 @@ fun myFunction(dep: Dep) {
 }
 ```
 
-You can then use the type alias anywhere and you will be provided with a function that calls the top-level one with the
+You can then use the type alias anywhere, and you will be provided with a function that calls the top-level one with the
 requested dependencies.
 
 ```kotlin
@@ -248,7 +248,7 @@ fun myFunction(dep: Dep, arg: String): String = ...
 
 ### Scopes
 
-By default kotlin-inject will create a new instance of a dependency each place it's injected. If you want to re-use an
+By default, kotlin-inject will create a new instance of a dependency each place it's injected. If you want to re-use an
 instance you can scope it to a component. The instance will live as long as that component does.
 
 First create your scope annotation.
@@ -315,7 +315,7 @@ abstract class TestNetworkComponent : NetworkComponent() {
 Then you can provide the abstract class to your app component
 
 ```kotlin
-@Component abtract class AppComponent(@Component val network: NetworkComponent)
+@Component abstract class AppComponent(@Component val network: NetworkComponent)
 ```
 
 Then in your app you can do
@@ -324,7 +324,7 @@ Then in your app you can do
 AppComponent::class.create(RealNetworkComponent::class.create())
 ```
 
-an in tests you can do
+and in tests you can do
 
 ```kotlin
 AppComponent::class.create(TestNetworkComponent::class.create())

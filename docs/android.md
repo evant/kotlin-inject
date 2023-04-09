@@ -17,7 +17,7 @@ instead of:
 ```kotlin
 class MyActivity : Activity() {
     @Inject
-    lateinit var imageLoader: ImaegLoader
+    lateinit var imageLoader: ImageLoader
 
     @Inject
     lateinit var analytics: Analytics
