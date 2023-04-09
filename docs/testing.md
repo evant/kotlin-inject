@@ -1,6 +1,6 @@
 # Testing
 
-Using dependency injecting can make testing easier, below is some strategies you can employ to use koltin-inject in
+Using dependency injecting can make testing easier, below is some strategies you can employ to use kotlin-inject in
 tests.
 
 ## Call the constructor directly
@@ -36,7 +36,7 @@ You may be tempted to use a mocking library to simplify your setup code.
 @Test
 fun test_profile_screen() {
     val mockUserAccountRepository = mockk<UserAccountRepository>()
-    every { mockUserAccountRepositry.getUserInfo(any()) } returns UserInfo(
+    every { mockUserAccountRepository.getUserInfo(any()) } returns UserInfo(
         userId = "123",
         userName = "Tamra",
         accountStatus = SUBSCRIBED,
