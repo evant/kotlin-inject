@@ -224,7 +224,7 @@ fun myFunction(dep: Dep) {
 }
 ```
 
-You can then use the type alias anywhere, and you will be provided with a function that calls the top-level one with the
+You can then use the type alias anywhere and you will be provided with a function that calls the top-level one with the
 requested dependencies.
 
 ```kotlin
@@ -248,7 +248,7 @@ fun myFunction(dep: Dep, arg: String): String = ...
 
 ### Scopes
 
-By default, kotlin-inject will create a new instance of a dependency each place it's injected. If you want to re-use an
+By default kotlin-inject will create a new instance of a dependency each place it's injected. If you want to re-use an
 instance you can scope it to a component. The instance will live as long as that component does.
 
 First create your scope annotation.
