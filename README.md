@@ -21,7 +21,7 @@ abstract class AppComponent {
 interface Http
 
 @Inject
-class RealHttp
+class RealHttp : Http
 
 @Inject
 class Api(private val http: Http, private val jsonParser: JsonParser)
@@ -130,7 +130,7 @@ fun http(http: RealHttp): Http = http
 
 ```kotlin
 @Inject
-class RealHttp
+class RealHttp : Http
 
 @Inject
 class Api(private val http: Http, private val jsonParser: JsonParser)
@@ -424,11 +424,11 @@ otherwise the default will be used.
   ```kotlin
 @Inject class MyClass(val dep: Dep = Dep("default"))
 
-@Component abstract ComponentWithDep {
+@Component abstract class ComponentWithDep {
     abstract val myClass: MyClass
     @Provides fun dep(): Dep = Dep("injected")
 }
-@Component abstract ComponentWithoutDep {
+@Component abstract class ComponentWithoutDep {
     abstract val myClass: MyClass
 }
 
