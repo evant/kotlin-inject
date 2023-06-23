@@ -63,7 +63,7 @@ class MyActivity : Activity() {
         myScreen = ActivityComponent::class.create(ApplicationComponent.getInstance(this)).myScreen
         setContentView(R.layout.my_layout)
         // ...
-        myScreen.loadImage(imageLoader)
+        myScreen.loadImage(imageView)
     }
 
     override fun onResume() {
