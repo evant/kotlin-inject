@@ -72,7 +72,10 @@ class TypeAliasInjectTest {
     fun can_generate_for_inject_typealias_on_function() {
         val component = InjectTypeAliasComponent::class.create()
 
-        assertThat(component.functionWithInjectTypeAlias).isNotNull()
+        assertThat(
+            component.functionWithInjectTypeAlias,
+            name = "component.functionWithInjectTypeAlias"
+        ).isNotNull()
     }
 
     @Test

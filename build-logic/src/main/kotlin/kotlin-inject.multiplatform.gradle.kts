@@ -1,7 +1,6 @@
-import org.jetbrains.kotlin.gradle.dsl.KotlinJsCompile
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTargetWithTests
 import org.jetbrains.kotlin.gradle.targets.js.npm.tasks.KotlinNpmInstallTask
-import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
 
 plugins {
     kotlin("multiplatform")
@@ -10,13 +9,15 @@ plugins {
 val nativeTargets = arrayOf(
     "linuxX64",
     "macosX64", "macosArm64",
-    "iosArm32", "iosArm64", "iosX64", "iosSimulatorArm64",
+    "iosArm64", "iosX64", "iosSimulatorArm64",
     "tvosArm64", "tvosX64", "tvosSimulatorArm64",
-    "watchosArm32", "watchosArm64", "watchosX86", "watchosX64", "watchosSimulatorArm64",
+    "watchosArm32", "watchosArm64", "watchosX64", "watchosSimulatorArm64",
 )
 
 kotlin {
-    js(BOTH) {
+    jvmToolchain(17)
+
+    js {
         browser()
         nodejs()
     }
@@ -25,7 +26,11 @@ kotlin {
        targets.add(presets.getByName(target).createTarget(target))
     }
 
-    jvm()
+    jvm {
+        compilations.configureEach {
+            compilerOptions.options.jvmTarget = JvmTarget.JVM_1_8
+        }
+    }
 
     sourceSets {
         val nativeMain by creating {
@@ -49,6 +54,10 @@ kotlin {
     }
 }
 
+java {
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
 // Run only the native tests
 val nativeTest by tasks.registering {
     kotlin.targets.all {
@@ -56,23 +65,6 @@ val nativeTest by tasks.registering {
             dependsOn("${name}Test")
         }
     }
-}
-
-// Disable as ksp doesn't support js ir
-tasks.withType<KotlinJsCompile>().configureEach {
-    if (name.contains("Test") && name.contains("Ir")) {
-        disableAndWarn()
-    }
-}
-tasks.withType<KotlinJsTest>().configureEach {
-    if (name.contains("Ir")) {
-        disableAndWarn()
-    }
-}
-
-fun Task.disableAndWarn() {
-    enabled = false
-    logger.warn("disabling: $name as ksp does not support js ir https://github.com/JetBrains/kotlin/pull/4264")
 }
 
 // Don't run npm install scripts, protects against

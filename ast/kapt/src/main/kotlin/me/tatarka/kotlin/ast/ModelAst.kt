@@ -660,11 +660,19 @@ private fun KmAnnotationArgument.asString(): String {
     return when (this) {
         is KmAnnotationArgument.LiteralValue<*> -> value.toString()
         is KmAnnotationArgument.KClassValue -> className
+        is KmAnnotationArgument.ArrayKClassValue -> asString()
         is KmAnnotationArgument.EnumValue -> "$enumClassName.$enumEntryName"
         is KmAnnotationArgument.AnnotationValue -> annotation.asString()
         is KmAnnotationArgument.ArrayValue -> "[${elements.joinToString { it.asString() }}]"
     }
 }
+
+private fun KmAnnotationArgument.ArrayKClassValue.asString(): String =
+    buildString {
+        repeat(arrayDimensionCount) { append("Array<") }
+        append(className)
+        repeat(arrayDimensionCount) { append(">") }
+    }
 
 private class ModelAstParam(
     override val provider: ModelAstProvider,
