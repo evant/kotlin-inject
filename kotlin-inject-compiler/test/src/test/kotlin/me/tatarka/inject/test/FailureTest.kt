@@ -305,7 +305,9 @@ class FailureTest {
                 """.trimIndent()
             ).compile()
         }.output().contains(
-            "Cycle detected", "B(a: A)", "A(b: B)"
+            "Cycle detected",
+            "B(a: A)",
+            "A(b: B)"
         )
     }
 
@@ -328,7 +330,9 @@ class FailureTest {
                 """.trimIndent()
             ).compile()
         }.output().contains(
-            "Cannot find an @Inject constructor or provider for: String", "foo", "Foo"
+            "Cannot find an @Inject constructor or provider for: String",
+            "foo",
+            "Foo"
         )
     }
 

@@ -87,34 +87,32 @@ internal val ExecutableElement.simpleSig: String
                     TypeKind.FLOAT -> append('F')
                     TypeKind.DOUBLE -> append('D')
                     TypeKind.VOID -> append('V')
-                    else -> {
-                        when (type) {
-                            is ArrayType -> {
-                                append('[')
-                                convert(type.componentType, out)
+                    else -> when (type) {
+                        is ArrayType -> {
+                            append('[')
+                            convert(type.componentType, out)
+                        }
+                        is DeclaredType -> {
+                            append('L')
+                            val element = type.asElement()
+                            val parts = mutableListOf<String>()
+                            var parent = element
+                            while (parent !is PackageElement) {
+                                parts.add(parent.simpleName.toString())
+                                parent = parent.enclosingElement
                             }
-                            is DeclaredType -> {
-                                append('L')
-                                val element = type.asElement()
-                                val parts = mutableListOf<String>()
-                                var parent = element
-                                while (parent !is PackageElement) {
-                                    parts.add(parent.simpleName.toString())
-                                    parent = parent.enclosingElement
-                                }
-                                parts.reverse()
-                                val packageName = parent.qualifiedName.toString()
-                                if (packageName.isNotEmpty()) {
-                                    append(packageName.replace('.', '/'))
-                                    append('/')
-                                }
-                                append(parts.joinToString("$"))
-                                append(';')
+                            parts.reverse()
+                            val packageName = parent.qualifiedName.toString()
+                            if (packageName.isNotEmpty()) {
+                                append(packageName.replace('.', '/'))
+                                append('/')
                             }
-                            else -> {
-                                // Generic type, erase to object
-                                append("Ljava/lang/Object;")
-                            }
+                            append(parts.joinToString("$"))
+                            append(';')
+                        }
+                        else -> {
+                            // Generic type, erase to object
+                            append("Ljava/lang/Object;")
                         }
                     }
                 }

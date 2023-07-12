@@ -1,3 +1,5 @@
+@file:Suppress("Filename")
+
 package me.tatarka.inject.test
 
 import kotlinx.coroutines.CoroutineScope

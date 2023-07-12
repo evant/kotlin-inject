@@ -85,7 +85,6 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
     @Suppress("LongMethod", "NestedBlockDepth", "ComplexMethod")
     private fun TypeResult.Provides.generate(): CodeBlock {
         return CodeBlock.builder().apply {
-
             val accessorInScope = implicitAccessor.resolve(accessor)
             val changeScope = receiver != null && accessorInScope.isNotEmpty()
 

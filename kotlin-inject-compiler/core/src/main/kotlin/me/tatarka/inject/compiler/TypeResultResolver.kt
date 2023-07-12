@@ -113,10 +113,10 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
                 """
                     Mismatched @Assisted parameters.
                     Expected: [${
-                params.filter { it.isAssisted() }.joinToString()
+                    params.filter { it.isAssisted() }.joinToString()
                 }]
                     But got:  [${
-                context.args.joinToString { (type, _) -> type.toString() }
+                    context.args.joinToString { (type, _) -> type.toString() }
                 }]
                 """.trimIndent(),
                 element
