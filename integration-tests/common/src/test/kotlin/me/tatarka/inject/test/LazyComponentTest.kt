@@ -54,7 +54,7 @@ class LazyComponentTest {
         val createFoo = component.createFoo
 
         assertThat(lazyFoo.value).isSameAs(lazyFoo.value)
-        assertThat(createFoo).isNotSameAs(createFoo)
+        assertThat(createFoo()).isNotSameAs(createFoo())
     }
 
     @Test

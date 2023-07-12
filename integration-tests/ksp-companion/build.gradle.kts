@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     id("kotlin-inject.multiplatform")
     id("kotlin-inject.detekt")
@@ -6,10 +8,23 @@ plugins {
 }
 
 dependencies {
-    ksp(project(":kotlin-inject-compiler:kotlin-inject-compiler-ksp"))
+    configurations
+        .filter { it.name.startsWith("ksp") && it.name.endsWith("Test") }
+        .forEach {
+            add(it.name, project(":kotlin-inject-compiler:kotlin-inject-compiler-ksp"))
+        }
+
+    kspCommonMainMetadata(project(":kotlin-inject-compiler:kotlin-inject-compiler-ksp"))
 }
 
 kotlin {
+    jvm {
+        withJava()
+        compilations.configureEach {
+            compilerOptions.options.jvmTarget = JvmTarget.JVM_17
+        }
+    }
+
     sourceSets {
         commonMain {
             dependencies {
@@ -37,17 +52,6 @@ ksp {
     arg("me.tatarka.inject.generateCompanionExtensions", "true")
 }
 
-// Fix gradle warning of execution optimizations have been disabled for task
-// https://github.com/google/ksp/issues/975
-tasks {
-    metadataJar.configure {
-        dependsOn("kspCommonMainKotlinMetadata")
-    }
-    jsLegacyJar.configure {
-        dependsOn("kspKotlinJsIr")
-    }
-    jsIrJar.configure {
-        dependsOn("kspKotlinJsLegacy")
-    }
+java {
+    targetCompatibility = JavaVersion.VERSION_17
 }
-

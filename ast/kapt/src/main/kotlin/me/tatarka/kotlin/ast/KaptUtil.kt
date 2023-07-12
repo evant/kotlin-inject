@@ -17,7 +17,6 @@ import kotlinx.metadata.KmProperty
 import kotlinx.metadata.KmType
 import kotlinx.metadata.KmValueParameter
 import kotlinx.metadata.jvm.JvmMethodSignature
-import kotlinx.metadata.jvm.KotlinClassHeader
 import kotlinx.metadata.jvm.KotlinClassMetadata
 import me.tatarka.kotlin.ast.internal.HashCollector
 import me.tatarka.kotlin.ast.internal.collectHash
@@ -46,7 +45,7 @@ internal fun Element.annotationAnnotatedWith(packageName: String, simpleName: St
 internal val TypeElement.metadata: KotlinClassMetadata?
     get() {
         val meta = getAnnotation(Metadata::class.java) ?: return null
-        val header = KotlinClassHeader(
+        val header = Metadata(
             kind = meta.kind,
             data1 = meta.data1,
             data2 = meta.data2,

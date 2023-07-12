@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     id("kotlin-inject.multiplatform")
     id("kotlin-inject.detekt")
@@ -6,11 +8,22 @@ plugins {
 }
 
 dependencies {
-    ksp(project(":kotlin-inject-compiler:kotlin-inject-compiler-ksp"))
+    configurations
+        .filter { it.name.startsWith("ksp") && it.name.endsWith("Test") }
+        .forEach {
+            add(it.name, project(":kotlin-inject-compiler:kotlin-inject-compiler-ksp"))
+        }
+
+    kspCommonMainMetadata(project(":kotlin-inject-compiler:kotlin-inject-compiler-ksp"))
 }
 
 kotlin {
-    jvm { withJava() }
+    jvm {
+        withJava()
+        compilations.configureEach {
+            compilerOptions.options.jvmTarget = JvmTarget.JVM_17
+        }
+    }
 
     sourceSets {
         commonMain {
@@ -34,11 +47,6 @@ kotlin {
                 implementation(libs.javax.inject)
             }
         }
-        all {
-            languageSettings {
-                optIn("kotlin.RequiresOptIn")
-            }
-        }
     }
 
     targets.all {
@@ -51,9 +59,6 @@ kotlin {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
-
     sourceSets {
         val test by getting {
             java.srcDir("../common-jvm/src/test/java")
@@ -65,16 +70,15 @@ ksp {
     arg("me.tatarka.inject.enableJavaxAnnotations", "true")
 }
 
-// Fix gradle warning of execution optimizations have been disabled for task
-// https://github.com/google/ksp/issues/975
-tasks {
-    metadataJar.configure {
+kotlin.sourceSets.commonMain {
+    kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
+}
+tasks.withType<org.jetbrains.kotlin.gradle.dsl.KotlinCompile<*>>().configureEach {
+    if (name != "kspCommonMainKotlinMetadata") {
         dependsOn("kspCommonMainKotlinMetadata")
     }
-    jsLegacyJar.configure {
-        dependsOn("kspKotlinJsIr")
-    }
-    jsIrJar.configure {
-        dependsOn("kspKotlinJsLegacy")
-    }
+}
+
+java {
+    targetCompatibility = JavaVersion.VERSION_17
 }
