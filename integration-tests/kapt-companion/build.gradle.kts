@@ -1,5 +1,4 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 
 plugins {
     id("kotlin-inject.jvm")
@@ -30,9 +29,6 @@ kapt {
         arg("me.tatarka.inject.generateCompanionExtensions", "true")
     }
 }
-
-val SourceSet.kotlin: SourceDirectorySet
-    get() = withConvention(KotlinSourceSet::class) { kotlin }
 
 kotlin.compilerOptions.jvmTarget = JvmTarget.JVM_17
 
