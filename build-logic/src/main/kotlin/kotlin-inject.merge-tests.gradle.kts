@@ -5,15 +5,16 @@ val tests = tasks.withType<AbstractTestTask>()
 val testsApple = tests.withType<KotlinNativeTest>().matching { it.targetName?.contains(Regex("macos|ios|tvos|watchos")) ?: false }
 
 val testReport = rootProject.tasks.named("testReport", TestReport::class) {
-    reportOn(tests)
+    testResults.from(tests.map { it.binaryResultsDirectory })
 }
 
 val testReportApple = rootProject.tasks.named("testReportApple", TestReport::class) {
-    reportOn(testsApple)
+    testResults.from(testsApple.map { it.binaryResultsDirectory })
 }
 
 val copyTestResults = rootProject.tasks.named("copyTestResults", Copy::class) {
     tests.forEach { test ->
+        dependsOn(test)
         from(test.reports.junitXml.outputLocation.get().asFile) {
             include("**/*.xml")
             if (test is KotlinJvmTest) {
@@ -26,6 +27,7 @@ val copyTestResults = rootProject.tasks.named("copyTestResults", Copy::class) {
 
 val copyTestResultsApple = rootProject.tasks.named("copyTestResultsApple", Copy::class) {
     testsApple.forEach { test ->
+        dependsOn(test)
         from(test.reports.junitXml.outputLocation.get().asFile) {
             include("**/*.xml")
             rename("(.*).xml", "$1[${test.targetName}].xml")

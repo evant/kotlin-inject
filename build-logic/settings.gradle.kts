@@ -1,5 +1,3 @@
-enableFeaturePreview("VERSION_CATALOGS")
-
 dependencyResolutionManagement {
     versionCatalogs {
         val libs by creating {

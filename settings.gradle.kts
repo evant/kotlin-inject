@@ -1,5 +1,3 @@
-enableFeaturePreview("VERSION_CATALOGS")
-
 pluginManagement {
     repositories {
         gradlePluginPortal()
@@ -37,3 +35,7 @@ include(":integration-tests:module")
 include(":integration-tests:kapt-companion")
 include(":integration-tests:ksp-companion")
 include(":integration-tests:jmh")
+
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version("0.6.0")
+}
