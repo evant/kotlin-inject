@@ -194,9 +194,9 @@ private class KSAstClass(override val resolver: Resolver, override val declarati
             fun KSClassDeclaration.inheritanceChain(): Sequence<KSClassDeclaration> = sequence {
                 yield(this@inheritanceChain)
                 for (
-                    parent in this@inheritanceChain
-                        .superTypes
-                        .mapNotNull { type -> type.resolve().declaration as? KSClassDeclaration }
+                parent in this@inheritanceChain
+                    .superTypes
+                    .mapNotNull { type -> type.resolve().declaration as? KSClassDeclaration }
                 ) {
                     yieldAll(parent.inheritanceChain())
                 }
@@ -505,7 +505,7 @@ private class KSAstAnnotation(private val resolver: Resolver, val annotation: KS
 
     override fun toString(): String {
         return "$annotation(${
-        annotation.arguments.joinToString(", ") { arg -> "${arg.name?.asString()}=${arg.value}" }
+            annotation.arguments.joinToString(", ") { arg -> "${arg.name?.asString()}=${arg.value}" }
         })"
     }
 }

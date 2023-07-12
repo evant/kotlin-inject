@@ -33,6 +33,7 @@ class WarningTest {
             .contains("The kotlin-inject kapt backend is deprecated and will be removed in a future version.")
     }
 
+    @Suppress("UnusedParameter")
     @ParameterizedTest
     @EnumSource(Target::class)
     fun warns_on_implicit_assisted_params(target: Target) {

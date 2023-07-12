@@ -41,10 +41,10 @@ class InjectProcessor(
         deferred = mutableListOf()
 
         for (
-            element in previousDiffered + resolver.getSymbolsWithClassAnnotation(
-                COMPONENT.packageName,
-                COMPONENT.simpleName,
-            )
+        element in previousDiffered + resolver.getSymbolsWithClassAnnotation(
+            COMPONENT.packageName,
+            COMPONENT.simpleName,
+        )
         ) {
             with(provider) {
                 val astClass = element.toAstClass()

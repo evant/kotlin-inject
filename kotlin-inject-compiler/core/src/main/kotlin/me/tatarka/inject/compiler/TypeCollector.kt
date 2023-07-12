@@ -121,7 +121,9 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                     val resolvedType = returnType.resolvedType()
                     if (resolvedType.isPair()) {
                         val containerKey = ContainerKey.MapKey(
-                            resolvedType.arguments[0], resolvedType.arguments[1], key.qualifier
+                            resolvedType.arguments[0],
+                            resolvedType.arguments[1],
+                            key.qualifier
                         )
                         addContainerType(provider, key, containerKey, method, accessor, scopedComponent)
                     } else {
