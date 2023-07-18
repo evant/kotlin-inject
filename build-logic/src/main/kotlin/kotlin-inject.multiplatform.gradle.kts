@@ -6,14 +6,6 @@ plugins {
     kotlin("multiplatform")
 }
 
-val nativeTargets = arrayOf(
-    "linuxX64",
-    "macosX64", "macosArm64",
-    "iosArm64", "iosX64", "iosSimulatorArm64",
-    "tvosArm64", "tvosX64", "tvosSimulatorArm64",
-    "watchosArm32", "watchosArm64", "watchosX64", "watchosSimulatorArm64",
-)
-
 kotlin {
     jvmToolchain(17)
 
@@ -28,7 +20,7 @@ kotlin {
 
     jvm {
         compilations.configureEach {
-            compilerOptions.options.jvmTarget = JvmTarget.JVM_1_8
+            compilerOptions.options.jvmTarget = JvmTarget.JVM_11
         }
     }
 
@@ -55,7 +47,7 @@ kotlin {
 }
 
 java {
-    targetCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_11
 }
 
 // Run only the native tests
