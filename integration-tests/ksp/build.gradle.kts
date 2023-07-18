@@ -8,13 +8,13 @@ plugins {
 }
 
 dependencies {
-    configurations
-        .filter { it.name.startsWith("ksp") && it.name.endsWith("Test") }
-        .forEach {
-            add(it.name, project(":kotlin-inject-compiler:kotlin-inject-compiler-ksp"))
-        }
-
     kspCommonMainMetadata(project(":kotlin-inject-compiler:kotlin-inject-compiler-ksp"))
+    kspJvmTest(project(":kotlin-inject-compiler:kotlin-inject-compiler-ksp"))
+    kspJsTest(project(":kotlin-inject-compiler:kotlin-inject-compiler-ksp"))
+
+    for (configuration in nativeKspTestConfigurations) {
+        add(configuration, project(":kotlin-inject-compiler:kotlin-inject-compiler-ksp"))
+    }
 }
 
 kotlin {
