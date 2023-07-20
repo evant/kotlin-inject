@@ -19,7 +19,6 @@ import me.tatarka.kotlin.ast.AstProvider
 import me.tatarka.kotlin.ast.AstType
 import me.tatarka.kotlin.ast.AstVisibility
 import me.tatarka.kotlin.ast.Messenger
-import java.util.Locale
 
 private const val ANNOTATION_PACKAGE_NAME = "me.tatarka.inject.annotations"
 val COMPONENT = ClassName(ANNOTATION_PACKAGE_NAME, "Component")
@@ -243,7 +242,7 @@ fun AstClass.toInjectName(): String =
 
 fun AstType.toVariableName(): String =
     simpleName.split(".")
-        .joinToString("_") { it.decapitalize(Locale.US) } +
+        .joinToString("_") { it.replaceFirstChar(Char::lowercase) } +
         joinArgumentTypeNames()
 
 private fun AstType.joinArgumentTypeNames(): String = when {

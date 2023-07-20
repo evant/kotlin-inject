@@ -8,8 +8,8 @@ actual class LazyMap {
     private val map = ConcurrentHashMap<String, Any>()
 
     actual fun <T> get(key: String, init: () -> T): T {
-        val result = map[key]
-        return if (result == null) {
+        val cachedResult = map[key]
+        return if (cachedResult == null) {
             synchronized(map) {
                 var result = map[key]
                 if (result == null) {
@@ -19,11 +19,12 @@ actual class LazyMap {
                 coerceResult(result)
             }
         } else {
-            coerceResult(result)
+            coerceResult(cachedResult)
         }
     }
 
     private fun <T> coerceResult(result: Any): T {
+        @Suppress("UNCHECKED_CAST")
         return if (result === NULL) {
             null
         } else {

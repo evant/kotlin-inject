@@ -19,7 +19,7 @@ dependencies {
 }
 
 sourceSets {
-    val test by getting {
+    test {
         kotlin.srcDir("../common/src/test/kotlin")
         kotlin.srcDir("../common-jvm/src/test/kotlin")
         java.srcDir("../common-jvm/src/test/java")

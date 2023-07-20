@@ -1,5 +1,6 @@
 dependencyResolutionManagement {
     versionCatalogs {
+        @Suppress("UNUSED_VARIABLE")
         val libs by creating {
             from(files("../gradle/libs.versions.toml"))
         }

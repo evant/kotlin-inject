@@ -2,7 +2,6 @@ package me.tatarka.inject.test
 
 import assertk.all
 import assertk.assertFailure
-import assertk.assertThat
 import assertk.assertions.contains
 import assertk.assertions.doesNotContain
 import assertk.assertions.isNotNull
@@ -11,6 +10,7 @@ import me.tatarka.inject.ProjectCompiler
 import me.tatarka.inject.SimpleClassProcessor
 import me.tatarka.inject.Target
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
 
@@ -25,7 +25,8 @@ class RoundsTest {
     fun can_reference_generated_interface_as_parent() {
         val projectCompiler = ProjectCompiler(target, workingDir)
             .symbolProcessor(SimpleClassProcessor.Provider("Source", "Generated"))
-        assertThat(
+
+        assertDoesNotThrow {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -40,7 +41,7 @@ class RoundsTest {
                     }
                 """.trimIndent()
             ).compile()
-        )
+        }
     }
 
     @Test
