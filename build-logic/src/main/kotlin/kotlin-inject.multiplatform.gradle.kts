@@ -34,8 +34,9 @@ kotlin {
                 dependsOn(nativeTest)
             }
         }
+
         // Ensure xml test reports are generated
-        val jvmTest by tasks.getting(Test::class) {
+        tasks.named("jvmTest", Test::class).configure {
             reports.junitXml.required.set(true)
         }
     }

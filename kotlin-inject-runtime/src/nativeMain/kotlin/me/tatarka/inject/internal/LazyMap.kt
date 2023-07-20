@@ -23,6 +23,7 @@ actual class LazyMap {
     }
 
     private fun <T> coerceResult(result: Any): T {
+        @Suppress("UNCHECKED_CAST")
         return if (result === NULL) {
             null
         } else {

@@ -17,7 +17,7 @@ dependencies {
 }
 
 sourceSets {
-    val test by getting {
+    test {
         kotlin.srcDir("../common-companion/src/test/kotlin")
     }
 }

@@ -55,7 +55,7 @@ class FailureTest {
     fun fails_if_provides_is_private(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
         assertFailure {
-            val result = projectCompiler.source(
+            projectCompiler.source(
                 "MyComponent.kt",
                 """
                     import me.tatarka.inject.annotations.Component

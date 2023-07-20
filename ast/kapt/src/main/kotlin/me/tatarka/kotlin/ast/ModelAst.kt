@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package me.tatarka.kotlin.ast
 
 import com.squareup.kotlinpoet.ClassName

@@ -36,7 +36,7 @@ class WarningTest {
     @ParameterizedTest
     @EnumSource(Target::class)
     fun warns_on_implicit_assisted_params(target: Target) {
-        val projectCompiler = ProjectCompiler(Target.KAPT, workingDir)
+        val projectCompiler = ProjectCompiler(target, workingDir)
 
         assertThat(
             projectCompiler.source(

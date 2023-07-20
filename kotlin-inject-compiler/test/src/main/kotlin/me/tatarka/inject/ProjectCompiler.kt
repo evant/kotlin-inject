@@ -67,7 +67,9 @@ class ProjectCompiler(
     }
 }
 
-fun TestCompilationResult.output(kind: Diagnostic.Kind): String = diagnostics
+fun TestCompilationResult.output(
+    @Suppress("UNUSED_PARAMETER") kind: Diagnostic.Kind
+): String = diagnostics
     .filter { it.key == Diagnostic.Kind.WARNING }
     .flatMap { it.value }
     .convertToString()

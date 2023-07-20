@@ -1,5 +1,3 @@
-import java.util.Locale
-
 plugins {
     `maven-publish`
     signing
@@ -51,7 +49,8 @@ publishing {
         val publishApple by tasks.registering {
             publications.all {
                 if (name.contains(Regex("macos|ios|tvos|watchos"))) {
-                    dependsOn("publish${name.capitalize(Locale.ROOT)}PublicationToSonatypeRepository")
+                    val publicationNameForTask = name.replaceFirstChar(Char::uppercase)
+                    dependsOn("publish${publicationNameForTask}PublicationToSonatypeRepository")
                 }
             }
         }

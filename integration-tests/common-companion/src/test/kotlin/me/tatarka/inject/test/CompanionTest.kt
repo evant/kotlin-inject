@@ -8,9 +8,8 @@ import kotlin.test.Test
 }
 
 class CompanionTest {
-
     @Test
     fun creates_a_component_with_a_companion() {
-        val component = CompanionComponent.create()
+        CompanionComponent.create()
     }
 }

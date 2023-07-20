@@ -9,6 +9,7 @@ data class Accessor(val components: List<String>) {
         val Empty = Accessor(emptyList())
     }
 
+    @Suppress("NOTHING_TO_INLINE")
     inline fun isNotEmpty() = components.isNotEmpty()
 
     inline val size: Int
@@ -54,4 +55,5 @@ data class Accessor(val components: List<String>) {
     }
 }
 
+@Suppress("NOTHING_TO_INLINE")
 inline fun Accessor?.orEmpty(): Accessor = this ?: Accessor.Empty

@@ -11,7 +11,7 @@ dependencies {
 
 kotlin {
     sourceSets {
-        val commonMain by getting {
+        commonMain {
             dependencies {
                 implementation(project(":kotlin-inject-runtime"))
             }
