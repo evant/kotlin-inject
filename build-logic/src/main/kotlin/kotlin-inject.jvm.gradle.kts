@@ -7,13 +7,10 @@ plugins {
 
 val libs = the<LibrariesForLibs>()
 
-kotlin {
-    jvmToolchain(17)
-}
-
 kotlin.compilerOptions.jvmTarget = JvmTarget.JVM_11
 
 java {
+    sourceCompatibility = JavaVersion.VERSION_11
     targetCompatibility = JavaVersion.VERSION_11
 }
 

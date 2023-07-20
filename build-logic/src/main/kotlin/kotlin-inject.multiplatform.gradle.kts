@@ -1,14 +1,13 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTargetWithTests
 import org.jetbrains.kotlin.gradle.targets.js.npm.tasks.KotlinNpmInstallTask
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("multiplatform")
 }
 
 kotlin {
-    jvmToolchain(17)
-
     js {
         browser()
         nodejs()
@@ -18,11 +17,7 @@ kotlin {
        targets.add(presets.getByName(target).createTarget(target))
     }
 
-    jvm {
-        compilations.configureEach {
-            compilerOptions.options.jvmTarget = JvmTarget.JVM_11
-        }
-    }
+    jvm()
 
     sourceSets {
         val nativeMain by creating {
@@ -47,7 +42,12 @@ kotlin {
 }
 
 java {
+    sourceCompatibility = JavaVersion.VERSION_11
     targetCompatibility = JavaVersion.VERSION_11
+}
+
+tasks.withType<KotlinCompile>().configureEach {
+    compilerOptions.jvmTarget = JvmTarget.JVM_11
 }
 
 // Run only the native tests

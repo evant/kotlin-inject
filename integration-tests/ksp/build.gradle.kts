@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
     id("kotlin-inject.multiplatform")
     id("kotlin-inject.detekt")
@@ -20,9 +18,6 @@ dependencies {
 kotlin {
     jvm {
         withJava()
-        compilations.configureEach {
-            compilerOptions.options.jvmTarget = JvmTarget.JVM_17
-        }
     }
 
     sourceSets {
@@ -77,8 +72,4 @@ tasks.withType<org.jetbrains.kotlin.gradle.dsl.KotlinCompile<*>>().configureEach
     if (name != "kspCommonMainKotlinMetadata") {
         dependsOn("kspCommonMainKotlinMetadata")
     }
-}
-
-java {
-    targetCompatibility = JavaVersion.VERSION_17
 }
