@@ -3,7 +3,6 @@ package me.tatarka.inject.test
 import assertk.all
 import assertk.assertThat
 import assertk.assertions.contains
-import assertk.assertions.isSuccess
 import me.tatarka.inject.ProjectCompiler
 import me.tatarka.inject.Target
 import org.junit.jupiter.api.Test
@@ -21,7 +20,7 @@ class WarningTest {
     fun warns_that_kapt_backend_is_deprecated() {
         val projectCompiler = ProjectCompiler(Target.KAPT, workingDir)
 
-        assertThat {
+        assertThat(
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -30,7 +29,7 @@ class WarningTest {
                     @Component abstract class MyComponent
                 """.trimIndent()
             ).compile()
-        }.isSuccess().warnings()
+        ).warnings()
             .contains("The kotlin-inject kapt backend is deprecated and will be removed in a future version.")
     }
 
@@ -39,7 +38,7 @@ class WarningTest {
     fun warns_on_implicit_assisted_params(target: Target) {
         val projectCompiler = ProjectCompiler(Target.KAPT, workingDir)
 
-        assertThat {
+        assertThat(
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -56,7 +55,7 @@ class WarningTest {
                 }
                 """.trimIndent()
             ).compile()
-        }.isSuccess().warnings().all {
+        ).warnings().all {
             contains("Implicit assisted parameters are deprecated and will be removed in a future version.")
             contains("Annotate the following with @Assisted: [assisted: String]")
         }
