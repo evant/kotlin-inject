@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
     id("kotlin-inject.multiplatform")
     id("kotlin-inject.detekt")
@@ -20,9 +18,6 @@ dependencies {
 kotlin {
     jvm {
         withJava()
-        compilations.configureEach {
-            compilerOptions.options.jvmTarget = JvmTarget.JVM_17
-        }
     }
 
     sourceSets {
@@ -50,8 +45,4 @@ kotlin {
 
 ksp {
     arg("me.tatarka.inject.generateCompanionExtensions", "true")
-}
-
-java {
-    targetCompatibility = JavaVersion.VERSION_17
 }

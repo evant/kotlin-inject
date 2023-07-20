@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
     id("kotlin-inject.jvm")
     id("kotlin-inject.detekt")
@@ -33,10 +31,4 @@ kapt {
         arg("me.tatarka.inject.enableJavaxAnnotations", "true")
         arg("me.tatarka.inject.useClassReferenceForScopeAccess", "true")
     }
-}
-
-kotlin.compilerOptions.jvmTarget = JvmTarget.JVM_17
-
-java {
-    targetCompatibility = JavaVersion.VERSION_17
 }
