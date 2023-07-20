@@ -16,10 +16,8 @@ dependencies {
     testImplementation(libs.assertk)
 }
 
-sourceSets {
-    test {
-        kotlin.srcDir("../common-companion/src/test/kotlin")
-    }
+val test by sourceSets.existing {
+    kotlin.srcDir("../common-companion/src/test/kotlin")
 }
 
 kapt {

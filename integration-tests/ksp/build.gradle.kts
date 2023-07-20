@@ -56,10 +56,8 @@ kotlin {
 }
 
 java {
-    sourceSets {
-        val test by getting {
-            java.srcDir("../common-jvm/src/test/java")
-        }
+    val test by sourceSets.existing {
+        java.srcDir("../common-jvm/src/test/java")
     }
 }
 

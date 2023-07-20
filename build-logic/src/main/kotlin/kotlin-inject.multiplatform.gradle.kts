@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTargetWithTests
 import org.jetbrains.kotlin.gradle.targets.js.npm.tasks.KotlinNpmInstallTask
@@ -19,26 +20,12 @@ kotlin {
 
     jvm()
 
-    sourceSets {
-        val nativeMain by creating {
-            dependsOn(commonMain.get())
-        }
-        val nativeTest by creating {
-            dependsOn(commonTest.get())
-        }
-        for (sourceSet in nativeTargets) {
-            getByName("${sourceSet}Main") {
-                dependsOn(nativeMain)
-            }
-            getByName("${sourceSet}Test") {
-                dependsOn(nativeTest)
-            }
-        }
+    @OptIn(ExperimentalKotlinGradlePluginApi::class)
+    targetHierarchy.default()
 
-        // Ensure xml test reports are generated
-        tasks.named("jvmTest", Test::class).configure {
-            reports.junitXml.required.set(true)
-        }
+    // Ensure xml test reports are generated
+    tasks.named("jvmTest", Test::class).configure {
+        reports.junitXml.required.set(true)
     }
 }
 
