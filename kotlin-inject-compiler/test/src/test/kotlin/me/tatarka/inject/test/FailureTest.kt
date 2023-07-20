@@ -1,9 +1,8 @@
 package me.tatarka.inject.test
 
 import assertk.all
-import assertk.assertThat
+import assertk.assertFailure
 import assertk.assertions.contains
-import assertk.assertions.isFailure
 import me.tatarka.inject.ProjectCompiler
 import me.tatarka.inject.Target
 import me.tatarka.inject.compiler.Options
@@ -21,7 +20,7 @@ class FailureTest {
     @EnumSource(Target::class)
     fun fails_if_component_is_not_abstract(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -30,7 +29,7 @@ class FailureTest {
                     @Component class MyComponent
                 """.trimIndent()
             ).compile()
-        }.isFailure().output()
+        }.output()
             .contains("@Component class: MyComponent must be abstract")
     }
 
@@ -38,7 +37,7 @@ class FailureTest {
     @EnumSource(Target::class)
     fun fails_if_component_is_private(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -47,7 +46,7 @@ class FailureTest {
                     @Component private abstract class MyComponent
                 """.trimIndent()
             ).compile()
-        }.isFailure().output()
+        }.output()
             .contains("@Component class: MyComponent must not be private")
     }
 
@@ -55,7 +54,7 @@ class FailureTest {
     @EnumSource(Target::class)
     fun fails_if_provides_is_private(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             val result = projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -67,14 +66,14 @@ class FailureTest {
                     }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().contains("@Provides method must not be private")
+        }.output().contains("@Provides method must not be private")
     }
 
     @ParameterizedTest
     @EnumSource(Target::class)
     fun fails_if_provides_is_abstract(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -86,7 +85,7 @@ class FailureTest {
                     }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output()
+        }.output()
             .contains("@Provides method must have a concrete implementation")
     }
 
@@ -94,7 +93,7 @@ class FailureTest {
     @EnumSource(Target::class)
     fun fails_if_provides_returns_unit(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -106,14 +105,14 @@ class FailureTest {
                     }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().contains("@Provides method must return a value")
+        }.output().contains("@Provides method must return a value")
     }
 
     @ParameterizedTest
     @EnumSource(Target::class)
     fun fails_if_the_same_type_is_provided_more_than_once(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -126,7 +125,7 @@ class FailureTest {
                     }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output()
+        }.output()
             .contains("Cannot provide: String", "as it is already provided")
     }
 
@@ -134,7 +133,7 @@ class FailureTest {
     @EnumSource(Target::class)
     fun fails_if_type_cannot_be_provided(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -145,7 +144,7 @@ class FailureTest {
                     }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output()
+        }.output()
             .contains("Cannot find an @Inject constructor or provider for: String")
     }
 
@@ -153,7 +152,7 @@ class FailureTest {
     @EnumSource(Target::class)
     fun fails_if_inner_type_is_missing_inject(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -164,7 +163,7 @@ class FailureTest {
                 }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output()
+        }.output()
             .contains("Cannot find an @Inject constructor or provider for: Foo.Factory")
     }
 
@@ -172,7 +171,7 @@ class FailureTest {
     @EnumSource(Target::class)
     fun fails_if_type_cannot_be_provided_to_constructor(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -186,14 +185,14 @@ class FailureTest {
                     }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().contains("Cannot find an @Inject constructor or provider for: String")
+        }.output().contains("Cannot find an @Inject constructor or provider for: String")
     }
 
     @ParameterizedTest
     @EnumSource(Target::class)
     fun fails_if_inject_annotated_class_has_inject_annotated_constructors(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -207,7 +206,7 @@ class FailureTest {
                     }
                 """.trimIndent()
             ).compile()
-        }.isFailure()
+        }
             .output()
             .contains("Cannot annotate constructor with @Inject in an @Inject-annotated class")
     }
@@ -216,7 +215,7 @@ class FailureTest {
     @EnumSource(Target::class)
     fun fails_if_class_has_multiple_inject_annotated_constructors(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -233,7 +232,7 @@ class FailureTest {
                     }
                 """.trimIndent()
             ).compile()
-        }.isFailure()
+        }
             .output()
             .contains("Class cannot contain multiple @Inject-annotated constructors")
     }
@@ -242,7 +241,7 @@ class FailureTest {
     @EnumSource(Target::class)
     fun fails_if_type_cannot_be_provided_to_provides(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -258,7 +257,7 @@ class FailureTest {
                     }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output()
+        }.output()
             .contains("Cannot find an @Inject constructor or provider for: String")
     }
 
@@ -266,7 +265,7 @@ class FailureTest {
     @EnumSource(Target::class)
     fun fails_if_component_does_not_have_scope_to_provide_dependency(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -282,7 +281,7 @@ class FailureTest {
                     }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output()
+        }.output()
             .contains("Cannot find component with scope: @MyScope to inject Foo")
     }
 
@@ -290,7 +289,7 @@ class FailureTest {
     @EnumSource(Target::class)
     fun fails_if_simple_cycle_is_detected(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -305,7 +304,7 @@ class FailureTest {
                     }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().contains(
+        }.output().contains(
             "Cycle detected", "B(a: A)", "A(b: B)"
         )
     }
@@ -314,7 +313,7 @@ class FailureTest {
     @EnumSource(Target::class)
     fun includes_trace_when_cant_inject(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -328,7 +327,7 @@ class FailureTest {
                     }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().contains(
+        }.output().contains(
             "Cannot find an @Inject constructor or provider for: String", "foo", "Foo"
         )
     }
@@ -337,7 +336,7 @@ class FailureTest {
     @EnumSource(Target::class)
     fun fails_if_parent_component_is_missing_val(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -348,7 +347,7 @@ class FailureTest {
                @Component abstract class MyComponent(@Component parent: ParentComponent)
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().contains(
+        }.output().contains(
             "@Component parameter: parent must be val"
         )
     }
@@ -357,7 +356,7 @@ class FailureTest {
     @EnumSource(Target::class)
     fun fails_if_parent_component_is_private(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -368,7 +367,7 @@ class FailureTest {
                @Component abstract class MyComponent(@Component private val parent: ParentComponent)
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().contains(
+        }.output().contains(
             "@Component parameter: parent must not be private"
         )
     }
@@ -377,7 +376,7 @@ class FailureTest {
     @EnumSource(Target::class)
     fun fails_if_companion_option_is_enabled_but_companion_is_missing(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -386,7 +385,7 @@ class FailureTest {
                @Component abstract class MyComponent()
                 """.trimIndent()
             ).options(Options(generateCompanionExtensions = true)).compile()
-        }.isFailure().output().contains(
+        }.output().contains(
             "Missing companion for class: MyComponent"
         )
     }
@@ -395,7 +394,7 @@ class FailureTest {
     @EnumSource(Target::class)
     fun fails_if_scope_is_applied_at_multiple_levels(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -411,7 +410,7 @@ class FailureTest {
                @Component @MyScope2 abstract class MyComponent() : Parent
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().all {
+        }.output().all {
             contains("Cannot apply scope: MyScope1")
             contains("as scope: MyScope2 is already applied")
         }
@@ -421,7 +420,7 @@ class FailureTest {
     @EnumSource(Target::class)
     fun fails_if_scope_is_applied_to_both_parent_and_child_components(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -434,7 +433,7 @@ class FailureTest {
                 @Component @MyScope1 abstract class MyComponent(@Component val parent: ParentComponent)
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().all {
+        }.output().all {
             contains("Cannot apply scope: MyScope1")
             contains("as scope: MyScope1 is already applied to parent")
         }
@@ -444,7 +443,7 @@ class FailureTest {
     @EnumSource(Target::class)
     fun fails_with_missing_binding_with_nullable_provides_and_non_nullable_usage(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -457,7 +456,7 @@ class FailureTest {
                }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().all {
+        }.output().all {
             contains(
                 "Cannot find an @Inject constructor or provider for: String"
             )
@@ -468,7 +467,7 @@ class FailureTest {
     @EnumSource(Target::class)
     fun fails_if_provides_returns_a_platform_type(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -480,7 +479,7 @@ class FailureTest {
                }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().all {
+        }.output().all {
             contains(
                 "@Provides method must not return a platform type",
                 "You can fix this be explicitly declaring the return type as String or String?",
@@ -492,7 +491,7 @@ class FailureTest {
     @EnumSource(Target::class)
     fun fails_if_provides_in_parent_component_is_protected(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -508,7 +507,7 @@ class FailureTest {
                }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().all {
+        }.output().all {
             contains(
                 "@Provides method is not accessible"
             )
@@ -519,7 +518,7 @@ class FailureTest {
     @EnumSource(Target::class)
     fun fails_if_provides_has_scope_in_an_unscoped_component(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -533,7 +532,7 @@ class FailureTest {
                  }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().all {
+        }.output().all {
             contains(
                 "@Provides with scope: MyScope cannot be provided in an unscoped component"
             )
@@ -544,7 +543,7 @@ class FailureTest {
     @EnumSource(Target::class)
     fun fails_if_provides_scope_does_not_match_component_scope(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -559,7 +558,7 @@ class FailureTest {
                 }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().all {
+        }.output().all {
             contains(
                 "@Provides with scope: MyScope2 must match component scope: MyScope1"
             )
@@ -571,7 +570,7 @@ class FailureTest {
     fun fails_if_type_is_missing_arg_even_if_used_as_default_value(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
 
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -591,7 +590,7 @@ class FailureTest {
                }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().all {
+        }.output().all {
             contains(
                 "Cannot find an @Inject constructor or provider for: String"
             )
@@ -603,7 +602,7 @@ class FailureTest {
     fun fails_if_parent_provides_depends_on_child_provides(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
 
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -632,7 +631,7 @@ class FailureTest {
                 }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().all {
+        }.output().all {
             contains(
                 "Cannot find an @Inject constructor or provider for: Bar"
             )
@@ -647,7 +646,7 @@ class FailureTest {
     fun fails_if_assisted_param_is_missing(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
 
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -664,7 +663,7 @@ class FailureTest {
                 }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().all {
+        }.output().all {
             contains("Mismatched @Assisted parameters.")
             contains("Expected: [assisted: String]")
             contains("But got:  []")
@@ -676,7 +675,7 @@ class FailureTest {
     fun fails_if_assisted_param_is_the_wrong_type(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
 
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -693,7 +692,7 @@ class FailureTest {
                 }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().all {
+        }.output().all {
             contains("Mismatched @Assisted parameters.")
             contains("Expected: [assisted: String]")
             contains("But got:  [Int]")
@@ -705,7 +704,7 @@ class FailureTest {
     fun fails_if_extra_assisted_param(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
 
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -722,7 +721,7 @@ class FailureTest {
                 }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().all {
+        }.output().all {
             contains("Mismatched @Assisted parameters.")
             contains("Expected: [assisted: String]")
             contains("But got:  [String, Int]")
@@ -734,7 +733,7 @@ class FailureTest {
     fun fails_if_assisted_param_is_missing_for_function(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
 
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -752,7 +751,7 @@ class FailureTest {
                 }
                 """.trimIndent()
             ).compile()
-        }.isFailure().output().all {
+        }.output().all {
             contains("Mismatched @Assisted parameters.")
             contains("Expected: [assisted: String]")
             contains("But got:  []")

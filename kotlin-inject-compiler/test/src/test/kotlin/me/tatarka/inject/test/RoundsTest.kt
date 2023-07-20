@@ -1,12 +1,11 @@
 package me.tatarka.inject.test
 
 import assertk.all
+import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.contains
 import assertk.assertions.doesNotContain
-import assertk.assertions.isFailure
 import assertk.assertions.isNotNull
-import assertk.assertions.isSuccess
 import assertk.assertions.message
 import me.tatarka.inject.ProjectCompiler
 import me.tatarka.inject.SimpleClassProcessor
@@ -26,7 +25,7 @@ class RoundsTest {
     fun can_reference_generated_interface_as_parent() {
         val projectCompiler = ProjectCompiler(target, workingDir)
             .symbolProcessor(SimpleClassProcessor.Provider("Source", "Generated"))
-        assertThat {
+        assertThat(
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -41,13 +40,13 @@ class RoundsTest {
                     }
                 """.trimIndent()
             ).compile()
-        }.isSuccess()
+        )
     }
 
     @Test
     fun errors_on_missing_parent_interface() {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -59,7 +58,7 @@ class RoundsTest {
                     fun use() = MyComponent::class.create()
                 """.trimIndent()
             ).compile()
-        }.isFailure().message().isNotNull().all {
+        }.message().isNotNull().all {
             contains("Unresolved reference: Invalid")
             doesNotContain("Unresolved reference: create")
         }
@@ -68,7 +67,7 @@ class RoundsTest {
     @Test
     fun errors_on_missing_provider_type() {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -82,7 +81,7 @@ class RoundsTest {
                     fun use() = MyComponent::class.create()
                 """.trimIndent()
             ).compile()
-        }.isFailure().message().isNotNull().all {
+        }.message().isNotNull().all {
             contains("Unresolved reference: Foo")
             doesNotContain("Unresolved reference: create")
         }
@@ -91,7 +90,7 @@ class RoundsTest {
     @Test
     fun errors_on_missing_provides_return_type() {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -106,7 +105,7 @@ class RoundsTest {
                     fun use() = MyComponent::class.create()
                 """.trimIndent()
             ).compile()
-        }.isFailure().message().isNotNull().all {
+        }.message().isNotNull().all {
             contains("Unresolved reference: Foo")
             doesNotContain("Unresolved reference: create")
         }
@@ -115,7 +114,7 @@ class RoundsTest {
     @Test
     fun errors_on_missing_provides_arg() {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -130,7 +129,7 @@ class RoundsTest {
                     fun use() = MyComponent::class.create()
                 """.trimIndent()
             ).compile()
-        }.isFailure().message().isNotNull().all {
+        }.message().isNotNull().all {
             contains("Unresolved reference: Foo")
             doesNotContain("Unresolved reference: create")
         }
@@ -139,7 +138,7 @@ class RoundsTest {
     @Test
     fun ignores_invalid_references_in_private_declarations() {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -154,7 +153,7 @@ class RoundsTest {
                     fun use() = MyComponent::class.create()
                 """.trimIndent()
             ).compile()
-        }.isFailure().message().isNotNull().all {
+        }.message().isNotNull().all {
             contains("Unresolved reference: Foo")
             doesNotContain("Unresolved reference: create")
         }
@@ -163,7 +162,7 @@ class RoundsTest {
     @Test
     fun ignores_invalid_references_in_non_provides_declaration() {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -178,7 +177,7 @@ class RoundsTest {
                     fun use() = MyComponent::class.create()
                 """.trimIndent()
             ).compile()
-        }.isFailure().message().isNotNull().all {
+        }.message().isNotNull().all {
             contains("Unresolved reference: Foo")
             doesNotContain("Unresolved reference: create")
         }
@@ -187,7 +186,7 @@ class RoundsTest {
     @Test
     fun includes_invalid_provides_on_method_with_invalid_reference() {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -202,7 +201,7 @@ class RoundsTest {
                     fun use() = MyComponent::class.create()
                 """.trimIndent()
             ).compile()
-        }.isFailure().message().isNotNull().all {
+        }.message().isNotNull().all {
             contains("@Provides method must not be private")
             doesNotContain("Unresolved reference: create")
         }
@@ -211,7 +210,7 @@ class RoundsTest {
     @Test
     fun ignores_invalid_wrapped_type() {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -229,7 +228,7 @@ class RoundsTest {
                     fun use() = MyComponent::class.create()
                 """.trimIndent()
             ).compile()
-        }.isFailure().message().isNotNull().all {
+        }.message().isNotNull().all {
             contains("Unresolved reference: Foo")
             doesNotContain("Unresolved reference: Bar")
             doesNotContain("Unresolved reference: create")
@@ -239,7 +238,7 @@ class RoundsTest {
     @Test
     fun multiple_invalid_types_only_show_unresolved_reference_error() {
         val projectCompiler = ProjectCompiler(target, workingDir)
-        assertThat {
+        assertFailure {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
@@ -257,7 +256,7 @@ class RoundsTest {
                     fun use() = MyComponent::class.create()
                 """.trimIndent()
             ).compile()
-        }.isFailure().message().isNotNull().all {
+        }.message().isNotNull().all {
             contains("Unresolved reference: Foo")
             contains("Unresolved reference: Bar")
             doesNotContain("Cannot provide", "as it is already provided")
