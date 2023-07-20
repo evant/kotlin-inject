@@ -1,7 +1,7 @@
 dependencyResolutionManagement {
     versionCatalogs {
         @Suppress("UNUSED_VARIABLE")
-        val libs by creating {
+        val libs by registering {
             from(files("../gradle/libs.versions.toml"))
         }
     }
