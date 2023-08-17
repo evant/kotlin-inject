@@ -45,7 +45,6 @@ publishing {
             }
         }
         // create task to publish all apple (macos, ios, tvos, watchos) artifacts
-        @Suppress("UNUSED_VARIABLE")
         val publishApple by tasks.registering {
             publications.all {
                 if (name.contains(Regex("macos|ios|tvos|watchos"))) {

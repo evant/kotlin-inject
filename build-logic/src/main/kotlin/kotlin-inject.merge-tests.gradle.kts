@@ -21,7 +21,7 @@ val copyTestResults = rootProject.tasks.named("copyTestResults", Copy::class) {
                 rename("(.*).xml", "$1[${test.targetName}].xml")
             }
         }
-        into(rootProject.buildDir.resolve("test-results"))
+        into(rootProject.layout.buildDirectory.map { it.asFile.resolve("test-results") })
     }
 }
 
@@ -32,6 +32,6 @@ val copyTestResultsApple = rootProject.tasks.named("copyTestResultsApple", Copy:
             include("**/*.xml")
             rename("(.*).xml", "$1[${test.targetName}].xml")
         }
-        into(rootProject.buildDir.resolve("test-results"))
+        into(rootProject.layout.buildDirectory.map { it.asFile.resolve("test-results") })
     }
 }
