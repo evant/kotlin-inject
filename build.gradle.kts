@@ -14,21 +14,21 @@ nexusPublishing {
 }
 
 val testReport by tasks.registering(TestReport::class) {
-    destinationDirectory = buildDir.resolve("reports")
+    destinationDirectory = layout.buildDirectory.map { it.asFile.resolve("reports") }
 }
 
 val copyTestResults by tasks.registering(Copy::class) {
-    destinationDir = buildDir.resolve("test-results")
+    destinationDir = layout.buildDirectory.get().asFile.resolve("test-results")
     includeEmptyDirs = false
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 
 val testReportApple by tasks.registering(TestReport::class) {
-    destinationDirectory = buildDir.resolve("reports")
+    destinationDirectory = layout.buildDirectory.map { it.asFile.resolve("reports") }
 }
 
 val copyTestResultsApple by tasks.registering(Copy::class) {
-    destinationDir = buildDir.resolve("test-results")
+    destinationDir = layout.buildDirectory.get().asFile.resolve("test-results")
     includeEmptyDirs = false
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
