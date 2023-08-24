@@ -73,7 +73,8 @@ jobs:
             - gradle_publish
   build-macos:
     macos:
-      xcode: "13.0.0"
+      xcode: "14.1.0"
+    resource_class: macos.x86.medium.gen2
     <<: *defaults
     steps:
       - checkout
