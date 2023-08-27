@@ -1,5 +1,6 @@
 package me.tatarka.inject.compiler
 
+import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
@@ -37,6 +38,8 @@ val JAVAX_QUALIFIER = ClassName("javax.inject", "Qualifier")
 val SCOPED_COMPONENT = ClassName("me.tatarka.inject.internal", "ScopedComponent")
 val LAZY_MAP = ClassName("me.tatarka.inject.internal", "LazyMap")
 
+val OPT_IN = ClassName("kotlin", "OptIn")
+
 class InjectGenerator(
     private val provider: AstProvider,
     private val options: Options,
@@ -55,13 +58,15 @@ class InjectGenerator(
             throw FailedToGenerateException("@Component class: $astClass must not be private", astClass)
         }
 
+        val classOptIn = astClass.optInAnnotation()
         val constructor = astClass.primaryConstructor
 
         val injectName = astClass.toInjectName()
-        val injectComponent = generateInjectComponent(astClass, injectName, constructor)
-        val createFunction = createGenerator.create(astClass, constructor, injectComponent)
+        val injectComponent = generateInjectComponent(astClass, injectName, constructor, classOptIn)
+        val createFunction = createGenerator.create(astClass, constructor, injectComponent, classOptIn)
 
         return FileSpec.builder(astClass.packageName, injectName).apply {
+            astClass.containingFile?.optInAnnotation()?.let { addAnnotation(it) }
             createFunction.forEach { addFunction(it) }
             addType(injectComponent)
         }.build()
@@ -71,7 +76,8 @@ class InjectGenerator(
     private fun generateInjectComponent(
         astClass: AstClass,
         injectName: String,
-        constructor: AstConstructor?
+        constructor: AstConstructor?,
+        optIn: AnnotationSpec?,
     ): TypeSpec {
         val context = collectTypes(astClass, injectName)
         val resolver = TypeResultResolver(provider, options)
@@ -82,6 +88,9 @@ class InjectGenerator(
             TypeSpec.classBuilder(context.className)
                 .addOriginatingElement(astClass)
                 .apply {
+                    if (optIn != null) {
+                        addAnnotation(optIn)
+                    }
                     if (astClass.isInterface) {
                         addSuperinterface(astClass.toClassName())
                     } else {
@@ -263,6 +272,9 @@ private fun AstType.joinArgumentTypeNames(): String = when {
             it.joinArgumentTypeNames()
     }
 }
+
+private fun AstAnnotated.optInAnnotation(): AnnotationSpec? =
+    annotation(OPT_IN.packageName, OPT_IN.simpleName)?.toAnnotationSpec()
 
 private fun dumpGraph(astClass: AstClass, entries: List<TypeResult.Provider>): String {
     val out = StringBuilder(astClass.name).append("\n")

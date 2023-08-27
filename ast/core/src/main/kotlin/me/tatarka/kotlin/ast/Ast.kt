@@ -1,5 +1,6 @@
 package me.tatarka.kotlin.ast
 
+import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.MemberName
@@ -35,6 +36,8 @@ sealed class AstElement
 interface AstAnnotated {
     fun hasAnnotation(packageName: String, simpleName: String): Boolean
 
+    fun annotation(packageName: String, simpleName: String): AstAnnotation?
+
     fun annotationsAnnotatedWith(packageName: String, simpleName: String): Sequence<AstAnnotation>
 }
 
@@ -49,6 +52,8 @@ abstract class AstClass : AstElement(), AstAnnotated, AstHasModifiers {
     abstract val isJavaClass: Boolean
 
     abstract val packageName: String
+
+    abstract val containingFile: AstAnnotated?
 
     abstract val name: String
 
@@ -228,6 +233,8 @@ abstract class AstType : AstElement() {
 
 abstract class AstAnnotation : AstElement() {
     abstract val type: AstType
+
+    abstract fun toAnnotationSpec(): AnnotationSpec
 }
 
 abstract class AstParam : AstElement(), AstAnnotated {

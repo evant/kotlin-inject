@@ -16,6 +16,7 @@ import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSDeclaration
+import com.google.devtools.ksp.symbol.KSFile
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.google.devtools.ksp.symbol.KSType
@@ -27,11 +28,14 @@ import com.google.devtools.ksp.symbol.Nullability
 import com.google.devtools.ksp.symbol.Origin
 import com.google.devtools.ksp.symbol.Variance
 import com.google.devtools.ksp.symbol.Visibility
+import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.ksp.addOriginatingKSFile
+import com.squareup.kotlinpoet.ksp.toAnnotationSpec
 import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import kotlin.reflect.KClass
@@ -107,6 +111,12 @@ private interface KSAstAnnotated : AstAnnotated {
         return declaration.hasAnnotation(packageName, simpleName)
     }
 
+    override fun annotation(packageName: String, simpleName: String): AstAnnotation? {
+        return declaration.annotations(packageName, simpleName)
+            .map { KSAstAnnotation(resolver, it) }
+            .firstOrNull()
+    }
+
     override fun annotationsAnnotatedWith(packageName: String, simpleName: String): Sequence<AstAnnotation> {
         return declaration.annotationsAnnotatedWith(packageName, simpleName).map {
             KSAstAnnotation(resolver, it)
@@ -131,6 +141,10 @@ private class KSAstBasicElement(private val declaration: KSDeclaration) : AstBas
         get() = declaration.simpleName.asString()
 }
 
+private class KSAstContainingFile(override val resolver: Resolver, private val file: KSFile) : KSAstAnnotated {
+    override val declaration: KSAnnotated = file
+}
+
 private class KSAstClass(override val resolver: Resolver, override val declaration: KSClassDeclaration) :
     AstClass(), KSAstHasModifiers {
     override val isJavaClass: Boolean
@@ -138,6 +152,9 @@ private class KSAstClass(override val resolver: Resolver, override val declarati
 
     override val packageName: String
         get() = declaration.packageName.asString()
+
+    override val containingFile: KSAstContainingFile?
+        get() = declaration.containingFile?.let { KSAstContainingFile(resolver, it) }
 
     override val name: String
         get() = declaration.simpleName.asString()
@@ -513,6 +530,22 @@ private class KSAstAnnotation(private val resolver: Resolver, val annotation: KS
 
     override val type: AstType
         get() = KSAstType(resolver, annotation.annotationType)
+
+    override fun toAnnotationSpec(): AnnotationSpec {
+        // have to treat OptIn specially due to https://youtrack.jetbrains.com/issue/KT-65844
+        // we may remove this if a workaround is applied to kotlinpoet https://github.com/square/kotlinpoet/issues/1831
+        val declaration = annotation.annotationType.resolve().declaration as KSClassDeclaration
+        return if (declaration.packageName.asString() == "kotlin" && declaration.simpleName.asString() == "OptIn") {
+            AnnotationSpec.builder(declaration.toClassName()).apply {
+                val value = annotation.arguments.firstOrNull()?.value as? List<*> ?: return@apply
+                for (item in value) {
+                    addMember(CodeBlock.of("%T::class", (item as KSType).toClassName()))
+                }
+            }.build()
+        } else {
+            annotation.toAnnotationSpec(omitDefaultValues = true)
+        }
+    }
 
     override fun equals(other: Any?): Boolean {
         return other is KSAstAnnotation && annotation.eqv(other.annotation)
