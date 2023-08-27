@@ -98,6 +98,38 @@ abstract class AssistedSetComponent {
     fun fooValue2(@Assisted arg: String): FooValue = FooValue("${arg}2")
 }
 
+typealias MyString = String
+
+@Component
+abstract class TypeAliasSetComponent {
+    abstract val stringItems: Set<String>
+
+    abstract val myStringItems: Set<MyString>
+
+    @Provides
+    @IntoSet
+    fun stringValue1(): String = "string"
+
+    @Provides
+    @IntoSet
+    fun stringValue2(): MyString = "myString"
+}
+
+@Component
+abstract class TypeAliasKeyMapComponent {
+    abstract val stringMap: Map<String, String>
+
+    abstract val myStringMap: Map<MyString, String>
+
+    @Provides
+    @IntoMap
+    fun stringEntry1(): Pair<String, String> = "1" to "string"
+
+    @Provides
+    @IntoMap
+    fun myStringEntry1(): Pair<MyString, String> = "1" to "myString"
+}
+
 class MultibindsTest {
 
     @Test
@@ -147,5 +179,21 @@ class MultibindsTest {
         assertThat(component.items.map { it("arg") }).containsOnly(
             FooValue("arg1"), FooValue("arg2")
         )
+    }
+
+    @Test
+    fun generates_a_component_with_different_sets_for_different_typealias() {
+        val component = TypeAliasSetComponent::class.create()
+
+        assertThat(component.stringItems).containsOnly("string")
+        assertThat(component.myStringItems).containsOnly("myString")
+    }
+
+    @Test
+    fun generates_a_component_with_different_maps_for_different_key_typealias() {
+        val component = TypeAliasKeyMapComponent::class.create()
+
+        assertThat(component.stringMap).containsOnly("1" to "string")
+        assertThat(component.myStringMap).containsOnly("1" to "myString")
     }
 }
