@@ -1,5 +1,6 @@
 package me.tatarka.inject.compiler
 
+import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.plusParameter
@@ -14,7 +15,12 @@ import kotlin.reflect.KClass
 
 class CreateGenerator(private val astProvider: AstProvider, private val options: Options) {
 
-    fun create(element: AstClass, constructor: AstConstructor?, injectComponent: TypeSpec): List<FunSpec> {
+    fun create(
+        element: AstClass,
+        constructor: AstConstructor?,
+        injectComponent: TypeSpec,
+        optIn: AnnotationSpec?,
+    ): List<FunSpec> {
         @Suppress("MaxLineLength")
         val companion = if (options.generateCompanionExtensions) {
             element.companion.also {
@@ -34,10 +40,10 @@ class CreateGenerator(private val astProvider: AstProvider, private val options:
         return mutableListOf<FunSpec>().apply {
             val typeName = element.type.toTypeName()
             val params = constructor?.parameters ?: emptyList()
-            add(generateCreate(element, typeName, constructor, injectComponent, companion, params))
+            add(generateCreate(element, typeName, constructor, injectComponent, companion, params, optIn))
             val nonDefaultParams = constructor?.parameters?.filter { !it.hasDefault } ?: emptyList()
             if (params.size != nonDefaultParams.size) {
-                add(generateCreate(element, typeName, constructor, injectComponent, companion, nonDefaultParams))
+                add(generateCreate(element, typeName, constructor, injectComponent, companion, nonDefaultParams, optIn))
             }
         }
     }
@@ -48,10 +54,14 @@ class CreateGenerator(private val astProvider: AstProvider, private val options:
         constructor: AstConstructor?,
         injectComponent: TypeSpec,
         companion: AstClass?,
-        params: List<AstParam>
+        params: List<AstParam>,
+        optIn: AnnotationSpec?,
     ): FunSpec {
         return FunSpec.builder("create")
             .apply {
+                if (optIn != null) {
+                    addAnnotation(optIn)
+                }
                 addModifiers(element.visibility.toKModifier())
                 if (constructor != null) {
                     for (param in params) {

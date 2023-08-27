@@ -25,6 +25,10 @@ internal fun KSAnnotated.annotationsAnnotatedWith(packageName: String, simpleNam
     }
 }
 
+internal fun KSAnnotated.annotations(packageName: String, simpleName: String): Sequence<KSAnnotation> {
+    return annotations.filter { it.hasName(packageName, simpleName) }
+}
+
 internal fun KSAnnotated.hasAnnotation(packageName: String, simpleName: String): Boolean {
     return annotations.any { it.hasName(packageName, simpleName) }
 }
