@@ -62,11 +62,7 @@ potential-bugs:
     active: true
   HasPlatformType:
     active: true
-  MissingWhenCase:
-    active: true
   NullableToStringCall:
-    active: true
-  RedundantElseInWhen:
     active: true
   UnnecessaryNotNullOperator:
     active: true
@@ -125,13 +121,7 @@ style:
     active: true
     ignoreOverridden: false
     ignoreUsageInGenerics: false
-  LibraryCodeMustSpecifyReturnType:
-    active: true
-  MandatoryBracesIfStatements:
-    active: true
   PreferToOverPairSyntax:
-    active: true
-  OptionalWhenBraces:
     active: true
   ProtectedMemberInFinalClass:
     active: true
