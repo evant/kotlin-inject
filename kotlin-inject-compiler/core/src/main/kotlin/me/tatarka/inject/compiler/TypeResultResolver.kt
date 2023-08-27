@@ -246,6 +246,19 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
 
     private fun Context.set(key: TypeKey): TypeResult? {
         val innerType = key.type.arguments[0]
+
+        val containerKey = ContainerKey.SetKey(innerType, key.qualifier)
+        val args = types.containerArgs(containerKey)
+        if (args.isNotEmpty()) {
+            return Container(
+                creator = containerKey.creator,
+                args = args,
+                mapArg = { key, arg, types ->
+                    Provides(withTypes(types), arg.accessor, arg.method, key)
+                }
+            )
+        }
+
         if (innerType.isFunction()) {
             val containerKey = ContainerKey.SetKey(innerType.arguments.last(), key.qualifier)
             val args = types.containerArgs(containerKey)
@@ -260,6 +273,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
                 }
             )
         }
+
         if (innerType.isLazy()) {
             val containerKey = ContainerKey.SetKey(innerType.arguments[0], key.qualifier)
             val args = types.containerArgs(containerKey)
@@ -274,17 +288,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
                 }
             )
         }
-
-        val containerKey = ContainerKey.SetKey(innerType, key.qualifier)
-        val args = types.containerArgs(containerKey)
-        if (args.isEmpty()) return null
-        return Container(
-            creator = containerKey.creator,
-            args = args,
-            mapArg = { key, arg, types ->
-                Provides(withTypes(types), arg.accessor, arg.method, key)
-            }
-        )
+        return null
     }
 
     private fun Context.map(key: TypeKey): TypeResult? {
