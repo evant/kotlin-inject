@@ -93,6 +93,24 @@ abstract class OptimizedCycleComponent {
     abstract val baz: CycleBaz
 }
 
+@CustomScope
+@Inject
+class ScopeBar(val foo: ScopeFoo)
+
+@Inject
+class ScopeFoo(val bar: Lazy<ScopeBar>)
+
+@Component
+@CustomScope
+abstract class ParentCycleComponent
+
+@Component
+abstract class ChildCycleComponent(
+    @Component val parent: ParentCycleComponent,
+) {
+    abstract val foo: ScopeFoo
+}
+
 class RecursiveTest {
 
     @Test
@@ -151,5 +169,15 @@ class RecursiveTest {
             assertThat(bar).isSameAs(bar.foo().bar)
             assertThat(baz.foo).isSameAs(baz.foo.bar.foo())
         }
+    }
+
+    @Test
+    fun generates_a_component_with_a_scoped_parent_dependency_recursively() {
+        val component = ChildCycleComponent::class.create(ParentCycleComponent::class.create())
+        val foo = component.foo
+        val bar = foo.bar.value
+
+        assertThat(foo).isSameAs(foo.bar.value.foo)
+        assertThat(bar).isSameAs(bar.foo.bar.value)
     }
 }

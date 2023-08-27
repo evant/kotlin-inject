@@ -155,6 +155,7 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
                             add("$paramName = ")
                             add(param.generate())
                         }
+
                         else -> add(param.generate())
                     }
                 }
@@ -197,6 +198,7 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
                 } else {
                     add("%T::class.java.name", typeName)
                 }
+
                 is ParameterizedTypeName -> {
                     addTypeName(typeName.rawType)
                     for (arg in typeName.typeArguments) {
@@ -204,6 +206,7 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
                         addTypeName(arg)
                     }
                 }
+
                 is LambdaTypeName -> {
                     val functionName = if (typeName.isSuspending) {
                         ClassName("kotlin.coroutines", "SuspendFunction${typeName.parameters.size}")
@@ -219,6 +222,7 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
                     add("+")
                     addTypeName(typeName.returnType)
                 }
+
                 else -> add("%S", typeName)
             }
         } else {
@@ -323,8 +327,14 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
 
     private fun TypeResult.LateInit.generate(): CodeBlock {
         return CodeBlock.builder().apply {
-            beginControlFlow("run")
-            addStatement("lateinit var %N: %T", name, result.key.type.toTypeName())
+            // Using the run extension method creates a new 'this' scope which causes kotlin's type inference for the
+            // current 'this' to be dropped. This breaks scoped parent resolution as we use
+            // require(parent is ScopedComponent) to access the parent scope.
+            // To work around this we explicitly pass the return type to ensure it calls the top-level run overload
+            // instead of the extension method.
+            val returnType = result.key.type.toTypeName()
+            beginControlFlow("run<%T>", returnType)
+            addStatement("lateinit var %N: %T", name, returnType)
             add(result.generate())
             beginControlFlow(".also")
             addStatement("%N = it", name)
