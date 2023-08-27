@@ -297,6 +297,14 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                     }
                 }
                 if (method.isProvider()) {
+                    val scope = method.scopeType(options)
+                    if (scope != null) {
+                        provider.warn(
+                            "Scope: @${scope.simpleName} has no effect." +
+                                " Place on @Provides function or @Inject constructor instead.",
+                            method
+                        )
+                    }
                     providerMethods.add(method)
                 }
             }
