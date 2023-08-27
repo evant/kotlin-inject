@@ -145,6 +145,8 @@ style:
     active: true
   UseRequireNotNull:
     active: true
+  ThrowsCount:
+    active: false
 
 coroutines:
   active: true

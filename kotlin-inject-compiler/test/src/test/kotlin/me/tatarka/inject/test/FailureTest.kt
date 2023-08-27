@@ -761,4 +761,31 @@ class FailureTest {
             contains("But got:  []")
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun fails_if_assisted_class_has_scope(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+
+        assertFailure {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                import me.tatarka.inject.annotations.Component
+                import me.tatarka.inject.annotations.Scope
+                import me.tatarka.inject.annotations.Assisted
+                import me.tatarka.inject.annotations.Inject
+                
+                @Scope annotation class MyScope
+                @MyScope @Inject class Foo(@Assisted val arg: String)
+                
+                @MyScope @Component abstract class MyComponent {
+                    abstract val foo: (String) -> Foo
+                }
+                """.trimIndent()
+            ).compile()
+        }.output().all {
+            contains("Cannot apply scope: @MyScope to type with @Assisted parameters: [arg: String]")
+        }
+    }
 }

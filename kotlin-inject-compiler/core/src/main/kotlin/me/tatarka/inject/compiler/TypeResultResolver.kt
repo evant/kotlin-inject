@@ -77,6 +77,14 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         element: AstElement,
         params: List<AstParam>,
     ): Map<String, TypeResultRef> {
+        if (context.scopeComponent != null) {
+            val scopeType = context.scopeComponent.scopeType(options)
+            throw FailedToGenerateException(
+                "Cannot apply scope: @${scopeType!!.simpleName} to type with @Assisted parameters: [${
+                    params.filter { it.isAssisted() }.joinToString()
+                }]"
+            )
+        }
         val paramsWithName = LinkedHashMap<String, TypeResultRef>(context.args.size)
         var assistedFailed = false
         val args = context.args.toMutableList()
@@ -163,6 +171,14 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
                 """.trimIndent(),
                 element
             )
+            if (context.scopeComponent != null) {
+                val scopeType = context.scopeComponent.scopeType(options)
+                throw FailedToGenerateException(
+                    "Cannot apply scope: @${scopeType!!.simpleName} to type with assisted parameters: [${
+                        resolvedImplicitly.joinToString()
+                    }]"
+                )
+            }
         }
 
         return paramsWithName
