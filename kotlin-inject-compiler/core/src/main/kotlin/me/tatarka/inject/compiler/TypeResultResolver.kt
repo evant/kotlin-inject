@@ -245,7 +245,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     }
 
     private fun Context.set(key: TypeKey): TypeResult? {
-        val innerType = key.type.arguments[0].resolvedType()
+        val innerType = key.type.arguments[0]
         if (innerType.isFunction()) {
             val containerKey = ContainerKey.SetKey(innerType.arguments.last(), key.qualifier)
             val args = types.containerArgs(containerKey)
