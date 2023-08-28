@@ -15,15 +15,16 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
     fun collect(astClass: AstClass, accessor: Accessor = Accessor.Empty): Result {
         val typeInfo = collectTypeInfo(astClass)
         return if (!typeInfo.valid) {
-            Result(null, emptyList())
+            Result(astClass, null, emptyList())
         } else {
-            val result = Result(typeInfo.scopeClass, typeInfo.providerMethods)
+            val result = Result(astClass, typeInfo.scopeClass, typeInfo.providerMethods)
             result.collectTypes(astClass, accessor, typeInfo)
             result
         }
     }
 
     inner class Result internal constructor(
+        val astClass: AstClass,
         val scopeClass: AstClass?,
         val providerMethods: List<AstMember>,
     ) {
@@ -42,7 +43,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
 
         private val parents = mutableListOf<Result>()
 
-        private fun iterator(): Iterator<Result> = iterator {
+        fun iterator(): Iterator<Result> = iterator {
             yield(this@Result)
             for (parent in parents) {
                 yieldAll(parent.iterator())
@@ -157,7 +158,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                         val elemAstClass = parameter.type.toAstClass()
                         val elemTypeInfo = collectTypeInfo(elemAstClass)
 
-                        val parentResult = Result(scopeClass, providerMethods)
+                        val parentResult = Result(elemAstClass, scopeClass, providerMethods)
                         parents.add(parentResult)
                         parentResult.collectTypes(
                             astClass = elemAstClass,
