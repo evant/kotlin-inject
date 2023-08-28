@@ -334,9 +334,7 @@ private class ModelAstClass(
             addAll(methods)
             for (superType in superTypes) {
                 for (superMethod in superType.allMethods) {
-                    if (none { it.overrides(superMethod) }) {
-                        add(superMethod)
-                    }
+                    add(superMethod)
                 }
             }
         }

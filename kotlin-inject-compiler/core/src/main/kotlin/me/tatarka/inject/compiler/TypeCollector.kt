@@ -267,9 +267,21 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                 }
             }
 
-            for (method in astClass.allMethods) {
+            val allMethods = astClass.allMethods
+            // some methods may override others
+            val methods = mutableMapOf<AstMember, AstMember?>()
+            for (method in allMethods) {
+                val overrides = methods.keys.find { it.overrides(method) }
+                if (overrides != null) {
+                    methods[overrides] = method
+                } else {
+                    methods[method] = null
+                }
+            }
+            for (method in methods.keys) {
                 val abstract = method.isAbstract
-                if (method.isProvides()) {
+                val overriden = methods[method]
+                if (method.isProvides() || overriden?.isProvides() == true) {
                     if (method.visibility == AstVisibility.PRIVATE) {
                         provider.error("@Provides method must not be private", method)
                         continue
@@ -296,8 +308,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                     } else {
                         providesMethods.add(method)
                     }
-                }
-                if (method.isProvider()) {
+                } else if (method.isProvider()) {
                     val scope = method.scopeType(options)
                     if (scope != null) {
                         provider.warn(

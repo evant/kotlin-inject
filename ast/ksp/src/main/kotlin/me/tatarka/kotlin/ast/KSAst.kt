@@ -206,13 +206,9 @@ private class KSAstClass(override val resolver: Resolver, override val declarati
             for (type in declaration.inheritanceChain()) {
                 for (declaration in type.declarations) {
                     if (declaration is KSPropertyDeclaration) {
-                        if (declarations.none { resolver.overrides(it, declaration) }) {
-                            declarations.add(declaration)
-                        }
+                        declarations.add(declaration)
                     } else if (declaration is KSFunctionDeclaration && !declaration.isConstructor()) {
-                        if (declarations.none { resolver.overrides(it, declaration) }) {
-                            declarations.add(declaration)
-                        }
+                        declarations.add(declaration)
                     }
                 }
             }

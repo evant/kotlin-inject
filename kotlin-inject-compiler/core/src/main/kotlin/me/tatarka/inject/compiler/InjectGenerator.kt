@@ -232,7 +232,7 @@ fun AstAnnotated.qualifier(options: Options): AstAnnotation? {
 }
 
 fun AstMember.isProvider(): Boolean =
-    !isProvides() && isAbstract && when (this) {
+    isAbstract && when (this) {
         is AstFunction -> parameters.isEmpty()
         is AstProperty -> true
     } && receiverParameterType == null && returnType.isNotUnit()

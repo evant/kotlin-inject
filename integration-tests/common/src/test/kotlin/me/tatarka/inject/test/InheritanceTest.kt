@@ -5,7 +5,9 @@ import assertk.assertions.hasClass
 import assertk.assertions.isNotNull
 import assertk.assertions.isSameAs
 import me.tatarka.inject.annotations.Component
+import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Provides
+import me.tatarka.inject.annotations.Scope
 import kotlin.test.Test
 
 interface ComponentInterface {
@@ -57,6 +59,19 @@ interface ProvidesScopedComponentInterface {
 @CustomScope
 abstract class ProvidesScopedInterfaceComponent : ProvidesScopedComponentInterface {
     abstract val foo: IFoo
+}
+
+
+interface AbstractProvidesInterface {
+    @get:Provides val foo: IFoo
+}
+
+@Component
+abstract class AbstractProvidesImplComponent: AbstractProvidesInterface {
+    abstract val bar: BarImpl
+
+    override val foo: IFoo
+        get() = Foo()
 }
 
 class InheritanceTest {
