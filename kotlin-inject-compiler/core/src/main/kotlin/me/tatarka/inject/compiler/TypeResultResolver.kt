@@ -343,12 +343,25 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         }
     }
 
-    private fun Context.constructor(key: TypeKey, injectCtor: AstConstructor, astClass: AstClass): TypeResult? {
+    private fun Context.constructor(key: TypeKey, injectCtor: AstConstructor, astClass: AstClass): TypeResult {
         val scope = astClass.scopeType(options)
         val scopedResult = if (scope != null) types.scopedAccessor(scope) else null
         if (scope != null && scopedResult == null) {
-            provider.error("Cannot find component with scope: @$scope to inject $astClass", astClass)
-            return null
+            val checkedComponents = types.iterator().asSequence().map { result ->
+                buildString {
+                    val scope = result.astClass.scopeType(options)
+                    if (scope != null) {
+                        append("@$scope ")
+                    }
+                    append(result.astClass)
+                }
+            }
+            throw FailedToGenerateException(
+                """Cannot find component with scope: @$scope to inject $astClass
+                    |checked: [${checkedComponents.joinToString(", ")}]
+                """.trimMargin(),
+                astClass,
+            )
         }
         return if (scopedResult != null && skipScoped != injectCtor.type) {
             val (scopedComponent, types) = scopedResult

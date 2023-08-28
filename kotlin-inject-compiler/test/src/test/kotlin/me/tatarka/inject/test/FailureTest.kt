@@ -3,6 +3,7 @@ package me.tatarka.inject.test
 import assertk.all
 import assertk.assertFailure
 import assertk.assertions.contains
+import assertk.assertions.doesNotContain
 import me.tatarka.inject.ProjectCompiler
 import me.tatarka.inject.Target
 import me.tatarka.inject.compiler.Options
@@ -274,15 +275,23 @@ class FailureTest {
                     import me.tatarka.inject.annotations.Inject
                     
                     @Scope annotation class MyScope
+                    @Scope annotation class OtherScope
                     @MyScope @Inject class Foo
                     
-                    @Component abstract class MyComponent {
+                    @OtherScope @Component abstract class ParentComponent
+                    
+                    @Component abstract class MyComponent(@Component val parent: ParentComponent) {
                         abstract val f: Foo
                     }
                 """.trimIndent()
             ).compile()
-        }.output()
-            .contains("Cannot find component with scope: @MyScope to inject Foo")
+        }.output().all {
+            contains(
+                "Cannot find component with scope: @MyScope to inject Foo",
+                "checked: [MyComponent, @OtherScope ParentComponent]"
+            )
+            doesNotContain("Cannot find an @Inject constructor or provider for: Foo")
+        }
     }
 
     @ParameterizedTest
