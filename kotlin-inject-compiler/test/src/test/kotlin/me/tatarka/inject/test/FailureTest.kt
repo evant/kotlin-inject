@@ -797,4 +797,29 @@ class FailureTest {
             contains("Cannot apply scope: @MyScope to type with @Assisted parameters: [arg: String]")
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun fails_if_assisted_injection_is_used_in_a_cycle(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+
+        assertFailure {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                import me.tatarka.inject.annotations.Component
+                import me.tatarka.inject.annotations.Assisted
+                import me.tatarka.inject.annotations.Inject
+                
+                @Inject class Cycle(factory: (Int) -> Cycle, @Assisted arg: Int)        
+                
+                @Component abstract class MyComponent {
+                    abstract val cycleFactory: (Int) -> Cycle
+                }  
+                """.trimIndent()
+            ).compile()
+        }.output().all {
+            contains("Cycle detected")
+        }
+    }
 }
