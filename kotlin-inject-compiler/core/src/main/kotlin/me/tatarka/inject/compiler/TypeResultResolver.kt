@@ -463,7 +463,10 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         args: List<AstType>,
         result: (context: Context) -> TypeResultRef,
     ): TypeResult {
-        cycleDetector.delayedConstruction()
+        // The current cycle resolution does not handle args because it re-uses the same instance.
+        if (args.isEmpty()) {
+            cycleDetector.delayedConstruction()
+        }
         val context = context.copyNameAllocator()
         val namedArgs = args.mapIndexed { i, arg ->
             arg to context.nameAllocator.newName("arg$i")
