@@ -54,8 +54,8 @@ pluginManagement {
 
 ```groovy
 plugins {
-    id("org.jetbrains.kotlin.jvm") version "1.7.0"
-    id("com.google.devtools.ksp") version "1.7.0-1.0.6"
+    id("org.jetbrains.kotlin.jvm") version "1.9.0"
+    id("com.google.devtools.ksp") version "1.9.0-1.0.13"
 }
 
 repositories {
@@ -64,8 +64,8 @@ repositories {
 }
 
 dependencies {
-    ksp("me.tatarka.inject:kotlin-inject-compiler-ksp:0.6.1")
-    implementation("me.tatarka.inject:kotlin-inject-runtime:0.6.1")
+    ksp("me.tatarka.inject:kotlin-inject-compiler-ksp:0.6.2")
+    implementation("me.tatarka.inject:kotlin-inject-runtime:0.6.2")
 }
 ```
 
@@ -73,13 +73,13 @@ dependencies {
 
 ```groovy
 plugins {
-  id("org.jetbrains.kotlin.jvm") version "1.7.0"
-  id("org.jetbrains.kotlin.kapt") version "1.7.0"
+  id("org.jetbrains.kotlin.jvm") version "1.9.0"
+  id("org.jetbrains.kotlin.kapt") version "1.9.0"
 }
 
 dependencies {
-  kapt("me.tatarka.inject:kotlin-inject-compiler-kapt:0.6.1")
-  implementation("me.tatarka.inject:kotlin-inject-runtime:0.6.1")
+  kapt("me.tatarka.inject:kotlin-inject-compiler-kapt:0.6.2")
+  implementation("me.tatarka.inject:kotlin-inject-runtime:0.6.2")
 }
 ```
 

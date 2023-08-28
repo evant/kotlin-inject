@@ -5,9 +5,68 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.6.2] 2023-08-28
+
+### Changed
+
+- Updated kotlin to 1.9.0
+- If a dependency's scope is not found on the component providing it, a better error message is given.
+- Adding a `@Provides` annotation on an abstract `fun` or `val` will now warn that it has no effect.
+- When overriding a method the parent is checked to see if it has a `@Provides` annotation. This makes the example in
+  the README actually work:
+  ```kotlin
+  @NetworkScope abstract class NetworkComponent {
+    @NetworkScope @Provides abstract fun api(): Api
+  }  
+  @Component abstract class RealNetworkComponent : NetworkComponent() {
+    // This is now treated as a @Provides even if not annotated directly
+    override fun api(): Api = RealApi()
+  }
+  ```
+
+### Fixed
+
+- Typealiases are treated as separate types in multibinding. This is consistent with other
+  uses of typealiases.
+
+  For example:
+  ```kotlin
+  typealias MyString = String
+  
+  @Component abstract class MyComponent {
+    abstract val stringItems: Set<String>
+    abstract val myStringItems: Set<MyString>
+
+    @Provides @IntoSet fun stringValue1(): String = "string"
+
+    @Provides @IntoSet fun stringValue2(): MyString = "myString"
+  }
+  ```
+  `stringItems` will contain `{"string"}` and `myStringItems` will contain `{"myString"}`.
+- Lambda types now work in set multibindings.
+  ```kotlin
+  @Component abstract class MyComponent {
+    abstract val lambdaSet: Set<() -> String>
+
+    @Provides @IntoSet fun lambda1(): () -> String = { "one" }
+
+    @Provides @IntoSet fun lambda2(): () -> String = { "two" }
+  }
+  ```
+- Assisted injection no longer works with scopes or cycles. These two cases would over-cache the instance, ignoring the
+  assisted arguments. They now throw an error instead.
+  ```kotlin
+   // now throws cycle error when providing
+  @Inject class AssistedCycle(val factory: (Int) -> AssistedCycle, @Assisted val arg: Int)
+  // now throws error when providing
+  @MyScope @Inject class AssistedScoped(@Assisted val arg: Int)
+  ```
+- Fixed edge case where accessing a parent scoped dependency from a lazy cycle generated invalid code.
+
 ## [0.6.1] 2023-02-11
 
 ### Fixed
+
 - Fixed code generation issues with assisted injection.
 
 ## [0.6.0] 2022-12-21
@@ -32,6 +91,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   ```
 
 ### Fixed
+
 - `@Inject` annotations being ignored if used through a typealias, ex:
   ```kotlin
   typealias MyInject = Inject
@@ -78,7 +138,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   ```
   Cannot find an @Inject constructor or provider for: Bar 
   ```
-  In other words a parent component can no longer depend on a dependency provided by a child component. Not only does 
+  In other words a parent component can no longer depend on a dependency provided by a child component. Not only does
   this lead to confusing graphs, but it can lead to memory leaks if the parent component lives longer than the child and
   ends holding on to that child dependency.
 
@@ -102,7 +162,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   arg would shadow the outer arg that was attempted to be used.
 - Improved the error message for scoped provides in unscoped component.
 - Fixed printing of an inner type to include the outer class. i.e. You will now get `Parent.Child` in error messages
-  instead of just `Child` which can make it easier to find the location of the error. 
+  instead of just `Child` which can make it easier to find the location of the error.
 
 ## [0.4.1] 2022-01-01
 
@@ -114,7 +174,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 
 - Fixes conflicting declarations when scoped `@Provides` functions returned the same type with different generic args.
-- Fixes default parameter handling with lambda or lazy values. 
+- Fixes default parameter handling with lambda or lazy values.
 - Fixes to kotlin native implementation that should make it more usable across threads.
   Note: the new memory model limitation is still present, but you can use https://github.com/touchlab/Stately to wrap
   the access when using the legacy memory model.
@@ -135,7 +195,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   the [sample project](https://github.com/evant/kotlin-inject-samples/tree/main/multiplatform/echo).
 
   Note: components are thread-safe, however you will run into issues actually using them from other threads unless you
-  enable the [new memory model](https://blog.jetbrains.com/kotlin/2021/08/try-the-new-kotlin-native-memory-manager-development-preview/).
+  enable
+  the [new memory model](https://blog.jetbrains.com/kotlin/2021/08/try-the-new-kotlin-native-memory-manager-development-preview/).
 - Added support for default args when injecting. If the type is present in the graph, it'll be injected, otherwise the
   default will be used.
 
