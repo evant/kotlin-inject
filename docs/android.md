@@ -127,10 +127,8 @@ class HomeViewModel(private val repository: HomeRepository) : ViewModel()
 
 @Inject
 class HomeFragment(homeViewModel: () -> HomeViewModel) : Fragment() {
-    private val viewModel by viewModels<HomeViewModel> {
-        object : ViewModelProvider.Factory {
-            override fun <T : ViewModel?> create(modelClass: Class<T>): T = homeViewModel() as T
-        }
+    private val viewModel by viewModels {
+        viewModelFactory { addInitializer(HomeViewModel::class) { homeViewModel() } }
     }
 }
 ```
@@ -139,54 +137,45 @@ or if you want to use [SavedStateHandle](https://developer.android.com/reference
 
 ```kotlin
 @Inject
-class HomeViewModel(private val repository: HomeRepository, handle: SavedStateHandle) : ViewModel()
+class HomeViewModel(private val repository: HomeRepository, @Assisted handle: SavedStateHandle) : ViewModel()
 
 @Inject
 class HomeFragment(homeViewModel: (SavedStateHandle) -> HomeViewModel) : Fragment() {
-    private val viewModel by viewModels<MainViewModel> {
-        object : AbstractSavedStateViewModelFactory(this, arguments) {
-            override fun <T : ViewModel?> create(
-                key: String,
-                modelClass: Class<T>,
-                handle: SavedStateHandle
-            ): T = homeViewModel(handle) as T
-        }
+    private val viewModel by viewModels {
+        viewModelFactory { addInitializer(HomeViewModel::class) { homeViewModel(createSavedStateHandle()) } }
     }
 }
 ```
 
-You may want to create helper functions for these, or
-use [injectedvmprovider](https://github.com/evant/injectedvmprovider) which provides them for you.
+You may want to create helper functions for these.
 
 ```kotlin
 import androidx.fragment.app.viewModels
 
-inline fun <reified VM : ViewModel> Fragment.viewModels(crossinline factory: () -> VM): Lazy<VM> =
+/**
+ * [viewModels] helper that allows you to pass a single factory function.
+ */
+inline fun <reified VM : ViewModel> Fragment.viewModel(crossinline factory: () -> VM): Lazy<VM> =
     viewModels {
-        object : ViewModelProvider.Factory {
-            override fun <T : ViewModel?> create(modelClass: Class<T>): T = factory() as T
-        }
+        viewModelFactory { addInitializer(VM::class) { factory() } }
     }
 
-inline fun <reified VM : ViewModel> Fragment.viewModels(crossinline factory: (SavedStateHandle) -> VM): Lazy<VM> =
+/**
+ * [viewModels] helper that allows you to pass a single factory function using a [SavedStateHandle].
+ */
+inline fun <reified VM : ViewModel> Fragment.viewModel(crossinline factory: (SavedStateHandle) -> VM): Lazy<VM> =
     viewModels {
-        object : AbstractSavedStateViewModelFactory(this, arguments) {
-            override fun <T : ViewModel?> create(
-                key: String,
-                modelClass: Class<T>,
-                handle: SavedStateHandle
-            ): T = factory(handle) as T
-        }
+        viewModelFactory { addInitializer(VM::class) { factory(createSavedStateHandle()) } }
     }
 
 @Inject
 class HomeFragment(homeViewModel: () -> HomeViewModel) : Fragment() {
-    private val viewModel by viewModels(homeViewModel)
+    private val viewModel by viewModel(homeViewModel)
 }
 
 @Inject
 class HomeFragment(homeViewModel: (SavedStateHandle) -> HomeViewModel) : Fragment() {
-    private val viewModel by viewModels(homeViewModel)
+    private val viewModel by viewModel(homeViewModel)
 }
 ```
 
@@ -225,39 +214,14 @@ Similar to within fragments, you can inject a function that creates a `ViewModel
 ```kotlin
 @Inject
 class HomeViewModel(private val repository: HomeRepository) : ViewModel()
+@Inject
+class OtherViewModel(private val repository: OtherRepository, @Assisted handle: SavedStateHandle): ViewModel()
 
 @Inject
 @Composable
-fun Home(homeViewModel: () -> HomeViewModel) {
-    val viewModel = viewModel(factory = object : ViewModelProvider.Factory {
-        override fun <T : ViewModel?> create(modelClass: Class<T>): T = homeViewModel() as T
-    })
-    ...
-}
-```
-
-and to simplify the above, you can create a modified version of the `viewModel` function from `androidx.lifecycle.viewmodel.compose`:
-
-```kotlin
-@Composable
-inline fun <reified VM : ViewModel> viewModel(
-    viewModelStoreOwner: ViewModelStoreOwner = checkNotNull(LocalViewModelStoreOwner.current) {
-        "No ViewModelStoreOwner was provided via LocalViewModelStoreOwner"
-    },
-    key: String? = null,
-    crossinline factory: () -> VM,
-): VM = viewModel(
-    viewModelStoreOwner = viewModelStoreOwner,
-    key = key,
-    factory = object : ViewModelProvider.Factory {
-        override fun <T : ViewModel?> create(modelClass: Class<T>): T = factory() as T
-    }
-)
-
-@Inject
-@Composable
-fun Home(homeViewModel: () -> HomeViewModel) {
-    val viewModel = viewModel { homeViewModel() }
+fun Home(homeViewModel: () -> HomeViewModel, otherViewModel: (SavedStateHandle) -> OtherViewModel) {
+    val homeViewModel = viewModel { homeViewModel() }
+    val otherViewModel = viewModel { otherViewModel(createSavedStateHandle()) }
     ...
 }
 ```
