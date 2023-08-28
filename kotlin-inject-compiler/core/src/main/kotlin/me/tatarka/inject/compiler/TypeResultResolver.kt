@@ -451,6 +451,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         result: (context: Context) -> TypeResultRef,
     ): TypeResult {
         cycleDetector.delayedConstruction()
+        val context = context.copyNameAllocator()
         val namedArgs = args.mapIndexed { i, arg ->
             arg to context.nameAllocator.newName("arg$i")
         }
@@ -463,6 +464,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         key: TypeKey,
         args: List<AstType>,
     ) = withCycleDetection(key, function) {
+        val context = context.copyNameAllocator()
         // Drop receiver from args
         val namedArgs = if (function.receiverParameterType != null) {
             args.drop(1)
