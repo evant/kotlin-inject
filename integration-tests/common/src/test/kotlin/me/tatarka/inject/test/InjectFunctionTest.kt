@@ -35,6 +35,7 @@ typealias receiverFun = String.(arg: NamedFoo) -> String
 fun String.receiverFun(dep: Foo, @Assisted arg: NamedFoo): String = this
 
 @Component
+@CustomScope
 abstract class ReceiverFunctionInjectionComponent {
     abstract val receiverFun: receiverFun
 }

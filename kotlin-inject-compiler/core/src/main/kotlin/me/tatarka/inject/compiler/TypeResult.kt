@@ -66,6 +66,7 @@ sealed class TypeResult {
      */
     class Constructor(
         val type: AstType,
+        val scope: AstType?,
         val parameters: Map<String, TypeResultRef>,
         val supportsNamedArguments: Boolean
     ) : TypeResult() {
