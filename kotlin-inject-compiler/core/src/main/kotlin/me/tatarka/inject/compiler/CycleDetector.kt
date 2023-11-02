@@ -73,7 +73,7 @@ class CycleDetector {
 
     private sealed class Entry {
         class Element(val value: AstElement) : Entry()
-        object Delayed : Entry()
+        data object Delayed : Entry()
     }
 
     private class Resolving(val key: TypeKey, val name: String)
@@ -83,12 +83,12 @@ sealed class CycleResult {
     /**
      * There was no cycle, you may proceed normally.
      */
-    object None : CycleResult()
+    data object None : CycleResult()
 
     /**
      * There was a cycle, you should error out.
      */
-    object Cycle : CycleResult()
+    data object Cycle : CycleResult()
 
     /**
      * There was a cycle but it was across a delayed construction so it can be resolved. Reference the variable here
