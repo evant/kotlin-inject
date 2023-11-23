@@ -1,3 +1,10 @@
+buildscript {
+    dependencies {
+        // solves KGP classloader issues
+        classpath(libs.kotlin.gradle)
+    }
+}
+
 plugins {
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.nexus.publish)
