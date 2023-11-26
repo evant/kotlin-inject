@@ -5,7 +5,6 @@ import assertk.assertThat
 import assertk.assertions.contains
 import me.tatarka.inject.ProjectCompiler
 import me.tatarka.inject.Target
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
@@ -15,23 +14,6 @@ class WarningTest {
 
     @TempDir
     lateinit var workingDir: File
-
-    @Test
-    fun warns_that_kapt_backend_is_deprecated() {
-        val projectCompiler = ProjectCompiler(Target.KAPT, workingDir)
-
-        assertThat(
-            projectCompiler.source(
-                "MyComponent.kt",
-                """
-                    import me.tatarka.inject.annotations.Component
-                    
-                    @Component abstract class MyComponent
-                """.trimIndent()
-            ).compile()
-        ).warnings()
-            .contains("The kotlin-inject kapt backend is deprecated and will be removed in a future version.")
-    }
 
     @Suppress("UnusedParameter")
     @ParameterizedTest
