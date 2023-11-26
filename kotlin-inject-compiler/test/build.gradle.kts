@@ -6,7 +6,6 @@ plugins {
 
 dependencies {
     implementation(project(":kotlin-inject-compiler:kotlin-inject-compiler-core"))
-    implementation(project(":kotlin-inject-compiler:kotlin-inject-compiler-kapt"))
     implementation(project(":kotlin-inject-compiler:kotlin-inject-compiler-ksp"))
     implementation(libs.bundles.kotlin.compile.testing)
 

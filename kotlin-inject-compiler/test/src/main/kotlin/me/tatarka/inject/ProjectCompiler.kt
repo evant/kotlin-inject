@@ -6,7 +6,6 @@ import androidx.room.compiler.processing.util.compiler.TestCompilationArguments
 import androidx.room.compiler.processing.util.compiler.TestCompilationResult
 import com.google.devtools.ksp.processing.SymbolProcessorProvider
 import me.tatarka.inject.compiler.Options
-import me.tatarka.inject.compiler.kapt.InjectCompiler
 import me.tatarka.inject.compiler.ksp.InjectProcessorProvider
 import org.intellij.lang.annotations.Language
 import java.io.File
@@ -42,7 +41,6 @@ class ProjectCompiler(
             processorOptions = options?.toMap().orEmpty()
         )
         args = when (target) {
-            Target.KAPT -> args.copy(kaptProcessors = listOf(InjectCompiler()))
             Target.KSP -> {
                 val processors = mutableListOf<SymbolProcessorProvider>()
                 processors.add(InjectProcessorProvider())
@@ -85,7 +83,6 @@ private fun List<DiagnosticMessage>.convertToString(): String = joinToString {
 }
 
 enum class Target {
-    KAPT,
     KSP
 }
 
