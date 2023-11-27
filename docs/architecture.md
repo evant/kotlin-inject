@@ -14,12 +14,14 @@ we will go through each one of these steps in turn.
 
 ### Kotlin AST
 
-This represents the kotlin source code. In order to support kapt and ksp, there is a wrapper of the two back-ends. The
-interface is defined in `kotlin-inject-compiler/core/Ast` and the implementations are in
-`kotlin-inject-compiler/kapt/ModelAst` and `kotlin-inject-compiler/ksp/KSAst`. Note: the wrappers aren't a full
-implementation of the AST but provide only what's necessary for this project. There is additional glue-code in
-`kotlin-inject-compiler/kapt` and `kotlin-inject-compiler/ksp` to run the respective processors. Everything else is in
-`kotlin-inject-compiler/core` and the remainder of these steps will focus on that module exclusively.
+This represents the kotlin source code. Historically both KSP and KAPT backends were supported, to accomplish this, the
+AST is wrapped. The interface is defined in `kotlin-inject-compiler/core/Ast` and the implementation is in
+`kotlin-inject-compiler/ksp/KSAst`. Note: the wrappers aren't a full implementation of the AST but provide only what's
+necessary for this project. There is additional glue-code in `kotlin-inject-compiler/ksp` to run the processor. This
+abstraction is being kept around to see where
+kotlin's [k2 compiler api lands](https://youtrack.jetbrains.com/issue/KT-49508).
+It's possible it'll be removed in the future. Everything else is in `kotlin-inject-compiler/core` and the remainder of
+these steps will focus on that module exclusively.
 
 ### Collect Types
 
