@@ -285,6 +285,11 @@ private class KSAstFunction(override val resolver: Resolver, override val declar
         return resolver.overrides(declaration, other.declaration)
     }
 
+    override fun signatureEquals(other: AstMember): Boolean {
+        if (other !is KSAstFunction) return false
+        return signatureEquals(declaration, other.declaration)
+    }
+
     override val returnType: AstType
         get() = KSAstType(resolver, declaration.returnType!!)
 
@@ -330,6 +335,11 @@ private class KSAstProperty(override val resolver: Resolver, override val declar
     override fun overrides(other: AstMember): Boolean {
         if (other !is KSAstProperty) return false
         return resolver.overrides(declaration, other.declaration)
+    }
+
+    override fun signatureEquals(other: AstMember): Boolean {
+        if (other !is KSAstProperty) return false
+        return signatureEquals(declaration, other.declaration)
     }
 
     override val returnType: AstType

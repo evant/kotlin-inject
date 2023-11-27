@@ -101,6 +101,8 @@ sealed class AstMember : AstElement(), AstAnnotated, AstHasModifiers {
 
     abstract fun overrides(other: AstMember): Boolean
 
+    abstract fun signatureEquals(other: AstMember): Boolean
+
     abstract val returnType: AstType
 
     abstract fun returnTypeFor(enclosingClass: AstClass): AstType
@@ -133,8 +135,19 @@ abstract class AstFunction : AstMember() {
 
     abstract override fun hashCode(): Int
 
-    override fun toString(): String {
-        return "$name(${parameters.joinToString(", ")}): $returnType"
+    override fun toString(): String = buildString {
+        receiverParameterType?.let {
+            append(it)
+            append(".")
+        }
+        append(name)
+        append("(")
+        append(parameters.joinToString())
+        append(")")
+        if (returnType.isNotUnit()) {
+            append(": ")
+            append(returnType)
+        }
     }
 }
 
@@ -144,8 +157,16 @@ abstract class AstProperty : AstMember() {
 
     abstract override fun hashCode(): Int
 
-    override fun toString(): String {
-        return "$name: $returnType"
+    override fun toString(): String = buildString {
+        receiverParameterType?.let {
+            append(it)
+            append(".")
+        }
+        append(name)
+        if (returnType.isNotUnit()) {
+            append(": ")
+            append(returnType)
+        }
     }
 }
 
