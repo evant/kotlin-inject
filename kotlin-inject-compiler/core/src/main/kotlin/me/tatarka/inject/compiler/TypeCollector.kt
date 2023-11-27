@@ -262,10 +262,10 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
             for (parentClass in astClass.inheritanceChain()) {
                 val parentScope = parentClass.scopeType(options)
                 if (parentScope != null) {
-                    if (scopeClass == null) {
+                    if (elementScope == null) {
                         scopeClass = parentClass
                         elementScope = parentScope
-                    } else {
+                    } else if (elementScope != parentScope) {
                         provider.error("Cannot apply scope: $parentScope", parentClass)
                         provider.error(
                             "as scope: $elementScope is already applied",
