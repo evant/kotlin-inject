@@ -172,7 +172,8 @@ to the child component. This allows you to compose them into a graph.
 ```kotlin
 @Component
 abstract class ParentComponent {
-    protected fun provideFoo(): Foo = ...
+    @Provides
+    fun provideFoo(): Foo = ...
 }
 
 @Component
