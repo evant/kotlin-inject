@@ -3,6 +3,8 @@ package me.tatarka.kotlin.ast
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSDeclaration
+import com.google.devtools.ksp.symbol.KSFunctionDeclaration
+import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.KSTypeAlias
 import com.google.devtools.ksp.symbol.KSTypeParameter
@@ -112,4 +114,16 @@ internal fun KSType.isConcrete(): Boolean {
     if (declaration is KSTypeParameter) return false
     if (arguments.isEmpty()) return true
     return arguments.all { it.type?.resolve()?.isConcrete() ?: false }
+}
+
+internal fun signatureEquals(left: KSPropertyDeclaration, right: KSPropertyDeclaration): Boolean {
+    return left.type.resolve() == right.type.resolve() &&
+        left.extensionReceiver?.resolve() == right.extensionReceiver?.resolve()
+}
+
+internal fun signatureEquals(left: KSFunctionDeclaration, right: KSFunctionDeclaration): Boolean {
+    return left.returnType?.resolve() == right.returnType?.resolve() &&
+        left.extensionReceiver?.resolve() == right.extensionReceiver?.resolve() &&
+        left.parameters.size == right.parameters.size &&
+        left.parameters.map { it.type.resolve() } == right.parameters.map { it.type.resolve() }
 }

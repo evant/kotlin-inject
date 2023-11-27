@@ -2,12 +2,11 @@ package me.tatarka.inject.test
 
 import assertk.assertThat
 import assertk.assertions.hasClass
+import assertk.assertions.isEqualTo
 import assertk.assertions.isNotNull
 import assertk.assertions.isSameAs
 import me.tatarka.inject.annotations.Component
-import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Provides
-import me.tatarka.inject.annotations.Scope
 import kotlin.test.Test
 
 interface ComponentInterface {
@@ -74,6 +73,23 @@ abstract class AbstractProvidesImplComponent: AbstractProvidesInterface {
         get() = Foo()
 }
 
+interface DuplicateDeclaration1 {
+    val bar: Bar
+
+    fun bar2(): Bar
+}
+
+interface DuplicateDeclaration2 {
+    val bar: Bar
+
+    fun bar2(): Bar
+}
+
+@Component
+abstract class DuplicateDeclarationComponent : DuplicateDeclaration1, DuplicateDeclaration2 {
+    @get:Provides val foo: Foo = Foo()
+}
+
 class InheritanceTest {
     @Test
     fun generates_a_component_that_provides_a_dep_defined_in_an_implemented_interface() {
@@ -111,5 +127,12 @@ class InheritanceTest {
         val component = ProvidesScopedInterfaceComponent::class.create()
 
         assertThat(component.foo).isSameAs(component.foo)
+    }
+
+    @Test
+    fun generates_a_component_that_inherits_multiple_interfaces_with_the_same_signature() {
+        val component = DuplicateDeclarationComponent::class.create()
+
+        assertThat(component.bar).isEqualTo(component.bar2())
     }
 }

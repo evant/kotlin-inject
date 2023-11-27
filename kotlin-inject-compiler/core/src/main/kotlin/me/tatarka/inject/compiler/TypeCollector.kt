@@ -277,19 +277,23 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
 
             val allMethods = astClass.allMethods
             // some methods may override others
-            val methods = mutableMapOf<AstMember, AstMember?>()
+            val methods = mutableListOf<AstMember>()
+            val isProvides = mutableMapOf<AstMember, Boolean>()
             for (method in allMethods) {
-                val overrides = methods.keys.find { it.overrides(method) }
-                if (overrides != null) {
-                    methods[overrides] = method
+                val existing = methods.firstOrNull { it.name == method.name && it.signatureEquals(method) }
+                if (existing != null) {
+                    // mark provides if it overrides one that's annotated
+                    if (method.isProvides()) {
+                        isProvides[existing] = true
+                    }
                 } else {
-                    methods[method] = null
+                    methods.add(method)
+                    isProvides[method] = method.isProvides()
                 }
             }
-            for (method in methods.keys) {
+            for (method in methods) {
                 val abstract = method.isAbstract
-                val overriden = methods[method]
-                if (method.isProvides() || overriden?.isProvides() == true) {
+                if (isProvides.getValue(method)) {
                     if (method.visibility == AstVisibility.PRIVATE) {
                         provider.error("@Provides method must not be private", method)
                         continue
