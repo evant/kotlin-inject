@@ -199,6 +199,18 @@ abstract class ParentChildScopesChildComponent(@Component val parent: ParentChil
     fun barImpl(foo: IFoo): BarImpl = BarImpl(foo)
 }
 
+@CustomScope
+interface DuplicateScopeInterface {
+    val iFoo: IFoo
+        @Provides @CustomScope get() = Foo()
+}
+
+@CustomScope
+@Component
+abstract class DuplicateScopeComponent : DuplicateScopeInterface {
+    abstract val foo: IFoo
+}
+
 class ScopeTest {
     @BeforeTest
     fun setup() {
@@ -314,5 +326,12 @@ class ScopeTest {
         val component = ParentChildScopesChildComponent::class.create(ParentChildScopesParentComponent::class.create())
 
         assertThat(component.bar).isNotNull()
+    }
+
+    @Test
+    fun generates_a_component_that_applies_the_same_scope_to_itself_and_its_parent_interface() {
+        val component = DuplicateScopeComponent::class.create()
+
+        assertThat(component.foo).isNotNull()
     }
 }
