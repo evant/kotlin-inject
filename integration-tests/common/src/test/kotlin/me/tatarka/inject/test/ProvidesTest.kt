@@ -209,6 +209,22 @@ abstract class ProvidesInnerClassComponent {
     abstract val fooFactory: DifferentPackageFoo.Factory
 }
 
+// https://github.com/evant/kotlin-inject/issues/321
+@Component
+abstract class OptimizesProvides {
+    @Provides
+    fun OFooImpl.bind(): OFoo = this
+    abstract fun provideFoo(): OFoo
+    abstract fun provideBar(): OBar
+}
+
+interface OFoo
+@Inject
+class OFooImpl : OFoo
+
+@Inject
+class OBar(val foo: OFoo)
+
 class ProvidesTest {
 
     @Test
@@ -306,5 +322,13 @@ class ProvidesTest {
         val component = ProvidesInnerClassComponent::class.create()
 
         assertThat(component.fooFactory).isNotNull()
+    }
+
+    @Test
+    fun generates_a_component_where_a_provides_fun_optimizes_to_references_another_provides_fun() {
+        val component = OptimizesProvides::class.create()
+
+        assertThat(component.provideFoo()).isNotNull()
+        assertThat(component.provideBar()).isNotNull()
     }
 }
