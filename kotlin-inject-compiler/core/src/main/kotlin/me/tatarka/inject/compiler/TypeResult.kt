@@ -25,7 +25,7 @@ sealed class TypeResult {
         val isPrivate: Boolean = false,
         val isOverride: Boolean = false,
         val isSuspend: Boolean = false,
-        val result: TypeResultRef
+        val result: TypeResultRef,
     ) : TypeResult() {
         override val children: Iterator<TypeResultRef>
             get() = iterator { yield(result) }
@@ -62,16 +62,20 @@ sealed class TypeResult {
     }
 
     /**
-     * A constructor for the the type.
+     * A constructor for the type.
      */
     class Constructor(
         val type: AstType,
         val scope: AstType?,
+        val outerClass: TypeResultRef?,
         val parameters: Map<String, TypeResultRef>,
-        val supportsNamedArguments: Boolean
+        val supportsNamedArguments: Boolean,
     ) : TypeResult() {
         override val children
-            get() = parameters.values.iterator()
+            get() = iterator {
+                outerClass?.let { yield(it) }
+                yieldAll(parameters.values)
+            }
     }
 
     /**
@@ -79,7 +83,7 @@ sealed class TypeResult {
      */
     class Container(
         val creator: String,
-        val args: List<TypeResultRef>
+        val args: List<TypeResultRef>,
     ) : TypeResult() {
         override val children
             get() = args.iterator()

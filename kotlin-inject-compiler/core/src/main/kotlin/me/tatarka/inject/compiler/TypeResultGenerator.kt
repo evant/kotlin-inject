@@ -142,7 +142,12 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
 
     private fun TypeResult.Constructor.generate(): CodeBlock {
         return CodeBlock.builder().apply {
-            add("%T(", type.toTypeName())
+            if (outerClass != null) {
+                add(outerClass.generate())
+                add(".%L(", type.toTypeName().rawClass().simpleName)
+            } else {
+                add("%T(", type.toTypeName())
+            }
             if (parameters.isNotEmpty()) {
                 add("\n⇥")
                 val isNamedArgumentsSupported = supportsNamedArguments
@@ -341,5 +346,13 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
             endControlFlow()
             endControlFlow()
         }.build()
+    }
+}
+
+private fun TypeName.rawClass(): ClassName {
+    return when (this) {
+        is ClassName -> this
+        is ParameterizedTypeName -> rawType
+        else -> throw IllegalArgumentException("cannot convert $this to ClassName")
     }
 }

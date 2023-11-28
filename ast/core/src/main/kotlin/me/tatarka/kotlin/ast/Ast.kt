@@ -71,6 +71,8 @@ abstract class AstClass : AstElement(), AstAnnotated, AstHasModifiers {
      */
     abstract val allMethods: List<AstMember>
 
+    abstract val outerClass: AstClass?
+
     abstract val type: AstType
 
     fun inheritanceChain(): Sequence<AstClass> = sequence {
