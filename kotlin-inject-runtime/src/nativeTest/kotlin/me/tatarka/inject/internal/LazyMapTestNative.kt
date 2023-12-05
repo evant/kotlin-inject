@@ -2,7 +2,7 @@ package me.tatarka.inject.internal
 
 import assertk.assertThat
 import assertk.assertions.each
-import assertk.assertions.isSameAs
+import assertk.assertions.isSameInstanceAs
 import kotlin.native.concurrent.TransferMode
 import kotlin.native.concurrent.Worker
 import kotlin.test.Test
@@ -23,7 +23,7 @@ class LazyMapTestNative {
         }.map { it.result }
 
         assertThat(results).each {
-            it.isSameAs(results.first())
+            it.isSameInstanceAs(results.first())
         }
     }
 }

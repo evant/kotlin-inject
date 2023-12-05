@@ -3,7 +3,7 @@ package me.tatarka.inject.test
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotNull
-import assertk.assertions.isSameAs
+import assertk.assertions.isSameInstanceAs
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Provides
@@ -275,21 +275,21 @@ class ScopeTest {
     fun generates_a_scoped_component_with_scoped_deps() {
         val component = DependentCustomScopeComponent::class.create()
 
-        assertThat(component.bar).isSameAs(component.foo.bar)
+        assertThat(component.bar).isSameInstanceAs(component.foo.bar)
     }
 
     @Test
     fun generates_a_component_with_a_parent_scoped_component_in_a_different_package() {
         val component = DifferentPackageChildComponent::class.create(DifferentPackageScopedComponent::class.create())
 
-        assertThat(component.foo).isSameAs(component.foo)
+        assertThat(component.foo).isSameInstanceAs(component.foo)
     }
 
     @Test
     fun generates_a_component_that_reuses_the_same_scoped_dependency() {
         val component = MultipleUseScopedComponent::class.create()
 
-        assertThat(component.bar1.bar).isSameAs(component.bar2.bar)
+        assertThat(component.bar1.bar).isSameInstanceAs(component.bar2.bar)
     }
 
     @Test
@@ -311,14 +311,14 @@ class ScopeTest {
     fun generates_a_component_with_nested_scoped_parent_in_another_module() {
         val component = NestedExternalScopedComponent::class.create(ExternalChildComponent::class.create())
 
-        assertThat(component.foo).isSameAs(component.foo)
+        assertThat(component.foo).isSameInstanceAs(component.foo)
     }
 
     @Test
     fun generates_a_component_when_multiple_scoped_provides_funs_have_the_same_return_type_with_different_type_args() {
         val component = MultipleSameTypedScopedProvidesComponent::class.create()
 
-        assertThat(component.foo).isSameAs(component.foo)
+        assertThat(component.foo).isSameInstanceAs(component.foo)
     }
 
     @Test

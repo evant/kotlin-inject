@@ -4,7 +4,7 @@ import assertk.assertThat
 import assertk.assertions.containsExactly
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotNull
-import assertk.assertions.isSameAs
+import assertk.assertions.isSameInstanceAs
 import assertk.assertions.isTrue
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
@@ -273,7 +273,7 @@ class ProvidesTest {
         val foo = ProvidesFoo()
         val component = ProvidesValConstructorComponent::class.create(foo)
 
-        assertThat(component.foo).isSameAs(foo)
+        assertThat(component.foo).isSameInstanceAs(foo)
     }
 
     @Test

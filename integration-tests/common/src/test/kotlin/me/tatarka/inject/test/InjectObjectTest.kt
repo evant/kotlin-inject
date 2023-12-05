@@ -1,7 +1,7 @@
 package me.tatarka.inject.test
 
 import assertk.assertThat
-import assertk.assertions.isSameAs
+import assertk.assertions.isSameInstanceAs
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Provides
@@ -45,32 +45,32 @@ class InjectObjectTest {
     @Test
     fun inject_annotated_object_can_be_provided_in_component_function() {
         val component = ObjectComponent::class.create()
-        assertThat(component.injectObject2()).isSameAs(FooObject)
+        assertThat(component.injectObject2()).isSameInstanceAs(FooObject)
     }
 
     @Test
     fun inject_annotated_object_can_be_provided_in_component_property() {
         val component = ObjectComponent::class.create()
-        assertThat(component.injectObject).isSameAs(FooObject)
+        assertThat(component.injectObject).isSameInstanceAs(FooObject)
     }
 
     @Test
     fun inject_annotated_object_can_be_provided_to_class_constructors() {
         val component = ObjectComponent::class.create()
-        assertThat(component.dependsOnFooObject2().foo).isSameAs(FooObject)
+        assertThat(component.dependsOnFooObject2().foo).isSameInstanceAs(FooObject)
     }
 
     @Test
     fun inject_annotated_object_can_be_provided_from_a_different_package() {
         val component = ObjectComponent::class.create()
-        assertThat(component.differentPackageObject).isSameAs(DifferentPackageFoo.MyObject)
+        assertThat(component.differentPackageObject).isSameInstanceAs(DifferentPackageFoo.MyObject)
     }
 
     @Test
     fun binds_a_companion_object_to_an_interface() {
         val component = CompanionObjectComponent::class.create()
 
-        assertThat(component.foo).isSameAs(CompanionFoo)
-        assertThat(component.dependsOnFoo.foo).isSameAs(CompanionFoo)
+        assertThat(component.foo).isSameInstanceAs(CompanionFoo)
+        assertThat(component.dependsOnFoo.foo).isSameInstanceAs(CompanionFoo)
     }
 }
