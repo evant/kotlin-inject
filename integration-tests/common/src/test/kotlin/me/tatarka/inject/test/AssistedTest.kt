@@ -3,7 +3,7 @@ package me.tatarka.inject.test
 import assertk.all
 import assertk.assertThat
 import assertk.assertions.isEqualTo
-import assertk.assertions.isSameAs
+import assertk.assertions.isSameInstanceAs
 import assertk.assertions.prop
 import me.tatarka.inject.annotations.Assisted
 import me.tatarka.inject.annotations.Component
@@ -131,7 +131,7 @@ class AssistedTest {
         val component = NullableAssistedComponent::class.create()
 
         val foo = Foo()
-        assertThat(component.barProvider(foo).foo).isSameAs(foo)
+        assertThat(component.barProvider(foo).foo).isSameInstanceAs(foo)
     }
 
     @Test

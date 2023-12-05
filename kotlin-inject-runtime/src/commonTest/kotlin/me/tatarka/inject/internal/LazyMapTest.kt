@@ -2,7 +2,7 @@ package me.tatarka.inject.internal
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
-import assertk.assertions.isSameAs
+import assertk.assertions.isSameInstanceAs
 import kotlin.test.Test
 
 class LazyMapTest {
@@ -20,6 +20,6 @@ class LazyMapTest {
         }
 
         assertThat(calls).isEqualTo(1)
-        assertThat(value1).isSameAs(value2)
+        assertThat(value1).isSameInstanceAs(value2)
     }
 }

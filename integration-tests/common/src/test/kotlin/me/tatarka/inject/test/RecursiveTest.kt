@@ -2,7 +2,7 @@ package me.tatarka.inject.test
 
 import assertk.assertAll
 import assertk.assertThat
-import assertk.assertions.isSameAs
+import assertk.assertions.isSameInstanceAs
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Provides
@@ -118,7 +118,7 @@ class RecursiveTest {
         val component = CycleComponent::class.create()
         val bar = component.bar
 
-        assertThat(bar).isSameAs(bar.foo().bar)
+        assertThat(bar).isSameInstanceAs(bar.foo().bar)
     }
 
     @Test
@@ -126,7 +126,7 @@ class RecursiveTest {
         val component = LazyCycleComponent::class.create()
         val bar = component.bar
 
-        assertThat(bar).isSameAs(bar.foo.value.bar)
+        assertThat(bar).isSameInstanceAs(bar.foo.value.bar)
     }
 
     @Test
@@ -134,7 +134,7 @@ class RecursiveTest {
         val component = FunctionCycleComponent::class.create()
         val bar = component.bar
 
-        assertThat(bar).isSameAs(bar.foo().bar)
+        assertThat(bar).isSameInstanceAs(bar.foo().bar)
     }
 
     @Test
@@ -142,7 +142,7 @@ class RecursiveTest {
         val component = ScopedCycleComponent::class.create()
         val foo = component.foo.foo
 
-        assertThat(foo).isSameAs(foo.bar.foo.value)
+        assertThat(foo).isSameInstanceAs(foo.bar.foo.value)
     }
 
     @Test
@@ -152,8 +152,8 @@ class RecursiveTest {
         val bar = foo.bar
 
         assertAll {
-            assertThat(foo).isSameAs(foo.bar.baz.foo.value)
-            assertThat(bar).isSameAs(foo.bar.baz.bar.value)
+            assertThat(foo).isSameInstanceAs(foo.bar.baz.foo.value)
+            assertThat(bar).isSameInstanceAs(foo.bar.baz.bar.value)
         }
     }
 
@@ -165,9 +165,9 @@ class RecursiveTest {
         val baz = component.baz
 
         assertAll {
-            assertThat(foo).isSameAs(foo.bar.foo())
-            assertThat(bar).isSameAs(bar.foo().bar)
-            assertThat(baz.foo).isSameAs(baz.foo.bar.foo())
+            assertThat(foo).isSameInstanceAs(foo.bar.foo())
+            assertThat(bar).isSameInstanceAs(bar.foo().bar)
+            assertThat(baz.foo).isSameInstanceAs(baz.foo.bar.foo())
         }
     }
 
@@ -177,7 +177,7 @@ class RecursiveTest {
         val foo = component.foo
         val bar = foo.bar.value
 
-        assertThat(foo).isSameAs(foo.bar.value.foo)
-        assertThat(bar).isSameAs(bar.foo.bar.value)
+        assertThat(foo).isSameInstanceAs(foo.bar.value.foo)
+        assertThat(bar).isSameInstanceAs(bar.foo.bar.value)
     }
 }

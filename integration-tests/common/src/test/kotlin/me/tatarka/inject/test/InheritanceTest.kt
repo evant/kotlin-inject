@@ -4,7 +4,7 @@ import assertk.assertThat
 import assertk.assertions.hasClass
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotNull
-import assertk.assertions.isSameAs
+import assertk.assertions.isSameInstanceAs
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Provides
 import kotlin.test.Test
@@ -111,8 +111,8 @@ class InheritanceTest {
         val bar = Bar(foo)
         val component = InterfaceComponentWithIdenticalProvides::class.create(foo, bar)
 
-        assertThat(component.foo).isSameAs(foo)
-        assertThat(component.bar).isSameAs(bar)
+        assertThat(component.foo).isSameInstanceAs(foo)
+        assertThat(component.bar).isSameInstanceAs(bar)
     }
 
     @Test
@@ -126,7 +126,7 @@ class InheritanceTest {
     fun generates_a_component_that_provides_a_scoped_dep_defined_in_an_implemented_interface() {
         val component = ProvidesScopedInterfaceComponent::class.create()
 
-        assertThat(component.foo).isSameAs(component.foo)
+        assertThat(component.foo).isSameInstanceAs(component.foo)
     }
 
     @Test

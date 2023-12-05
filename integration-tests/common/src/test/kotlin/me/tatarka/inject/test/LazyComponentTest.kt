@@ -2,8 +2,8 @@ package me.tatarka.inject.test
 
 import assertk.assertThat
 import assertk.assertions.isNotNull
-import assertk.assertions.isNotSameAs
-import assertk.assertions.isSameAs
+import assertk.assertions.isNotSameInstanceAs
+import assertk.assertions.isSameInstanceAs
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Provides
@@ -53,8 +53,8 @@ class LazyComponentTest {
         val lazyFoo = component.lazyFoo
         val createFoo = component.createFoo
 
-        assertThat(lazyFoo.value).isSameAs(lazyFoo.value)
-        assertThat(createFoo()).isNotSameAs(createFoo())
+        assertThat(lazyFoo.value).isSameInstanceAs(lazyFoo.value)
+        assertThat(createFoo()).isNotSameInstanceAs(createFoo())
     }
 
     @Test
@@ -64,8 +64,8 @@ class LazyComponentTest {
         val lazyBar = component.lazyBar
         val createBar = component.createBar
 
-        assertThat(lazyBar.foo.value).isSameAs(lazyBar.foo.value)
-        assertThat(createBar.foo()).isNotSameAs(createBar.foo())
+        assertThat(lazyBar.foo.value).isSameInstanceAs(lazyBar.foo.value)
+        assertThat(createBar.foo()).isNotSameInstanceAs(createBar.foo())
     }
 
     @Test
