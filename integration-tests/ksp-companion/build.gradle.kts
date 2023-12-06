@@ -9,6 +9,7 @@ dependencies {
     kspCommonMainMetadata(project(":kotlin-inject-compiler:kotlin-inject-compiler-ksp"))
     kspJvmTest(project(":kotlin-inject-compiler:kotlin-inject-compiler-ksp"))
     kspJsTest(project(":kotlin-inject-compiler:kotlin-inject-compiler-ksp"))
+    kspWasmJsTest(project(":kotlin-inject-compiler:kotlin-inject-compiler-ksp"))
 
     for (configuration in nativeKspTestConfigurations) {
         add(configuration, project(":kotlin-inject-compiler:kotlin-inject-compiler-ksp"))
