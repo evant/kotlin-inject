@@ -9,7 +9,7 @@ plugins {
 kotlin {
     @OptIn(ExperimentalKotlinGradlePluginApi ::class)
     applyDefaultHierarchyTemplate {
-        group("jsAndWasmJs") {
+        group("commonJs") {
             withJs()
             withWasm()
         }
