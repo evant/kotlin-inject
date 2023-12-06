@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+
 plugins {
     id("kotlin-inject.multiplatform")
     id("kotlin-inject.detekt")
@@ -5,6 +7,14 @@ plugins {
 }
 
 kotlin {
+    @OptIn(ExperimentalKotlinGradlePluginApi ::class)
+    applyDefaultHierarchyTemplate {
+        group("commonJs") {
+            withJs()
+            withWasm()
+        }
+    }
+
     sourceSets {
         nativeMain {
             dependencies {

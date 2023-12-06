@@ -1,7 +1,7 @@
 version: 2.1
 orbs:
   gradle: circleci/gradle@3.0.0
-  browser-tools: circleci/browser-tools@1.4.1
+  browser-tools: circleci/browser-tools@1.4.6
 _defaults: &defaults
   working_directory: ~/code
   environment:
@@ -51,7 +51,7 @@ commands:
 jobs:
   build-linux:
     docker:
-      - image: cimg/openjdk:17.0.7-browsers@sha256:52a950f68f31d7e947e9468e11acb38177272a59c446044d13f0c6d7d66d12ed
+      - image: cimg/openjdk:17.0.9-browsers@sha256:8839dc66dbde220adecfa1319727aa88162a9ce73522e11ddcffa72771da5616
     resource_class: large
     <<: *defaults
     steps:

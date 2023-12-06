@@ -2,9 +2,9 @@
 kotlin-inject = "0.7.0-SNAPSHOT"
 kotlin = "1.9.21"
 ksp = "1.9.21-1.0.15"
-kotlinpoet = "1.14.2"
+kotlinpoet = "1.15.1"
 junit5 = "5.9.3"
-detekt = "1.23.1"
+detekt = "1.23.4"
 [libraries]
 kotlin-gradle = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 detekt-gradle = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version.ref = "detekt" }
@@ -13,9 +13,9 @@ ksp = { module = "com.google.devtools.ksp:symbol-processing-api", version.ref = 
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-compile-testing = { module = "dev.zacsweers.kctfork:ksp", version = "0.3.2" }
-kotlinx-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version = "1.7.2" }
+kotlinx-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version = "1.8.0-RC" }
 kotlinx-metadata-jvm = { module = "org.jetbrains.kotlinx:kotlinx-metadata-jvm", version = "0.7.0" }
-kotlinx-atomicfu = { module = "org.jetbrains.kotlinx:atomicfu", version = "0.21.0" }
+kotlinx-atomicfu = { module = "org.jetbrains.kotlinx:atomicfu", version = "0.23.1" }
 jdk-compiler = { module = "io.earcam.wrapped:jdk.compiler", version = "1.8.132" }
 assertk = { module = "com.willowtreeapps.assertk:assertk", version = "0.28.0" }
 burst-junit4 = { module = "com.squareup.burst:burst-junit4", version = "1.2.0" }
