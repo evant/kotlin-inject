@@ -102,6 +102,15 @@ abstract class AssistedWithOtherDependency {
     fun string() = "provided"
 }
 
+fun interface AssistedBarFactory {
+    fun create(name: String): AssistedBar
+}
+
+@Component
+abstract class AssistedWithFunInterface {
+    abstract val factory: AssistedBarFactory
+}
+
 class AssistedTest {
 
     @Test
@@ -161,5 +170,12 @@ class AssistedTest {
             prop(AssistedAndUnrelatedDep::unrelatedDependency).prop(UnrelatedDependency::someString)
                 .isEqualTo("provided")
         }
+    }
+
+    @Test
+    fun generates_a_component_that_provides_an_assisted_sam_factory() {
+        val component = AssistedWithFunInterface::class.create()
+
+        assertThat(component.factory.create(name = "name").name).isEqualTo("name")
     }
 }

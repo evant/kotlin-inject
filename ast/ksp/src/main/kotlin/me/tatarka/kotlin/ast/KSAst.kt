@@ -399,8 +399,16 @@ private class KSAstType private constructor(
         get() = type.declaration.shortName
 
     override val arguments: List<AstType>
-        get() = type.arguments.map {
-            KSAstType(resolver, it.type!!)
+        get() = if (isSamInterface()) {
+            val declaration = type.declaration as KSClassDeclaration
+            val function = declaration.getDeclaredFunctions().single().asMemberOf(type)
+            function.parameterTypes.map {
+                KSAstType(resolver, it!!)
+            }
+        } else {
+            type.arguments.map {
+                KSAstType(resolver, it.type!!)
+            }
         }
 
     override val isError: Boolean
@@ -414,6 +422,19 @@ private class KSAstType private constructor(
 
     override fun isFunction(): Boolean {
         return type.isFunctionType || type.isSuspendFunctionType
+    }
+
+    override fun isSamInterface(): Boolean {
+        val declaration = type.declaration as? KSClassDeclaration ?: return false
+        return declaration.classKind == ClassKind.INTERFACE && declaration.modifiers.contains(Modifier.FUN)
+    }
+
+    override fun samReturnType(): AstType {
+        check(isSamInterface()) { "Can't get SAM return $this" }
+        val declaration = type.declaration as KSClassDeclaration
+        val function = declaration.getDeclaredFunctions().single().asMemberOf(type)
+
+        return KSAstType(resolver, function.returnType!!)
     }
 
     override fun isTypeAlias(): Boolean {

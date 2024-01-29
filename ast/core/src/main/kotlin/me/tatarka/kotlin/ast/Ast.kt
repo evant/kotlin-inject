@@ -195,11 +195,15 @@ abstract class AstType : AstElement() {
 
     abstract fun isPlatform(): Boolean
 
+    abstract fun isSamInterface(): Boolean
+
     abstract fun isFunction(): Boolean
 
     abstract fun isTypeAlias(): Boolean
 
     abstract fun resolvedType(): AstType
+
+    abstract fun samReturnType(): AstType
 
     @Suppress("NOTHING_TO_INLINE")
     inline fun isNotUnit() = !isUnit()

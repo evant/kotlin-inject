@@ -1,5 +1,6 @@
 package me.tatarka.inject.compiler
 
+import com.squareup.kotlinpoet.TypeName
 import me.tatarka.inject.compiler.TypeResult.Object
 import me.tatarka.kotlin.ast.AstClass
 import me.tatarka.kotlin.ast.AstConstructor
@@ -223,6 +224,10 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             return functionType(element, key)
         }
 
+        if (key.type.isSamInterface()) {
+            return samType(element, key)
+        }
+
         if (key.type.isLazy()) {
             val lKey = TypeKey(key.type.arguments[0], key.qualifier)
             return Lazy(key = lKey) {
@@ -342,6 +347,16 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         }
         val fKey = TypeKey(resolveType.arguments.last(), key.qualifier)
         return Function(this, args = args) { context ->
+            resolveOrNull(context, element = element, key = fKey) ?: return null
+        }
+    }
+
+    private fun Context.samType(element: AstElement, key: TypeKey): TypeResult? {
+        val resolveType = key.type.resolvedType()
+        val args = resolveType.arguments
+        val fKey = TypeKey(resolveType.samReturnType(), key.qualifier)
+
+        return Function(this, args = args, samType = resolveType.toTypeName()) { context ->
             resolveOrNull(context, element = element, key = fKey) ?: return null
         }
     }
@@ -471,6 +486,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     private inline fun Function(
         context: Context,
         args: List<AstType>,
+        samType: TypeName? = null,
         result: (context: Context) -> TypeResultRef,
     ): TypeResult {
         // The current cycle resolution does not handle args because it re-uses the same instance.
@@ -481,7 +497,11 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         val namedArgs = args.mapIndexed { i, arg ->
             arg to context.nameAllocator.newName("arg$i")
         }
-        return TypeResult.Function(args = namedArgs.map { it.second }, result = result(context.withArgs(namedArgs)))
+        return TypeResult.Function(
+            args = namedArgs.map { it.second },
+            result = result(context.withArgs(namedArgs)),
+            samType = samType
+        )
     }
 
     private fun NamedFunction(
