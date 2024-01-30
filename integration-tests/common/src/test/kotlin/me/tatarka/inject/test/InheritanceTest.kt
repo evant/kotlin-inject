@@ -90,6 +90,20 @@ abstract class DuplicateDeclarationComponent : DuplicateDeclaration1, DuplicateD
     @get:Provides val foo: Foo = Foo()
 }
 
+interface AppComponent
+
+abstract class SessionComponent {
+    abstract val appComponent: AppComponent
+}
+
+@Component
+abstract class InheritedAppComponent : AppComponent
+
+@Component
+abstract class InheritedSessionComponent(
+    @Component override val appComponent: InheritedAppComponent,
+) : SessionComponent()
+
 class InheritanceTest {
     @Test
     fun generates_a_component_that_provides_a_dep_defined_in_an_implemented_interface() {
@@ -134,5 +148,15 @@ class InheritanceTest {
         val component = DuplicateDeclarationComponent::class.create()
 
         assertThat(component.bar).isEqualTo(component.bar2())
+    }
+
+    @Test
+    fun generates_a_component_that_inherits_an_interface_with_a_covariant_signature() {
+        val appComponent = InheritedAppComponent::class.create()
+        val component = InheritedSessionComponent::class.create(
+            appComponent = appComponent
+        )
+
+        assertThat(component.appComponent).isSameInstanceAs(appComponent)
     }
 }
