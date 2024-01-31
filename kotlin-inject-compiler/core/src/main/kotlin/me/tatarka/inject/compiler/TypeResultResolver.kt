@@ -353,8 +353,10 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
 
     private fun Context.samType(element: AstElement, key: TypeKey): TypeResult? {
         val resolveType = key.type.resolvedType()
-        val args = resolveType.arguments
-        val fKey = TypeKey(resolveType.samReturnType(), key.qualifier)
+        val function = requireNotNull(resolveType.samFunction())
+
+        val args = function.parameters.map { it.type }
+        val fKey = TypeKey(function.returnType, key.qualifier)
 
         return Function(this, args = args, samType = resolveType.toTypeName()) { context ->
             resolveOrNull(context, element = element, key = fKey) ?: return null

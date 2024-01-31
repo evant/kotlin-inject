@@ -203,7 +203,7 @@ abstract class AstType : AstElement() {
 
     abstract fun resolvedType(): AstType
 
-    abstract fun samReturnType(): AstType
+    abstract fun samFunction(): AstFunction?
 
     @Suppress("NOTHING_TO_INLINE")
     inline fun isNotUnit() = !isUnit()
