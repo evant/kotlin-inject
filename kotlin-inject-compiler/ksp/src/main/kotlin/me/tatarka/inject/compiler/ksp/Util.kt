@@ -31,7 +31,7 @@ private fun KSAnnotation.hasName(packageName: String, simpleName: String): Boole
     // we can skip resolving if the short name doesn't match
     if (shortName.asString() != simpleName) return false
     val declaration = annotationType.resolve().declaration
-    return declaration.packageName.asString() == packageName
+    return declaration.qualifiedName?.asString() == "$packageName.$simpleName"
 }
 
 /**
