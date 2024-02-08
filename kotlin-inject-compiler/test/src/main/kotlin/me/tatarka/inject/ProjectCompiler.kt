@@ -6,7 +6,7 @@ import com.google.devtools.ksp.processing.SymbolProcessorProvider
 import com.tschuchort.compiletesting.CompilationResult
 import com.tschuchort.compiletesting.KotlinCompilation
 import com.tschuchort.compiletesting.SourceFile
-import com.tschuchort.compiletesting.kspArgs
+import com.tschuchort.compiletesting.kspProcessorOptions
 import com.tschuchort.compiletesting.kspWithCompilation
 import com.tschuchort.compiletesting.symbolProcessorProviders
 import me.tatarka.inject.compiler.Options
@@ -47,7 +47,7 @@ class ProjectCompiler(
                 sources = sourceFiles
                 when (target) {
                     Target.KSP -> {
-                        options?.toMap()?.let { kspArgs.putAll(it) }
+                        options?.toMap()?.let { kspProcessorOptions.putAll(it) }
                         symbolProcessorProviders = mutableListOf<SymbolProcessorProvider>().apply {
                             add(InjectProcessorProvider())
                             addAll(symbolProcessors)
@@ -107,5 +107,6 @@ class TestCompilationResult(private val result: CompilationResult) {
     val success: Boolean
         get() = result.exitCode == KotlinCompilation.ExitCode.OK
 
+    @OptIn(ExperimentalCompilerApi::class)
     fun output(kind: Diagnostic.Kind): String = result.messages.filterByKind(kind)
 }
