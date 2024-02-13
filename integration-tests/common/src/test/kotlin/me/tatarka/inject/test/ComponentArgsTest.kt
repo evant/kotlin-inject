@@ -5,13 +5,28 @@ import assertk.assertions.isEqualTo
 import me.tatarka.inject.annotations.Component
 import kotlin.test.Test
 
-@Component abstract class DefaultArgComponent(
-    val required1: String,
-    val optional: String = "default",
-    val required2: String
+@Component
+abstract class ArgComponent(
+    val simple: String,
+    val lambda: (String) -> String,
+    val receiver: String.() -> String,
 )
 
-class DefaultArgTest {
+@Component
+abstract class DefaultArgComponent(
+    val required1: String,
+    val optional: String = "default",
+    val required2: String,
+)
+
+class ComponentArgsTest {
+    @Test
+    fun generates_a_component_that_accepts_args() {
+        val component = ArgComponent::class.create("test", { it }, { this })
+
+        assertThat(component.simple).isEqualTo("test")
+    }
+
     @Test
     fun generates_a_component_with_a_create_that_skips_default_args() {
         val componentFull = DefaultArgComponent::class.create("one", "two", "three")
