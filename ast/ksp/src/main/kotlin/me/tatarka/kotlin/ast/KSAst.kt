@@ -416,6 +416,18 @@ private class KSAstType private constructor(
         return type.isFunctionType || type.isSuspendFunctionType
     }
 
+    override fun isSamInterface(): Boolean {
+        val declaration = type.declaration as? KSClassDeclaration ?: return false
+        return declaration.classKind == ClassKind.INTERFACE && declaration.modifiers.contains(Modifier.FUN)
+    }
+
+    override fun samFunction(): AstFunction? {
+        if (!isSamInterface()) return null
+
+        val declaration = type.declaration as KSClassDeclaration
+        return KSAstFunction(resolver, declaration.getDeclaredFunctions().single())
+    }
+
     override fun isTypeAlias(): Boolean {
         return type.declaration is KSTypeAlias
     }

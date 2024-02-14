@@ -1,6 +1,7 @@
 package me.tatarka.inject.compiler
 
 import com.squareup.kotlinpoet.MemberName
+import com.squareup.kotlinpoet.TypeName
 import me.tatarka.kotlin.ast.AstType
 
 /**
@@ -91,6 +92,7 @@ sealed class TypeResult {
     class Function(
         val args: List<String>,
         val result: TypeResultRef,
+        val samType: TypeName?
     ) : TypeResult() {
         override val children
             get() = iterator { yield(result) }

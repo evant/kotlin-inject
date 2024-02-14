@@ -251,7 +251,11 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
     private fun TypeResult.Function.generate(): CodeBlock {
         return CodeBlock.builder().apply {
             // don't use beginControlFlow() so the arg list can be kept on the same line
-            add("{")
+            if (samType != null) {
+                add("%T {", samType)
+            } else {
+                add("{")
+            }
             args.forEachIndexed { index, arg ->
                 if (index != 0) {
                     add(",")
