@@ -5,8 +5,3 @@ val nativeTargets = arrayOf(
     "tvosArm64", "tvosX64", "tvosSimulatorArm64",
     "watchosArm32", "watchosArm64", "watchosX64", "watchosSimulatorArm64",
 )
-
-val nativeKspTestConfigurations = nativeTargets.map {
-    @Suppress("DEPRECATION")
-    "ksp${it.capitalize()}Test"
-}
