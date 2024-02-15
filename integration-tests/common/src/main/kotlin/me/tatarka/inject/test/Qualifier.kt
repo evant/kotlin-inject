@@ -44,3 +44,14 @@ typealias AnnotatedAliasedFoo<T> = @FooAnnotation GenericFoo<T>
 
     @Provides fun foo2(): AnnotatedAliasedFoo<String> = GenericFoo("1")
 }
+
+typealias ScopedNamedFoo1 = ScopedFoo
+typealias ScopedNamedFoo2 = ScopedFoo
+
+typealias ScopedNamedBar1 = INamedBar
+typealias ScopedNamedBar2 = INamedBar
+
+@CustomScope @Component abstract class ProvidesScopedConstructorAliasedComponent {
+    abstract val foo1: ScopedNamedFoo1
+    abstract val foo2: ScopedNamedFoo2
+}
