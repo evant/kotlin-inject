@@ -412,20 +412,27 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         method: AstMember,
         scope: AstType?,
         key: TypeKey,
-    ) = withCycleDetection(key, method) {
-        TypeResult.Provides(
-            className = context.className,
-            methodName = method.name,
-            accessor = accessor,
-            receiver = method.receiverParameterType?.let {
-                val key = TypeKey(it, method.qualifier(options))
-                resolve(context, method, key)
-            },
-            isProperty = method is AstProperty,
-            parameters = (method as? AstFunction)?.let {
-                resolveParams(context, method, scope, it.parameters)
-            } ?: emptyMap(),
-        )
+    ): TypeResult {
+        if (scope != null && method is AstFunction && method.isSuspend) {
+            throw FailedToGenerateException(
+                "@Provides scoped with @${scope.simpleName} cannot be suspend, consider returning Deferred<T> instead."
+            )
+        }
+        return withCycleDetection(key, method) {
+            TypeResult.Provides(
+                className = context.className,
+                methodName = method.name,
+                accessor = accessor,
+                receiver = method.receiverParameterType?.let {
+                    val key = TypeKey(it, method.qualifier(options))
+                    resolve(context, method, key)
+                },
+                isProperty = method is AstProperty,
+                parameters = (method as? AstFunction)?.let {
+                    resolveParams(context, method, scope, it.parameters)
+                } ?: emptyMap(),
+            )
+        }
     }
 
     private fun Scoped(
@@ -444,7 +451,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         context: Context,
         constructor: AstConstructor,
         scope: AstType?,
-        key: TypeKey
+        key: TypeKey,
     ) = withCycleDetection(key, constructor) {
         TypeResult.Constructor(
             type = constructor.type,
