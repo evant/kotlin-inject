@@ -366,7 +366,8 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
                 astClass,
             )
         }
-        return if (scopedResult != null && skipScoped != injectCtor.type) {
+        // constructor type is resolved from a typealias, need to resolve skipScoped too to ensure match
+        return if (scopedResult != null && skipScoped?.resolvedType() != injectCtor.type) {
             val (scopedComponent, types) = scopedResult
             Scoped(
                 context = withTypes(types),
