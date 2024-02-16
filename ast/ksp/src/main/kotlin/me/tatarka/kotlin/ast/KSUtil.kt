@@ -14,14 +14,15 @@ import me.tatarka.kotlin.ast.internal.collectHash
 import me.tatarka.kotlin.ast.internal.eqv
 import me.tatarka.kotlin.ast.internal.eqvItr
 
-internal fun KSAnnotated.annotationAnnotatedWith(packageName: String, simpleName: String): KSAnnotation? {
-    for (annotation in annotations) {
+internal fun KSAnnotated.annotationsAnnotatedWith(packageName: String, simpleName: String): Sequence<KSAnnotation> {
+    return annotations.mapNotNull { annotation ->
         val t = annotation.annotationType.resolve()
         if (t.declaration.hasAnnotation(packageName, simpleName)) {
-            return annotation
+            annotation
+        } else {
+            null
         }
     }
-    return null
 }
 
 internal fun KSAnnotated.hasAnnotation(packageName: String, simpleName: String): Boolean {

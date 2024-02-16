@@ -202,3 +202,37 @@ interface DuplicateScopeInterface {
 abstract class DuplicateScopeComponent : DuplicateScopeInterface {
     abstract val foo: IFoo
 }
+
+@Scope
+annotation class FooSingleton
+
+interface SuperclassScopeFoo
+interface SuperclassScopeFoo2
+
+@Inject
+class SuperclassScopeFooImpl : SuperclassScopeFoo
+
+@Inject
+class SuperclassScopeFoo2Impl : SuperclassScopeFoo2
+
+@Inject
+class SuperclassScopeFooHolder(
+    val foo: SuperclassScopeFoo,
+    val foo2: SuperclassScopeFoo2
+)
+
+interface BaseSuperclassScopeFooComponent {
+    @Provides @FooSingleton fun provideFoo(): SuperclassScopeFoo
+    @get:Provides @FooSingleton val foo: SuperclassScopeFoo2
+}
+
+@FooSingleton
+@Component
+abstract class SuperclassScopeFooComponent : BaseSuperclassScopeFooComponent {
+    @FooSingleton override fun provideFoo(): SuperclassScopeFoo = SuperclassScopeFooImpl()
+    override val foo: SuperclassScopeFoo2 get() = SuperclassScopeFoo2Impl()
+
+    abstract val holder: SuperclassScopeFooHolder
+
+    companion object
+}

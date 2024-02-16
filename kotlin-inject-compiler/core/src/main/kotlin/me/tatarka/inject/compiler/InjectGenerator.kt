@@ -19,6 +19,7 @@ import me.tatarka.kotlin.ast.AstProvider
 import me.tatarka.kotlin.ast.AstType
 import me.tatarka.kotlin.ast.AstVisibility
 import me.tatarka.kotlin.ast.Messenger
+import me.tatarka.kotlin.ast.annotationAnnotatedWith
 
 private const val ANNOTATION_PACKAGE_NAME = "me.tatarka.inject.annotations"
 val COMPONENT = ClassName(ANNOTATION_PACKAGE_NAME, "Component")
@@ -183,13 +184,20 @@ class InjectGenerator(
 }
 
 fun AstAnnotated.scopeType(options: Options): AstType? {
-    if (options.enableJavaxAnnotations) {
-        val annotation = annotationAnnotatedWith(JAVAX_SCOPE.packageName, JAVAX_SCOPE.simpleName)
-        if (annotation != null) {
-            return annotation.type
-        }
+    return scopeTypes(options).firstOrNull()
+}
+
+fun AstAnnotated.scopeTypes(options: Options): Sequence<AstType> {
+    val scopeAnnotations = annotationsAnnotatedWith(SCOPE.packageName, SCOPE.simpleName).map { annotation ->
+        annotation.type
     }
-    return annotationAnnotatedWith(SCOPE.packageName, SCOPE.simpleName)?.type
+
+    if (options.enableJavaxAnnotations) {
+        return annotationsAnnotatedWith(JAVAX_SCOPE.packageName, JAVAX_SCOPE.simpleName).map { annotation ->
+            annotation.type
+        } + scopeAnnotations
+    }
+    return scopeAnnotations
 }
 
 fun AstAnnotated.isComponent() = hasAnnotation(COMPONENT.packageName, COMPONENT.simpleName)

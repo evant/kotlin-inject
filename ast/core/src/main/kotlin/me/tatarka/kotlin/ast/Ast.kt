@@ -35,8 +35,11 @@ sealed class AstElement
 interface AstAnnotated {
     fun hasAnnotation(packageName: String, simpleName: String): Boolean
 
-    fun annotationAnnotatedWith(packageName: String, simpleName: String): AstAnnotation?
+    fun annotationsAnnotatedWith(packageName: String, simpleName: String): Sequence<AstAnnotation>
 }
+
+fun AstAnnotated.annotationAnnotatedWith(packageName: String, simpleName: String): AstAnnotation? =
+    annotationsAnnotatedWith(packageName, simpleName).firstOrNull()
 
 abstract class AstBasicElement : AstElement() {
     abstract val simpleName: String

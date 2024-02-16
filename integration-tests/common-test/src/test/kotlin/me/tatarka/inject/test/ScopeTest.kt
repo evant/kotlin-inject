@@ -134,4 +134,12 @@ class ScopeTest {
 
         assertThat(component.foo).isNotNull()
     }
+
+    @Test
+    fun generates_a_component_that_scopes_a_provided_function_that_is_annotated_in_a_superclass() {
+        val component = SuperclassScopeFooComponent::class.create()
+
+        assertThat(component.holder.foo).isSameInstanceAs(component.holder.foo)
+        assertThat(component.holder.foo2).isSameInstanceAs(component.holder.foo2)
+    }
 }

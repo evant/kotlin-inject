@@ -99,8 +99,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                 }
             }
 
-            for (method in typeInfo.providesMethods) {
-                val scope = method.scopeType(options)
+            for ((method, scope) in typeInfo.providesMethods) {
                 if (scope != null && scope != typeInfo.elementScope) {
                     if (typeInfo.elementScope != null) {
                         provider.error(
@@ -253,7 +252,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
         return typeInfoCache.getOrPut(astClass.toString()) {
             val isComponent = astClass.isComponent()
 
-            val providesMethods = mutableListOf<AstMember>()
+            val providesMethods = mutableListOf<Pair<AstMember, AstType?>>()
             val providerMethods = mutableListOf<AstMember>()
 
             var scopeClass: AstClass? = null
@@ -279,7 +278,10 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
             // some methods may override others
             val methods = mutableListOf<AstMember>()
             val isProvides = mutableMapOf<AstMember, Boolean>()
+            val scopeTypes = mutableMapOf<AstMember, Set<AstType>>()
+            val scopedMethodsWithScopedSuperMethod = mutableMapOf<AstMember, Pair<AstMember, Set<AstType>>>()
             for (method in allMethods) {
+                val methodScopeTypes = method.scopeTypes(options).toSet()
                 val existing = methods.firstOrNull {
                     it.name == method.name && (it.signatureEquals(method) || it.overrides(method))
                 }
@@ -288,14 +290,48 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                     if (method.isProvides()) {
                         isProvides[existing] = true
                     }
+
+                    if (methodScopeTypes.isNotEmpty()) {
+                        val existingScopeTypes = scopeTypes[existing]
+                        if (existingScopeTypes == null) {
+                            scopeTypes[existing] = methodScopeTypes
+                        } else {
+                            if (existingScopeTypes != methodScopeTypes) {
+                                scopedMethodsWithScopedSuperMethod[existing] = method to methodScopeTypes
+                            }
+                        }
+                    }
                 } else {
                     methods.add(method)
                     isProvides[method] = method.isProvides()
+                    if (methodScopeTypes.isNotEmpty()) {
+                        scopeTypes[method] = methodScopeTypes
+                    }
                 }
             }
             for (method in methods) {
                 val abstract = method.isAbstract
+                val methodScopeTypes = scopeTypes[method]
                 if (isProvides.getValue(method)) {
+                    var methodScope: AstType? = null
+                    if (methodScopeTypes != null) {
+                        val scopedMethodWithScopedSuperMethod = scopedMethodsWithScopedSuperMethod[method]
+                        if (methodScopeTypes.size > 1) {
+                            provider.error("Cannot apply multiple scopes: $methodScopeTypes", method)
+                            continue
+                        } else if (scopedMethodWithScopedSuperMethod != null) {
+                            val (scopedSuperMethod, superMethodScopes) = scopedMethodWithScopedSuperMethod
+                            provider.error("Cannot apply scope: ${methodScopeTypes.first()}", method)
+                            provider.error(
+                                "as scope: ${(superMethodScopes - methodScopeTypes).first()} is already applied",
+                                scopedSuperMethod
+                            )
+                            continue
+                        } else {
+                            methodScope = methodScopeTypes.first()
+                        }
+                    }
+
                     if (method.visibility == AstVisibility.PRIVATE) {
                         provider.error("@Provides method must not be private", method)
                         continue
@@ -320,13 +356,12 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                         provider.error("@Provides method must have a concrete implementation", method)
                         continue
                     } else {
-                        providesMethods.add(method)
+                        providesMethods.add(method to methodScope)
                     }
                 } else if (method.isProvider()) {
-                    val scope = method.scopeType(options)
-                    if (scope != null) {
+                    if (methodScopeTypes != null) {
                         provider.warn(
-                            "Scope: @${scope.simpleName} has no effect." +
+                            "Scope: @${methodScopeTypes.first().simpleName} has no effect." +
                                 " Place on @Provides function or @Inject constructor instead.",
                             method
                         )
@@ -346,7 +381,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
 }
 
 class TypeInfo(
-    val providesMethods: List<AstMember> = emptyList(),
+    val providesMethods: List<Pair<AstMember, AstType?>> = emptyList(),
     val providerMethods: List<AstMember> = emptyList(),
     val scopeClass: AstClass? = null,
     val elementScope: AstType? = null,
