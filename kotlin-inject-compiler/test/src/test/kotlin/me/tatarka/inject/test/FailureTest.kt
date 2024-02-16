@@ -851,4 +851,188 @@ class FailureTest {
             contains("@Provides scoped with @MyScope cannot be suspend, consider returning Deferred<T> instead.")
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun fails_if_there_are_multiple_scopes_applied(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+
+        assertFailure {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                import me.tatarka.inject.annotations.Component
+                import me.tatarka.inject.annotations.Inject
+                import me.tatarka.inject.annotations.Provides
+                import me.tatarka.inject.annotations.Scope
+                
+                @Scope
+                annotation class FooSingleton
+                
+                @Scope
+                annotation class FooSingleton2
+                
+                @Scope
+                annotation class FooSingleton3
+                
+                interface Foo
+                
+                @Inject
+                class FooImpl : Foo
+                
+                @Inject
+                class FooHolder(
+                    val foo: Foo
+                )
+                
+                @FooSingleton
+                @Component
+                abstract class MyFunctionProviderComponent {
+                    @Provides @FooSingleton @FooSingleton2 fun provideFoo(): Foo = FooImpl()
+                
+                    abstract val holder: FooHolder
+                
+                    companion object
+                }
+                
+                @FooSingleton2
+                @Component
+                abstract class MyPropertyProviderComponent {
+                    @get:Provides @FooSingleton @FooSingleton3 val provideFoo: Foo get() = FooImpl()
+                
+                    abstract val holder: FooHolder
+                
+                    companion object
+                }
+                """.trimIndent()
+            ).compile()
+        }.output().all {
+            contains("Cannot apply multiple scopes: [FooSingleton, FooSingleton2]")
+            contains("Cannot apply multiple scopes: [FooSingleton, FooSingleton3]")
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun fails_if_there_are_scopes_applied_to_a_super_type(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+
+        assertFailure {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                import me.tatarka.inject.annotations.Component
+                import me.tatarka.inject.annotations.Inject
+                import me.tatarka.inject.annotations.Provides
+                import me.tatarka.inject.annotations.Scope
+                
+                @Scope
+                annotation class FooSingleton
+                
+                @Scope
+                annotation class FooSingleton2
+                
+                
+                interface SuperclassScopeFoo
+                interface SuperclassScopeFoo2
+                
+                @Inject
+                class SuperclassScopeFooImpl : SuperclassScopeFoo
+                
+                @Inject
+                class SuperclassScopeFoo2Impl : SuperclassScopeFoo2
+                
+                @Inject
+                class SuperclassScopeFooHolder(
+                    val foo: SuperclassScopeFoo,
+                    val foo2: SuperclassScopeFoo2
+                )
+                
+                interface BaseSuperclassScopeFooComponent {
+                    @Provides @FooSingleton fun provideFoo(): SuperclassScopeFoo
+                    @get:Provides @FooSingleton2 val foo: SuperclassScopeFoo2
+                }
+                
+                @FooSingleton
+                @Component
+                abstract class SuperclassScopeFooComponent : BaseSuperclassScopeFooComponent {
+                    @FooSingleton2 override fun provideFoo(): SuperclassScopeFoo = SuperclassScopeFooImpl()
+                    @FooSingleton override val foo: SuperclassScopeFoo2 get() = SuperclassScopeFoo2Impl()
+                
+                    abstract val holder: SuperclassScopeFooHolder
+                
+                    companion object
+                }
+                """.trimIndent()
+            ).compile()
+        }.output().all {
+            contains("Cannot apply scope: FooSingleton2")
+            contains("as scope: FooSingleton is already applied")
+
+            contains("Cannot apply scope: FooSingleton")
+            contains("as scope: FooSingleton2 is already applied")
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun fails_with_correct_error_if_there_are_multiple_scopes_applied_to_a_super_type(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+
+        assertFailure {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                import me.tatarka.inject.annotations.Component
+                import me.tatarka.inject.annotations.Inject
+                import me.tatarka.inject.annotations.Provides
+                import me.tatarka.inject.annotations.Scope
+                
+                @Scope
+                annotation class FooSingleton
+                
+                @Scope
+                annotation class FooSingleton2
+                
+                
+                interface SuperclassScopeFoo
+                interface SuperclassScopeFoo2
+                
+                @Inject
+                class SuperclassScopeFooImpl : SuperclassScopeFoo
+                
+                @Inject
+                class SuperclassScopeFoo2Impl : SuperclassScopeFoo2
+                
+                @Inject
+                class SuperclassScopeFooHolder(
+                    val foo: SuperclassScopeFoo,
+                    val foo2: SuperclassScopeFoo2
+                )
+                
+                interface BaseSuperclassScopeFooComponent {
+                    @Provides @FooSingleton @FooSingleton2 fun provideFoo(): SuperclassScopeFoo
+                    @get:Provides @FooSingleton2 @FooSingleton val foo: SuperclassScopeFoo2
+                }
+                
+                @FooSingleton
+                @Component
+                abstract class SuperclassScopeFooComponent : BaseSuperclassScopeFooComponent {
+                    @FooSingleton2 override fun provideFoo(): SuperclassScopeFoo = SuperclassScopeFooImpl()
+                    @FooSingleton override val foo: SuperclassScopeFoo2 get() = SuperclassScopeFoo2Impl()
+                
+                    abstract val holder: SuperclassScopeFooHolder
+                
+                    companion object
+                }
+                """.trimIndent()
+            ).compile()
+        }.output().all {
+            contains("Cannot apply scope: FooSingleton2")
+            contains("as scope: FooSingleton is already applied")
+
+            contains("Cannot apply scope: FooSingleton")
+            contains("as scope: FooSingleton2 is already applied")
+        }
+    }
 }
