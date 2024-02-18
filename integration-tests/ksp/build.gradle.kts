@@ -1,4 +1,4 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 
 plugins {
     id("kotlin-inject.multiplatform")
@@ -10,12 +10,6 @@ plugins {
 dependencies {
     kspCommonMainMetadata(project(":kotlin-inject-compiler:kotlin-inject-compiler-ksp"))
     kspJvmTest(project(":kotlin-inject-compiler:kotlin-inject-compiler-ksp"))
-    kspJsTest(project(":kotlin-inject-compiler:kotlin-inject-compiler-ksp"))
-    kspWasmJsTest(project(":kotlin-inject-compiler:kotlin-inject-compiler-ksp"))
-
-    for (configuration in nativeKspTestConfigurations) {
-        add(configuration, project(":kotlin-inject-compiler:kotlin-inject-compiler-ksp"))
-    }
 }
 
 kotlin {
@@ -25,13 +19,15 @@ kotlin {
 
     sourceSets {
         commonMain {
+            kotlin.srcDir("../common/src/main/kotlin")
+            kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
             dependencies {
                 implementation(project(":kotlin-inject-runtime"))
                 implementation(project(":integration-tests:module"))
             }
         }
         commonTest {
-            kotlin.srcDir("../common/src/test/kotlin")
+            kotlin.srcDir("../common-test/src/test/kotlin")
             dependencies {
                 implementation(kotlin("test"))
                 implementation(libs.kotlinx.coroutines)
@@ -66,11 +62,8 @@ ksp {
     arg("me.tatarka.inject.enableJavaxAnnotations", "true")
 }
 
-kotlin.sourceSets.commonMain {
-    kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
-}
-tasks.withType<KotlinCompile>().configureEach {
-    if (name != "kspCommonMainKotlinMetadata") {
+tasks.withType(KotlinCompilationTask::class.java).configureEach {
+    if(name != "kspCommonMainKotlinMetadata") {
         dependsOn("kspCommonMainKotlinMetadata")
     }
 }

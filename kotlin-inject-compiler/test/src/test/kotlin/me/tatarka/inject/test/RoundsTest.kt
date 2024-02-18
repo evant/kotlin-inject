@@ -45,6 +45,32 @@ class RoundsTest {
     }
 
     @Test
+    fun can_reference_generated_class_in_supertype() {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+            .symbolProcessor(SimpleClassProcessor.Provider("Source", "Generated"))
+
+        assertDoesNotThrow {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                    import me.tatarka.inject.annotations.Component
+                    import me.tatarka.inject.annotations.Provides
+                    
+                    interface Source {
+                        @Provides fun str(): String = "test"
+                    }
+                    
+                    interface SuperInterface : Generated
+
+                    @Component abstract class MyComponent : SuperInterface {
+                        abstract val str: String
+                    }
+                """.trimIndent()
+            ).compile()
+        }
+    }
+
+    @Test
     fun errors_on_missing_parent_interface() {
         val projectCompiler = ProjectCompiler(target, workingDir)
         assertFailure {

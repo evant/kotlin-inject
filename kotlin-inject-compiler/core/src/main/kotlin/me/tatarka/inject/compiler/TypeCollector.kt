@@ -280,7 +280,9 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
             val methods = mutableListOf<AstMember>()
             val isProvides = mutableMapOf<AstMember, Boolean>()
             for (method in allMethods) {
-                val existing = methods.firstOrNull { it.name == method.name && it.signatureEquals(method) }
+                val existing = methods.firstOrNull {
+                    it.name == method.name && (it.signatureEquals(method) || it.overrides(method))
+                }
                 if (existing != null) {
                     // mark provides if it overrides one that's annotated
                     if (method.isProvides()) {

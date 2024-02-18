@@ -822,4 +822,33 @@ class FailureTest {
             contains("Cycle detected")
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun fails_if_scoped_provides_is_suspend(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+
+        assertFailure {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                import me.tatarka.inject.annotations.Component
+                import me.tatarka.inject.annotations.Scope
+                import me.tatarka.inject.annotations.Assisted
+                import me.tatarka.inject.annotations.Inject
+                import me.tatarka.inject.annotations.Provides
+                
+                @Scope annotation class MyScope
+                
+                @MyScope
+                @Component abstract class MyComponent {
+                    abstract val bar: String
+                    @Provides @MyScope suspend fun bar(): String = TODO()
+                }  
+                """.trimIndent()
+            ).compile()
+        }.output().all {
+            contains("@Provides scoped with @MyScope cannot be suspend, consider returning Deferred<T> instead.")
+        }
+    }
 }

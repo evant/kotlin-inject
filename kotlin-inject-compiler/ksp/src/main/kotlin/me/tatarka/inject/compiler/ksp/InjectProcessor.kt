@@ -11,8 +11,10 @@ import com.google.devtools.ksp.processing.SymbolProcessorProvider
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
+import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.google.devtools.ksp.symbol.Visibility
+import com.google.devtools.ksp.visitor.KSValidateVisitor
 import com.squareup.kotlinpoet.ksp.writeTo
 import me.tatarka.inject.compiler.COMPONENT
 import me.tatarka.inject.compiler.FailedToGenerateException
@@ -82,11 +84,12 @@ class InjectProcessor(
 
     private fun validate(declaration: KSClassDeclaration): Boolean {
         return declaration.accept(
-            FixedKSValidateVisitor { node, _ ->
+            object : KSValidateVisitor({ node, _ ->
                 when (node) {
                     is KSFunctionDeclaration ->
                         node.getVisibility() != Visibility.PRIVATE &&
                             (node.isAbstract || node.hasAnnotation(PROVIDES.packageName, PROVIDES.simpleName))
+
                     is KSPropertyDeclaration ->
                         node.getVisibility() != Visibility.PRIVATE &&
                             (
@@ -96,7 +99,19 @@ class InjectProcessor(
                                         PROVIDES.simpleName
                                     ) ?: true
                                 )
+
                     else -> true
+                }
+            }) {
+                override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: KSNode?): Boolean {
+                    if (!super.visitClassDeclaration(classDeclaration, data)) {
+                        return false
+                    }
+                    // also visit parent classes
+                    if (!classDeclaration.superTypes.all { it.resolve().declaration.accept(this, data) }) {
+                        return false
+                    }
+                    return true
                 }
             },
             null
