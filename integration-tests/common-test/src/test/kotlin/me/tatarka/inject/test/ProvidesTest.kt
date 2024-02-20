@@ -101,8 +101,8 @@ class ProvidesTest {
     }
 
     @Test
-    fun generates_a_component_that_references_an_inner_class() {
-        val component = ProvidesInnerClassComponent::class.create()
+    fun generates_a_component_that_references_a_nested_class() {
+        val component = ProvidesNestedClassComponent::class.create()
 
         assertThat(component.fooFactory).isNotNull()
     }
@@ -113,5 +113,13 @@ class ProvidesTest {
 
         assertThat(component.provideFoo()).isNotNull()
         assertThat(component.provideBar()).isNotNull()
+    }
+
+    @Test
+    fun generates_a_component_which_provides_an_inner_class_through_an_outer_scoped_provides() {
+        val component = ProvidesInnerClassComponent::class.create()
+
+        assertThat(component.innerClass.parent).isSameInstanceAs(component.innerClass.parent)
+        assertThat(component.innerClassWithTypeArg.parent).isSameInstanceAs(component.innerClassWithTypeArg.parent)
     }
 }
