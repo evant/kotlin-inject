@@ -221,6 +221,13 @@ private class KSAstClass(override val resolver: Resolver, override val declarati
             }
         }
 
+    override val outerClass: AstClass?
+        get() = if (Modifier.INNER in declaration.modifiers) {
+            KSAstClass(resolver, declaration.parentDeclaration as KSClassDeclaration)
+        } else {
+            null
+        }
+
     override val type: AstType
         get() {
             return KSAstType(resolver, declaration.asStarProjectedType())

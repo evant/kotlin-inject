@@ -19,4 +19,12 @@ class InjectConstructorTest {
 
         assertThat(component.secondaryInject).isNotNull()
     }
+
+    @Test
+    fun class_with_inject_annotated_inner_class_constructor_can_be_provided() {
+        val component = InjectInnerClassComponent::class.create()
+
+        assertThat(component.innerClass).isNotNull()
+        assertThat(component.innerClassWithTypeArg).isNotNull()
+    }
 }

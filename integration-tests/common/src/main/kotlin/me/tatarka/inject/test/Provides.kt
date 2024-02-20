@@ -198,7 +198,7 @@ abstract class ProvidesValConstructorBasicTypes(
 }
 
 @Component
-abstract class ProvidesInnerClassComponent {
+abstract class ProvidesNestedClassComponent {
     abstract val fooFactory: DifferentPackageFoo.Factory
 }
 
@@ -217,3 +217,30 @@ class OFooImpl : OFoo
 
 @Inject
 class OBar(val foo: OFoo)
+
+class BarWithInnerClass {
+    @Inject
+    inner class Bar(val foo: Foo) {
+        val parent = this@BarWithInnerClass
+    }
+
+    @Inject
+    inner class BarWithTypeArg<T> {
+        val parent = this@BarWithInnerClass
+    }
+}
+
+@Component
+@CustomScope
+abstract class ProvidesInnerClassComponent {
+
+    abstract val innerClass: BarWithInnerClass.Bar
+
+    abstract val innerClassWithTypeArg: BarWithInnerClass.BarWithTypeArg<Foo>
+
+    @Provides
+    @CustomScope
+    fun provideOuter(): BarWithInnerClass {
+        return BarWithInnerClass()
+    }
+}

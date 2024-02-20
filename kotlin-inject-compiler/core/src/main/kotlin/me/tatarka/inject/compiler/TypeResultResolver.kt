@@ -380,6 +380,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             Constructor(
                 context = this,
                 constructor = injectCtor,
+                outerClassType = astClass.outerClass?.type,
                 scope = scope,
                 key = key,
             )
@@ -451,12 +452,14 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     private fun Constructor(
         context: Context,
         constructor: AstConstructor,
+        outerClassType: AstType?,
         scope: AstType?,
         key: TypeKey,
     ) = withCycleDetection(key, constructor) {
         TypeResult.Constructor(
             type = constructor.type,
             scope = scope,
+            outerClass = outerClassType?.let { resolve(context, constructor, TypeKey(it)) },
             parameters = resolveParams(context, constructor, scope, constructor.parameters),
             supportsNamedArguments = constructor.supportsNamedArguments
         )
