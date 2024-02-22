@@ -4,12 +4,14 @@ private const val OPTION_GENERATE_COMPANION_EXTENSIONS = "me.tatarka.inject.gene
 private const val OPTION_ENABLE_JAVAX_ANNOTATIONS = "me.tatarka.inject.enableJavaxAnnotations"
 private const val OPTION_USE_CLASS_REFERENCE_FOR_SCOPED_ACCESS = "me.tatarka.inject.useClassReferenceForScopeAccess"
 private const val OPTION_DUMP_GRAPH = "me.tatarka.inject.dumpGraph"
+private const val OPTION_GENERATE_ACTUAL_CREATE_FUNCTION = "me.tatarka.inject.generateActualCreateFunction"
 
 data class Options(
     val generateCompanionExtensions: Boolean = false,
     val enableJavaxAnnotations: Boolean = false,
     val useClassReferenceForScopeAccess: Boolean = false,
     val dumpGraph: Boolean = false,
+    val generateActualCreateFunction: Boolean = false,
 ) {
     companion object {
         fun from(map: Map<String, String>) = Options(
@@ -17,6 +19,7 @@ data class Options(
             enableJavaxAnnotations = map[OPTION_ENABLE_JAVAX_ANNOTATIONS]?.toBoolean() ?: false,
             useClassReferenceForScopeAccess = map[OPTION_USE_CLASS_REFERENCE_FOR_SCOPED_ACCESS]?.toBoolean() ?: false,
             dumpGraph = map[OPTION_DUMP_GRAPH]?.toBoolean() ?: false,
+            generateActualCreateFunction = map[OPTION_GENERATE_ACTUAL_CREATE_FUNCTION]?.toBoolean() ?: false,
         )
     }
 
@@ -25,5 +28,6 @@ data class Options(
         OPTION_ENABLE_JAVAX_ANNOTATIONS to enableJavaxAnnotations.toString(),
         OPTION_USE_CLASS_REFERENCE_FOR_SCOPED_ACCESS to useClassReferenceForScopeAccess.toString(),
         OPTION_DUMP_GRAPH to dumpGraph.toString(),
+        OPTION_GENERATE_ACTUAL_CREATE_FUNCTION to generateActualCreateFunction.toString(),
     )
 }
