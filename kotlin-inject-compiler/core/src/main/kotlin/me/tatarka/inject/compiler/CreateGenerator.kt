@@ -3,6 +3,7 @@ package me.tatarka.inject.compiler
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.plusParameter
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
@@ -63,6 +64,9 @@ class CreateGenerator(private val astProvider: AstProvider, private val options:
                     addAnnotation(optIn)
                 }
                 addModifiers(element.visibility.toKModifier())
+                if (options.generateActualCreateFunction) {
+                    addModifiers(KModifier.ACTUAL)
+                }
                 if (constructor != null) {
                     for (param in params) {
                         addParameter(param.toParameterSpec())
