@@ -948,7 +948,7 @@ class FailureTest {
                 import me.tatarka.inject.annotations.Assisted
                 
                 @Inject class Bar
-                @Inject fun Foo(val bar: Bar, @Assisted assisted: String): String = assisted
+                @Inject fun Foo(bar: Bar, @Assisted assisted: String): String = assisted
                 typealias Foo = () -> String
                 
                 @Component abstract class MyComponent {
