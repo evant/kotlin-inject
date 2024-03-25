@@ -43,6 +43,7 @@ class ProjectCompiler(
     fun compile(): TestCompilationResult {
         val result = TestCompilationResult(
             KotlinCompilation().apply {
+                kotlincArguments = kotlincArguments + "-Xskip-prerelease-check"
                 workingDir = this@ProjectCompiler.workingDir
                 sources = sourceFiles
                 when (target) {
