@@ -1,13 +1,15 @@
 package me.tatarka.inject.internal
 
-import kotlinx.atomicfu.locks.ReentrantLock
+import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.withLock
 
 private val NULL = Any()
 
 actual class LazyMap {
     private val map = mutableMapOf<String, Any>()
-    private val lock = ReentrantLock()
+
+    // using SynchronizedObject instead of ReentrantLock because of https://github.com/Kotlin/kotlinx-atomicfu/issues/401
+    private val lock = SynchronizedObject()
 
     actual fun <T> get(key: String, init: () -> T): T {
         return lock.withLock {
