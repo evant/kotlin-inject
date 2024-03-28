@@ -1,7 +1,5 @@
 package me.tatarka.inject.compiler.ksp
 
-import com.google.devtools.ksp.getVisibility
-import com.google.devtools.ksp.isAbstract
 import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
@@ -11,17 +9,11 @@ import com.google.devtools.ksp.processing.SymbolProcessorProvider
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
-import com.google.devtools.ksp.symbol.KSNode
-import com.google.devtools.ksp.symbol.KSPropertyDeclaration
-import com.google.devtools.ksp.symbol.Visibility
-import com.google.devtools.ksp.visitor.KSValidateVisitor
-import com.squareup.kotlinpoet.ksp.writeTo
 import me.tatarka.inject.compiler.COMPONENT
-import me.tatarka.inject.compiler.FailedToGenerateException
 import me.tatarka.inject.compiler.InjectGenerator
 import me.tatarka.inject.compiler.Options
-import me.tatarka.inject.compiler.PROVIDES
-import me.tatarka.kotlin.ast.AstClass
+import me.tatarka.inject.compiler.TARGET_COMPONENT_ACCESSOR
+import me.tatarka.inject.compiler.TargetComponentAccessorGenerator
 import me.tatarka.kotlin.ast.KSAstProvider
 
 class InjectProcessor(
@@ -31,91 +23,61 @@ class InjectProcessor(
 ) : SymbolProcessor {
 
     private lateinit var provider: KSAstProvider
-    private lateinit var generator: InjectGenerator
-    private var deferred: MutableList<KSClassDeclaration> = mutableListOf()
+    private lateinit var injectGenerator: InjectGenerator
+    private lateinit var targetComponentAccessorGenerator: TargetComponentAccessorGenerator
+    private var deferredClasses: List<KSClassDeclaration> = mutableListOf()
+    private var deferredFunctions: List<KSFunctionDeclaration> = mutableListOf()
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
         provider = KSAstProvider(resolver, logger)
-        generator = InjectGenerator(provider, options)
+        injectGenerator = InjectGenerator(provider, options)
+        targetComponentAccessorGenerator = TargetComponentAccessorGenerator(provider, options)
 
-        val previousDiffered = deferred
+        val previousDeferredClasses = deferredClasses
+        val previousDeferredFunctions = deferredFunctions
 
-        deferred = mutableListOf()
-
-        for (
-        element in previousDiffered + resolver.getSymbolsWithClassAnnotation(
-            COMPONENT.packageName,
-            COMPONENT.simpleName,
+        val componentSymbols = previousDeferredClasses + resolver.getSymbolsWithClassAnnotation(
+            packageName = COMPONENT.packageName,
+            simpleName = COMPONENT.simpleName
         )
-        ) {
-            with(provider) {
-                val astClass = element.toAstClass()
-                if (validate(element)) {
-                    process(astClass)
-                } else {
-                    deferred.add(element)
-                }
-            }
+        deferredClasses = componentSymbols.filterNot { element ->
+            processInject(element, provider, codeGenerator, injectGenerator)
         }
 
-        return deferred
-    }
-
-    private fun process(astClass: AstClass) {
-        try {
-            val file = generator.generate(astClass)
-            file.writeTo(codeGenerator, aggregating = true)
-        } catch (e: FailedToGenerateException) {
-            provider.error(e.message.orEmpty(), e.element)
-            // Continue so we can see all errors
+        val targetComponentAccessorSymbols = previousDeferredFunctions + resolver.getSymbolsWithFunctionAnnotation(
+            packageName = TARGET_COMPONENT_ACCESSOR.packageName,
+            simpleName = TARGET_COMPONENT_ACCESSOR.simpleName
+        )
+        deferredFunctions = targetComponentAccessorSymbols.filterNot { element ->
+            processTargetComponentAccessor(element, provider, codeGenerator, targetComponentAccessorGenerator)
         }
+
+        return deferredClasses + deferredFunctions
     }
 
     override fun finish() {
         // Last round, generate as much as we can, reporting errors for types that still can't be resolved.
-        for (element in deferred) {
-            with(provider) {
-                val astClass = element.toAstClass()
-                process(astClass)
-            }
+        for (element in deferredClasses) {
+            processInject(
+                element,
+                provider,
+                codeGenerator,
+                injectGenerator,
+                skipValidation = true
+            )
         }
-        deferred = mutableListOf()
-    }
+        deferredClasses = mutableListOf()
 
-    private fun validate(declaration: KSClassDeclaration): Boolean {
-        return declaration.accept(
-            object : KSValidateVisitor({ node, _ ->
-                when (node) {
-                    is KSFunctionDeclaration ->
-                        node.getVisibility() != Visibility.PRIVATE &&
-                            (node.isAbstract || node.hasAnnotation(PROVIDES.packageName, PROVIDES.simpleName))
-
-                    is KSPropertyDeclaration ->
-                        node.getVisibility() != Visibility.PRIVATE &&
-                            (
-                                node.isAbstract() ||
-                                    node.getter?.hasAnnotation(
-                                        PROVIDES.packageName,
-                                        PROVIDES.simpleName
-                                    ) ?: true
-                                )
-
-                    else -> true
-                }
-            }) {
-                override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: KSNode?): Boolean {
-                    if (!super.visitClassDeclaration(classDeclaration, data)) {
-                        return false
-                    }
-                    // also visit parent classes
-                    if (!classDeclaration.superTypes.all { it.resolve().declaration.accept(this, data) }) {
-                        return false
-                    }
-                    return true
-                }
-            },
-            null
-        )
+        for (element in deferredFunctions) {
+            processTargetComponentAccessor(
+                element,
+                provider,
+                codeGenerator,
+                targetComponentAccessorGenerator,
+                skipValidation = true
+            )
+        }
+        deferredFunctions = mutableListOf()
     }
 }
 

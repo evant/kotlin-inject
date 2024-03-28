@@ -30,3 +30,6 @@ annotation class Assisted
 
 @Target(ANNOTATION_CLASS)
 annotation class Qualifier
+
+@Target(FUNCTION)
+annotation class TargetComponentAccessor

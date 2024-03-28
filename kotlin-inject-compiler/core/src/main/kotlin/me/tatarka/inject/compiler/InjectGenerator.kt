@@ -31,6 +31,7 @@ val INTO_MAP = ClassName(ANNOTATION_PACKAGE_NAME, "IntoMap")
 val INTO_SET = ClassName(ANNOTATION_PACKAGE_NAME, "IntoSet")
 val ASSISTED = ClassName(ANNOTATION_PACKAGE_NAME, "Assisted")
 val QUALIFIER = ClassName(ANNOTATION_PACKAGE_NAME, "Qualifier")
+val TARGET_COMPONENT_ACCESSOR = ClassName(ANNOTATION_PACKAGE_NAME, "TargetComponentAccessor")
 
 val JAVAX_SCOPE = ClassName("javax.inject", "Scope")
 val JAVAX_INJECT = ClassName("javax.inject", "Inject")
@@ -288,6 +289,9 @@ fun AstType.toVariableName(): String =
         .joinToString("_") { it.replaceFirstChar(Char::lowercase) } +
         joinArgumentTypeNames()
 
+fun AstAnnotated.optInAnnotation(): AnnotationSpec? =
+    annotation(OPT_IN.packageName, OPT_IN.simpleName)?.toAnnotationSpec()
+
 private fun AstType.joinArgumentTypeNames(): String = when {
     arguments.isEmpty() -> ""
     else -> arguments.joinToString(separator = "") {
@@ -298,9 +302,6 @@ private fun AstType.joinArgumentTypeNames(): String = when {
             it.joinArgumentTypeNames()
     }
 }
-
-private fun AstAnnotated.optInAnnotation(): AnnotationSpec? =
-    annotation(OPT_IN.packageName, OPT_IN.simpleName)?.toAnnotationSpec()
 
 private fun dumpGraph(astClass: AstClass, entries: List<TypeResult.Provider>): String {
     val out = StringBuilder(astClass.name).append("\n")
