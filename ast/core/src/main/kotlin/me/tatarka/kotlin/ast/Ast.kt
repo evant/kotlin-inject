@@ -139,6 +139,8 @@ abstract class AstConstructor(private val parent: AstClass) : AstElement(), AstA
 }
 
 abstract class AstFunction : AstMember() {
+    abstract val annotations: Sequence<AstAnnotation>
+
     abstract val parameters: List<AstParam>
 
     abstract val isSuspend: Boolean

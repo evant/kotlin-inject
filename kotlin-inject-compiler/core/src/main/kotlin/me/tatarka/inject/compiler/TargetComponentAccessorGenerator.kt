@@ -4,7 +4,6 @@ import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
-import me.tatarka.inject.annotations.TargetComponentAccessor
 import me.tatarka.kotlin.ast.AstClass
 import me.tatarka.kotlin.ast.AstFunction
 import me.tatarka.kotlin.ast.AstProvider
@@ -26,8 +25,9 @@ class TargetComponentAccessorGenerator(
                     .builder(astFunction.name)
                     .addOriginatingElement(astFunction)
                     .apply {
-                        addAnnotation(TargetComponentAccessor::class)
-                        astFunction.optInAnnotation()?.let(::addAnnotation)
+                        astFunction.annotations.forEach { annotation ->
+                            addAnnotation(annotation.toAnnotationSpec())
+                        }
 
                         addModifiers(
                             astFunction.visibility.toKModifier(),

@@ -308,6 +308,11 @@ private class KSAstFunction(override val resolver: Resolver, override val declar
             KSAstParam(resolver, null, param)
         }
 
+    override val annotations: Sequence<AstAnnotation>
+        get() = declaration.annotations.map { annotation ->
+            KSAstAnnotation(resolver, annotation)
+        }
+
     override val name: String
         get() = declaration.simpleName.asString()
 
