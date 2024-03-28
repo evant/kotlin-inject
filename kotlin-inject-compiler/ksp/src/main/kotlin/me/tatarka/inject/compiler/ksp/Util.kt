@@ -5,6 +5,7 @@ import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSDeclaration
+import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.KSTypeParameter
 import com.google.devtools.ksp.symbol.KSTypeReference
@@ -125,6 +126,28 @@ fun Resolver.getSymbolsWithClassAnnotation(packageName: String, simpleName: Stri
                     yield(declaration)
                 }
                 visit(declaration.declarations)
+            }
+        }
+    }
+    return sequence {
+        for (file in getNewFiles()) {
+            visit(file.declarations)
+        }
+    }
+}
+
+/**
+ * A 'fast' version of [Resolver.getSymbolsWithAnnotation]. We only care about function annotations so we can skip a lot
+ * of the tree.
+ */
+fun Resolver.getSymbolsWithFunctionAnnotation(
+    packageName: String,
+    simpleName: String
+): Sequence<KSFunctionDeclaration> {
+    suspend fun SequenceScope<KSFunctionDeclaration>.visit(declarations: Sequence<KSDeclaration>) {
+        for (declaration in declarations) {
+            if (declaration is KSFunctionDeclaration && declaration.hasAnnotation(packageName, simpleName)) {
+                yield(declaration)
             }
         }
     }

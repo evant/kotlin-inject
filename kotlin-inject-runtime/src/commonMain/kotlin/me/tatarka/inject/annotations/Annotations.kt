@@ -27,3 +27,6 @@ annotation class IntoMap
 
 @Target(VALUE_PARAMETER)
 annotation class Assisted
+
+@Target(FUNCTION)
+annotation class TargetComponentAccessor
