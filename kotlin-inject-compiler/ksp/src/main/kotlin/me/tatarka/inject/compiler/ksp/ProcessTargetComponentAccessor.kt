@@ -17,13 +17,14 @@ internal fun processTargetComponentAccessor(
 ): Boolean = with(provider) {
     val astFunction = element.toAstFunction()
     val returnType = astFunction.returnType
-    val returnTypeClass by lazy { returnType.resolvedType().toAstClass() }
 
     // the generated actual function will be annotated with TargetComponentAccessor
     // KSP will process them as well so we need to ignore them
     if (astFunction.isActual && element.findExpects().firstOrNull() != null) return true
     if (!astFunction.validateIsExpect(provider)) return true
     if (returnType.isError) return false
+
+    val returnTypeClass = returnType.resolvedType().toAstClass()
     if (!astFunction.validateReturnType(returnTypeClass, provider)) return true
 
     process(astFunction, returnTypeClass, codeGenerator, targetComponentAccessorGenerator)
