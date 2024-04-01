@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
-
 plugins {
     id("kotlin-inject.multiplatform")
     id("kotlin-inject.detekt")
@@ -8,7 +6,7 @@ plugins {
 }
 
 dependencies {
-    kspCommonMainMetadata(project(":kotlin-inject-compiler:kotlin-inject-compiler-ksp"))
+    addAllKspTargets(kotlin, project(":kotlin-inject-compiler:kotlin-inject-compiler-ksp"))
 }
 
 kotlin {
@@ -32,12 +30,12 @@ kotlin {
                 implementation(libs.assertk)
             }
         }
-    }
-}
-
-tasks.withType(KotlinCompilationTask::class.java).configureEach {
-    if(name != "kspCommonMainKotlinMetadata") {
-        dependsOn("kspCommonMainKotlinMetadata")
+        nativeMain {
+            kotlin.srcDir("../common-native/src/main/kotlin")
+        }
+        nativeTest {
+            kotlin.srcDir("../common-native/src/test/kotlin")
+        }
     }
 }
 

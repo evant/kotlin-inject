@@ -1099,4 +1099,51 @@ class FailureTest {
             contains("Cannot apply multiple qualifiers: [@Qualifier1, @Qualifier2]")
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun fails_if_target_component_accessor_function_is_not_an_expect_fun(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+
+        assertFailure {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                import me.tatarka.inject.annotations.Component
+                import me.tatarka.inject.annotations.TargetComponentAccessor
+                
+                @Component abstract class MyComponent
+                
+                @TargetComponentAccessor
+                fun createKmp(): MyComponent {}
+                """.trimIndent()
+            ).compile()
+        }.output().all {
+            contains("createKmp should be an expect fun")
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun fails_if_target_component_accessor_function_does_not_return_a_type_annotated_with_component(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+
+        assertFailure {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                import me.tatarka.inject.annotations.TargetComponentAccessor
+                
+                @TargetComponentAccessor
+                expect fun createKmp()
+                
+                @TargetComponentAccessor
+                expect fun createKmp2(): String
+                """.trimIndent()
+            ).compile()
+        }.output().all {
+            contains("createKmp's return type should be a type annotated with @Component")
+            contains("createKmp2's return type should be a type annotated with @Component")
+        }
+    }
 }

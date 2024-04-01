@@ -14,7 +14,6 @@ internal fun processTargetComponentAccessor(
     provider: KSAstProvider,
     codeGenerator: CodeGenerator,
     targetComponentAccessorGenerator: TargetComponentAccessorGenerator,
-    skipValidation: Boolean = false,
 ): Boolean = with(provider) {
     val astFunction = element.toAstFunction()
     val returnType = astFunction.returnType
@@ -24,7 +23,7 @@ internal fun processTargetComponentAccessor(
     // KSP will process them as well so we need to ignore them
     if (astFunction.isActual && element.findExpects().firstOrNull() != null) return true
     if (!astFunction.validateIsExpect(provider)) return true
-    if (!skipValidation && returnType.isError) return false
+    if (returnType.isError) return false
     if (!astFunction.validateReturnType(returnTypeClass, provider)) return true
 
     process(astFunction, returnTypeClass, codeGenerator, targetComponentAccessorGenerator)

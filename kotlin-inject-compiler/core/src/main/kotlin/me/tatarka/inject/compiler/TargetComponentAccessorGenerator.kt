@@ -4,13 +4,10 @@ import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
-import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.plusParameter
-import com.squareup.kotlinpoet.asClassName
 import me.tatarka.inject.annotations.TargetComponentAccessor
 import me.tatarka.kotlin.ast.AstClass
 import me.tatarka.kotlin.ast.AstFunction
 import me.tatarka.kotlin.ast.AstProvider
-import kotlin.reflect.KClass
 
 class TargetComponentAccessorGenerator(
     private val provider: AstProvider,
@@ -22,7 +19,7 @@ class TargetComponentAccessorGenerator(
     ) = with(provider) {
         FileSpec.builder(
             packageName = astFunction.packageName,
-            fileName = "Target${returnTypeClass.name}Accessor",
+            fileName = astFunction.filename(returnTypeClass),
         ).apply {
             addFunction(
                 FunSpec
@@ -43,7 +40,8 @@ class TargetComponentAccessorGenerator(
                             addParameter(param.name, param.type.toTypeName())
                         }
 
-                        val funcParams = astFunction.parameters.joinToString { it.name }
+                        val funcParams = astFunction.parameters.joinToString { "%N" }
+                        val funcParamsNames = astFunction.parameters.map { it.name }.toTypedArray()
 
                         val returnTypeCompanion = when {
                             options.generateCompanionExtensions -> returnTypeClass.companion?.type
@@ -52,13 +50,15 @@ class TargetComponentAccessorGenerator(
 
                         val returnTypeName = returnTypeClass.type.toTypeName()
 
+                        val (createReceiver, createReceiverClassName) = when (returnTypeCompanion) {
+                            null -> "%T::class" to returnTypeClass.toClassName()
+                            else -> "%T" to returnTypeCompanion.toAstClass().toClassName()
+                        }
                         addCode(
                             CodeBlock.of(
-                                "return %T.create($funcParams)",
-                                when (returnTypeCompanion) {
-                                    null -> KClass::class.asClassName().plusParameter(returnTypeName)
-                                    else -> returnTypeCompanion
-                                },
+                                "return $createReceiver.create($funcParams)",
+                                createReceiverClassName,
+                                *funcParamsNames
                             ),
                         )
 
@@ -66,5 +66,13 @@ class TargetComponentAccessorGenerator(
                     }.build(),
             )
         }.build()
+    }
+
+    private fun AstFunction.filename(returnTypeClass: AstClass) = buildString {
+        append("Target")
+        append(returnTypeClass.name)
+        receiverParameterType?.simpleName?.filter { it.isLetter() }?.let(::append)
+        append(name.replaceFirstChar(Char::uppercase))
+        append("Accessor")
     }
 }

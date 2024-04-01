@@ -69,13 +69,7 @@ class InjectProcessor(
         deferredClasses = mutableListOf()
 
         for (element in deferredFunctions) {
-            processTargetComponentAccessor(
-                element,
-                provider,
-                codeGenerator,
-                targetComponentAccessorGenerator,
-                skipValidation = true
-            )
+            processTargetComponentAccessor(element, provider, codeGenerator, targetComponentAccessorGenerator)
         }
         deferredFunctions = mutableListOf()
     }

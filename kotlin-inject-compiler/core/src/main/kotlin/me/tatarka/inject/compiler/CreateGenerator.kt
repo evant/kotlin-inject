@@ -83,7 +83,7 @@ class CreateGenerator(private val astProvider: AstProvider, private val options:
                         if (i != 0) {
                             codeBlock.add(", ")
                         }
-                        codeBlock.add("%L", parameter.name)
+                        codeBlock.add("%N", parameter.name)
                     }
                 }
                 codeBlock.add(")")
