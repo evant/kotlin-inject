@@ -285,27 +285,53 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                 val existing = methods.firstOrNull {
                     it.name == method.name && (it.signatureEquals(method) || it.overrides(method))
                 }
-                if (existing != null) {
-                    // mark provides if it overrides one that's annotated
-                    if (method.isProvides()) {
-                        isProvides[existing] = true
-                    }
 
-                    if (methodScopeTypes.isNotEmpty()) {
-                        val existingScopeTypes = scopeTypes[existing]
-                        if (existingScopeTypes == null) {
-                            scopeTypes[existing] = methodScopeTypes
-                        } else {
-                            if (existingScopeTypes != methodScopeTypes) {
-                                scopedMethodsWithScopedSuperMethod[existing] = method to methodScopeTypes
+                when {
+                    existing != null && method.overrides(existing) -> {
+                        // When we find a function that overrides the existing one, then we need to update all entries
+                        // for the new method and remove the existing one, because it has higher priority.
+                        methods.add(method)
+                        methods.remove(existing)
+
+                        isProvides[method] = existing.isProvides() || method.isProvides()
+                        isProvides.remove(existing)
+
+                        if (methodScopeTypes.isNotEmpty()) {
+                            val existingScopeTypes = scopeTypes[existing]
+                            if (existingScopeTypes == null) {
+                                scopeTypes[method] = methodScopeTypes
+                            } else {
+                                if (existingScopeTypes != methodScopeTypes) {
+                                    scopedMethodsWithScopedSuperMethod[method] = existing to existingScopeTypes
+                                }
+                            }
+                        }
+                        scopedMethodsWithScopedSuperMethod.remove(existing)
+                        scopeTypes.remove(existing)
+                    }
+                    existing != null -> {
+                        // mark provides if it overrides one that's annotated
+                        if (method.isProvides()) {
+                            isProvides[existing] = true
+                        }
+
+                        if (methodScopeTypes.isNotEmpty()) {
+                            val existingScopeTypes = scopeTypes[existing]
+                            if (existingScopeTypes == null) {
+                                scopeTypes[existing] = methodScopeTypes
+                            } else {
+                                if (existingScopeTypes != methodScopeTypes) {
+                                    scopedMethodsWithScopedSuperMethod[existing] = method to methodScopeTypes
+                                }
                             }
                         }
                     }
-                } else {
-                    methods.add(method)
-                    isProvides[method] = method.isProvides()
-                    if (methodScopeTypes.isNotEmpty()) {
-                        scopeTypes[method] = methodScopeTypes
+                    else -> {
+                        methods.add(method)
+                        isProvides[method] = method.isProvides()
+                        if (methodScopeTypes.isNotEmpty()) {
+                            scopeTypes[method] = methodScopeTypes
+                        }
                     }
                 }
             }
