@@ -15,35 +15,6 @@ class WarningTest {
     @TempDir
     lateinit var workingDir: File
 
-    @Suppress("UnusedParameter")
-    @ParameterizedTest
-    @EnumSource(Target::class)
-    fun warns_on_implicit_assisted_params(target: Target) {
-        val projectCompiler = ProjectCompiler(target, workingDir)
-
-        assertThat(
-            projectCompiler.source(
-                "MyComponent.kt",
-                """
-                import me.tatarka.inject.annotations.Component
-                import me.tatarka.inject.annotations.Inject
-                import me.tatarka.inject.annotations.Provides
-                import me.tatarka.inject.annotations.Assisted
-                
-                @Inject class Bar
-                @Inject class Foo(val bar: Bar, assisted: String)
-                
-                @Component abstract class MyComponent {
-                    abstract fun foo(): (String) -> Foo
-                }
-                """.trimIndent()
-            ).compile()
-        ).warnings().all {
-            contains("Implicit assisted parameters are deprecated and will be removed in a future version.")
-            contains("Annotate the following with @Assisted: [assisted: String]")
-        }
-    }
-
     @ParameterizedTest
     @EnumSource(Target::class)
     fun warns_on_scope_on_provider_method_which_is_ignored(target: Target) {

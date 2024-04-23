@@ -135,7 +135,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         return paramsWithName
     }
 
-    // old behavior where the last args are used, warn.
+    // old behavior where the last args are used, error.
     private fun resolveParamsLegacy(
         context: Context,
         element: AstElement,
@@ -167,9 +167,9 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         }
 
         if (resolvedImplicitly.isNotEmpty()) {
-            provider.warn(
+            provider.error(
                 """
-                Implicit assisted parameters are deprecated and will be removed in a future version.
+                Implicit assisted parameters are no longer supported.
                 Annotate the following with @Assisted: [${resolvedImplicitly.joinToString()}]
                 """.trimIndent(),
                 element
