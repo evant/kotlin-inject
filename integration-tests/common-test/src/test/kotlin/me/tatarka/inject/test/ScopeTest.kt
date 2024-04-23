@@ -3,6 +3,7 @@ package me.tatarka.inject.test
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotNull
+import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isSameInstanceAs
 import me.tatarka.inject.test.different.DifferentPackageScopedComponent
 import me.tatarka.inject.test.different.create
@@ -141,5 +142,15 @@ class ScopeTest {
 
         assertThat(component.holder.foo).isSameInstanceAs(component.holder.foo)
         assertThat(component.holder.foo2).isSameInstanceAs(component.holder.foo2)
+    }
+
+    @Test
+    fun generates_a_component_that_scopes_values_based_on_scope_arguments() {
+        val parent = ParentScopeWithArgComponent::class.create()
+        val child1 = ChildScopeWithArgComponent::class.create(parent)
+        val child2 = ChildScopeWithArgComponent::class.create(parent)
+
+        assertThat(child1.parentFoo).isSameInstanceAs(child2.parentFoo)
+        assertThat(child1.childFoo).isNotSameInstanceAs(child2.childFoo)
     }
 }

@@ -39,7 +39,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
         private val providerTypes = mutableMapOf<TypeKey, ProviderMethod>()
 
         // Map of scoped components and the accessors to obtain them
-        private val scopedAccessors = mutableMapOf<AstType, ScopedComponent>()
+        private val scopedAccessors = mutableMapOf<AstAnnotation, ScopedComponent>()
 
         private val parents = mutableListOf<Result>()
 
@@ -77,9 +77,9 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
             return results
         }
 
-        fun scopedAccessor(type: AstType): Pair<ScopedComponent, Result>? {
+        fun scopedAccessor(scope: AstAnnotation): Pair<ScopedComponent, Result>? {
             for (result in iterator()) {
-                val component = result.scopedAccessors[type]
+                val component = result.scopedAccessors[scope]
                 if (component != null) return component to result
             }
             return null
@@ -189,7 +189,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
             containerKey: ContainerKey,
             method: AstMember,
             accessor: Accessor,
-            scope: AstType?,
+            scope: AstAnnotation?,
             scopedComponent: AstClass?,
         ) {
             val current = type(containerKey.containerTypeKey(provider))
@@ -206,7 +206,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
             key: TypeKey,
             method: AstMember,
             accessor: Accessor,
-            scope: AstType?,
+            scope: AstAnnotation?,
             scopedComponent: AstClass?,
         ) {
             val oldValue = types[key]
@@ -234,7 +234,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
             }
         }
 
-        private fun method(method: AstMember, accessor: Accessor, scope: AstType?, scopedComponent: AstClass?) = Method(
+        private fun method(method: AstMember, accessor: Accessor, scope: AstAnnotation?, scopedComponent: AstClass?) = Method(
             method = method,
             accessor = accessor,
             scope = scope,
@@ -252,14 +252,14 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
         return typeInfoCache.getOrPut(astClass.toString()) {
             val isComponent = astClass.isComponent()
 
-            val providesMethods = mutableListOf<Pair<AstMember, AstType?>>()
+            val providesMethods = mutableListOf<Pair<AstMember, AstAnnotation?>>()
             val providerMethods = mutableListOf<AstMember>()
 
             var scopeClass: AstClass? = null
-            var elementScope: AstType? = null
+            var elementScope: AstAnnotation? = null
 
             for (parentClass in astClass.inheritanceChain()) {
-                val parentScope = parentClass.scopeType(options)
+                val parentScope = parentClass.scope(options)
                 if (parentScope != null) {
                     if (elementScope == null) {
                         scopeClass = parentClass
@@ -278,10 +278,10 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
             // some methods may override others
             val methods = mutableListOf<AstMember>()
             val isProvides = mutableMapOf<AstMember, Boolean>()
-            val scopeTypes = mutableMapOf<AstMember, Set<AstType>>()
-            val scopedMethodsWithScopedSuperMethod = mutableMapOf<AstMember, Pair<AstMember, Set<AstType>>>()
+            val scopes = mutableMapOf<AstMember, Set<AstAnnotation>>()
+            val scopedMethodsWithScopedSuperMethod = mutableMapOf<AstMember, Pair<AstMember, Set<AstAnnotation>>>()
             for (method in allMethods) {
-                val methodScopeTypes = method.scopeTypes(options).toSet()
+                val methodScopes = method.scopes(options).toSet()
                 val existing = methods.firstOrNull {
                     it.name == method.name && (it.signatureEquals(method) || it.overrides(method))
                 }
@@ -296,18 +296,18 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                         isProvides[method] = existing.isProvides() || method.isProvides()
                         isProvides.remove(existing)
 
-                        if (methodScopeTypes.isNotEmpty()) {
-                            val existingScopeTypes = scopeTypes[existing]
-                            if (existingScopeTypes == null) {
-                                scopeTypes[method] = methodScopeTypes
+                        if (methodScopes.isNotEmpty()) {
+                            val existingScopes = scopes[existing]
+                            if (existingScopes == null) {
+                                scopes[method] = methodScopes
                             } else {
-                                if (existingScopeTypes != methodScopeTypes) {
-                                    scopedMethodsWithScopedSuperMethod[method] = existing to existingScopeTypes
+                                if (existingScopes != methodScopes) {
+                                    scopedMethodsWithScopedSuperMethod[method] = existing to existingScopes
                                 }
                             }
                         }
                         scopedMethodsWithScopedSuperMethod.remove(existing)
-                        scopeTypes.remove(existing)
+                        scopes.remove(existing)
                     }
                     existing != null -> {
                         // mark provides if it overrides one that's annotated
@@ -315,13 +315,13 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                             isProvides[existing] = true
                         }
 
-                        if (methodScopeTypes.isNotEmpty()) {
-                            val existingScopeTypes = scopeTypes[existing]
+                        if (methodScopes.isNotEmpty()) {
+                            val existingScopeTypes = scopes[existing]
                             if (existingScopeTypes == null) {
-                                scopeTypes[existing] = methodScopeTypes
+                                scopes[existing] = methodScopes
                             } else {
-                                if (existingScopeTypes != methodScopeTypes) {
-                                    scopedMethodsWithScopedSuperMethod[existing] = method to methodScopeTypes
+                                if (existingScopeTypes != methodScopes) {
+                                    scopedMethodsWithScopedSuperMethod[existing] = method to methodScopes
                                 }
                             }
                         }
@@ -329,32 +329,32 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                     else -> {
                         methods.add(method)
                         isProvides[method] = method.isProvides()
-                        if (methodScopeTypes.isNotEmpty()) {
-                            scopeTypes[method] = methodScopeTypes
+                        if (methodScopes.isNotEmpty()) {
+                            scopes[method] = methodScopes
                         }
                     }
                 }
             }
             for (method in methods) {
                 val abstract = method.isAbstract
-                val methodScopeTypes = scopeTypes[method]
+                val methodScopes = scopes[method]
                 if (isProvides.getValue(method)) {
-                    var methodScope: AstType? = null
-                    if (methodScopeTypes != null) {
+                    var methodScope: AstAnnotation? = null
+                    if (methodScopes != null) {
                         val scopedMethodWithScopedSuperMethod = scopedMethodsWithScopedSuperMethod[method]
-                        if (methodScopeTypes.size > 1) {
-                            provider.error("Cannot apply multiple scopes: $methodScopeTypes", method)
+                        if (methodScopes.size > 1) {
+                            provider.error("Cannot apply multiple scopes: $methodScopes", method)
                             continue
                         } else if (scopedMethodWithScopedSuperMethod != null) {
                             val (scopedSuperMethod, superMethodScopes) = scopedMethodWithScopedSuperMethod
-                            provider.error("Cannot apply scope: ${methodScopeTypes.first()}", method)
+                            provider.error("Cannot apply scope: ${methodScopes.first()}", method)
                             provider.error(
-                                "as scope: ${(superMethodScopes - methodScopeTypes).first()} is already applied",
+                                "as scope: ${(superMethodScopes - methodScopes).first()} is already applied",
                                 scopedSuperMethod
                             )
                             continue
                         } else {
-                            methodScope = methodScopeTypes.first()
+                            methodScope = methodScopes.first()
                         }
                     }
 
@@ -385,9 +385,9 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                         providesMethods.add(method to methodScope)
                     }
                 } else if (method.isProvider()) {
-                    if (methodScopeTypes != null) {
+                    if (methodScopes != null) {
                         provider.warn(
-                            "Scope: @${methodScopeTypes.first().simpleName} has no effect." +
+                            "Scope: @${methodScopes.first()} has no effect." +
                                 " Place on @Provides function or @Inject constructor instead.",
                             method
                         )
@@ -407,10 +407,10 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
 }
 
 class TypeInfo(
-    val providesMethods: List<Pair<AstMember, AstType?>> = emptyList(),
+    val providesMethods: List<Pair<AstMember, AstAnnotation?>> = emptyList(),
     val providerMethods: List<AstMember> = emptyList(),
     val scopeClass: AstClass? = null,
-    val elementScope: AstType? = null,
+    val elementScope: AstAnnotation? = null,
     val valid: Boolean = true,
 )
 
@@ -422,7 +422,7 @@ class ProviderMethod(
 class Method(
     val method: AstMember,
     val accessor: Accessor = Accessor.Empty,
-    val scope: AstType? = null,
+    val scope: AstAnnotation? = null,
     val scopedComponent: AstClass? = null,
 )
 

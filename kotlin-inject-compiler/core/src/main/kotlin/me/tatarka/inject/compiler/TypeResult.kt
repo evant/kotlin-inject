@@ -1,6 +1,7 @@
 package me.tatarka.inject.compiler
 
 import com.squareup.kotlinpoet.MemberName
+import me.tatarka.kotlin.ast.AstAnnotation
 import me.tatarka.kotlin.ast.AstType
 
 /**
@@ -66,7 +67,7 @@ sealed class TypeResult {
      */
     class Constructor(
         val type: AstType,
-        val scope: AstType?,
+        val scope: AstAnnotation?,
         val outerClass: TypeResultRef?,
         val parameters: Map<String, TypeResultRef>,
         val supportsNamedArguments: Boolean,

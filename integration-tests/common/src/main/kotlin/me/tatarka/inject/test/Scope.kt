@@ -236,3 +236,25 @@ abstract class SuperclassScopeFooComponent : BaseSuperclassScopeFooComponent {
 
     companion object
 }
+
+@Scope
+annotation class ScopeWithArg(val value: String)
+
+@Inject
+@ScopeWithArg("parent")
+class ScopedParentFoo
+
+@Inject
+@ScopeWithArg("child")
+class ScopedChildFoo
+
+@Component
+@ScopeWithArg("parent")
+abstract class ParentScopeWithArgComponent
+
+@Component
+@ScopeWithArg("child")
+abstract class ChildScopeWithArgComponent(@Component val parent: ParentScopeWithArgComponent) {
+    abstract val parentFoo: ScopedParentFoo
+    abstract val childFoo: ScopedChildFoo
+}
