@@ -2,7 +2,6 @@ package me.tatarka.inject.test
 
 import assertk.all
 import assertk.assertFailure
-import assertk.assertThat
 import assertk.assertions.contains
 import assertk.assertions.doesNotContain
 import me.tatarka.inject.ProjectCompiler
@@ -1061,9 +1060,8 @@ class FailureTest {
                 """.trimIndent()
             ).compile()
         }.output().all {
-            contains("Implicit assisted parameters are no longer supported.")
+            contains("Implicit assisted parameters is no longer supported.")
             contains("Annotate the following with @Assisted: [assisted: String]")
         }
     }
-
 }

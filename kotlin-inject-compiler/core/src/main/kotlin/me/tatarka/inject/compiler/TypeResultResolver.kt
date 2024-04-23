@@ -169,7 +169,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         if (resolvedImplicitly.isNotEmpty()) {
             provider.error(
                 """
-                Implicit assisted parameters are no longer supported.
+                Implicit assisted parameters is no longer supported.
                 Annotate the following with @Assisted: [${resolvedImplicitly.joinToString()}]
                 """.trimIndent(),
                 element
