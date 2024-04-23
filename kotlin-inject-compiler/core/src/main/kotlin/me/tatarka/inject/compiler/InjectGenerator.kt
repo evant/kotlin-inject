@@ -48,7 +48,7 @@ class InjectGenerator(
     private val createGenerator = CreateGenerator(provider, options)
     private val typeCollector = TypeCollector(provider, options)
 
-    var scopeType: AstType? = null
+    var scope: AstAnnotation? = null
         private set
 
     fun generate(astClass: AstClass): FileSpec {
@@ -82,7 +82,7 @@ class InjectGenerator(
         val context = collectTypes(astClass, injectName)
         val resolver = TypeResultResolver(provider, options)
         val scope = context.types.scopeClass
-        scopeType = scope?.scopeType(options)
+        this.scope = scope?.scope(options)
 
         return with(provider) {
             TypeSpec.classBuilder(context.className)
@@ -192,18 +192,18 @@ class InjectGenerator(
     }
 }
 
-fun AstAnnotated.scopeType(options: Options): AstType? {
-    return scopeTypes(options).firstOrNull()
+fun AstAnnotated.scope(options: Options): AstAnnotation? {
+    return scopes(options).firstOrNull()
 }
 
-fun AstAnnotated.scopeTypes(options: Options): Sequence<AstType> {
+fun AstAnnotated.scopes(options: Options): Sequence<AstAnnotation> {
     val scopeAnnotations = annotationsAnnotatedWith(SCOPE.packageName, SCOPE.simpleName).map { annotation ->
-        annotation.type
+        annotation
     }
 
     if (options.enableJavaxAnnotations) {
         return annotationsAnnotatedWith(JAVAX_SCOPE.packageName, JAVAX_SCOPE.simpleName).map { annotation ->
-            annotation.type
+            annotation
         } + scopeAnnotations
     }
     return scopeAnnotations

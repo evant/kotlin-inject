@@ -556,8 +556,12 @@ private class KSAstAnnotation(private val resolver: Resolver, val annotation: KS
     }
 
     override fun toString(): String {
-        return "$annotation(${
-            annotation.arguments.joinToString(", ") { arg -> "${arg.name?.asString()}=${arg.value}" }
-        })"
+        return if (annotation.arguments.isEmpty()) {
+            annotation.toString()
+        } else {
+            "$annotation(${
+                annotation.arguments.joinToString(", ") { arg -> "${arg.name?.asString()}=${arg.value}" }
+            })"
+        }
     }
 }

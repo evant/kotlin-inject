@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+- `@Scope` annotations now take arguments into account. This means for example, if you have
+  ```kotlin
+  @Scope
+  annotation class NamedScope(val value: String)
+   ```
+  then the scope: `@NamedScope("one")` and `@NamedScope("two")` would be treated as distinct. Previously they were
+  treated as the same scope.
+
 ### Removed
 - The KAPT backend is removed, please migrate to KSP if you haven't already.
 
