@@ -234,12 +234,13 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
             }
         }
 
-        private fun method(method: AstMember, accessor: Accessor, scope: AstAnnotation?, scopedComponent: AstClass?) = Method(
-            method = method,
-            accessor = accessor,
-            scope = scope,
-            scopedComponent = scopedComponent
-        )
+        private fun method(method: AstMember, accessor: Accessor, scope: AstAnnotation?, scopedComponent: AstClass?) =
+            Method(
+                method = method,
+                accessor = accessor,
+                scope = scope,
+                scopedComponent = scopedComponent
+            )
 
         private fun duplicate(key: TypeKey, newValue: AstElement, oldValue: AstElement) {
             provider.error("Cannot provide: $key", newValue)
@@ -309,6 +310,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                         scopedMethodsWithScopedSuperMethod.remove(existing)
                         scopes.remove(existing)
                     }
+
                     existing != null -> {
                         // mark provides if it overrides one that's annotated
                         if (method.isProvides()) {
@@ -326,6 +328,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                             }
                         }
                     }
+
                     else -> {
                         methods.add(method)
                         isProvides[method] = method.isProvides()
