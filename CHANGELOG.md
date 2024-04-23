@@ -17,6 +17,30 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   treated as the same scope.
 - Legacy implicit assisted injection (not using the `@Assisted` annotation) is now an error.
 
+### Added
+
+- Added a `me.tatarka.inject.annotations.Qualifier` annotation as an alternative to using typealias. For example, you
+  could do:
+  ```kotlin
+  @Qualifier
+  annotation class Named(val value: String) 
+  
+  @Inject
+  class MyClass(@Named("one") val one: String, @Named("two") val two: String)
+  
+  @Component
+  abstract class MyComponent {
+    abstract val myClass: MyClass
+  
+    @Provides @Named("one")
+    fun provideOne(): String = "one"
+  
+    @Provides @Named("two")
+    fun provideTwo(): String = "two" 
+  }
+  ```
+  This behaves the same as `javax.inject.Qualifier` does when you have `me.tatarka.inject.enableJavaxAnnotations=true`.
+
 ### Removed
 - The KAPT backend is removed, please migrate to KSP if you haven't already.
 
