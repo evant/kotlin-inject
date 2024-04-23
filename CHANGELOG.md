@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   then the scope: `@NamedScope("one")` and `@NamedScope("two")` would be treated as distinct. Previously they were
   treated as the same scope.
 - Legacy implicit assisted injection (not using the `@Assisted` annotation) is now an error.
+- The build will now fail if multiple qualifiers are applied in the same place, instead of picking the first one. This
+  applies both to the new annotation (see below) and `javax.inject.Qualifier`. A minor exception is you are allowed to
+  have one of each type to aid in migration. In that case the `me.tatarka.inject` one will be chosen.
 
 ### Added
 
