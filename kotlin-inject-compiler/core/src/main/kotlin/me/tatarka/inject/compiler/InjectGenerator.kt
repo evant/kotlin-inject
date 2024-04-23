@@ -30,6 +30,7 @@ val INJECT = ClassName(ANNOTATION_PACKAGE_NAME, "Inject")
 val INTO_MAP = ClassName(ANNOTATION_PACKAGE_NAME, "IntoMap")
 val INTO_SET = ClassName(ANNOTATION_PACKAGE_NAME, "IntoSet")
 val ASSISTED = ClassName(ANNOTATION_PACKAGE_NAME, "Assisted")
+val QUALIFIER = ClassName(ANNOTATION_PACKAGE_NAME, "Qualifier")
 
 val JAVAX_SCOPE = ClassName("javax.inject", "Scope")
 val JAVAX_INJECT = ClassName("javax.inject", "Inject")
@@ -241,6 +242,8 @@ fun AstClass.findInjectConstructors(messenger: Messenger, options: Options): Ast
 }
 
 fun AstAnnotated.qualifier(options: Options): AstAnnotation? {
+    val qualifier = annotationAnnotatedWith(QUALIFIER.packageName, QUALIFIER.simpleName)
+    if (qualifier != null) return qualifier
     return if (options.enableJavaxAnnotations) {
         annotationAnnotatedWith(JAVAX_QUALIFIER.packageName, JAVAX_QUALIFIER.simpleName)
     } else {

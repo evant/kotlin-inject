@@ -27,3 +27,6 @@ annotation class IntoMap
 
 @Target(VALUE_PARAMETER)
 annotation class Assisted
+
+@Target(ANNOTATION_CLASS)
+annotation class Qualifier
