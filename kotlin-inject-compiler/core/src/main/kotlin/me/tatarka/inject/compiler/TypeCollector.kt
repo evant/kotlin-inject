@@ -387,7 +387,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                 } else if (method.isProvider()) {
                     if (methodScopes != null) {
                         provider.warn(
-                            "Scope: @${methodScopes.first()} has no effect." +
+                            "Scope: ${methodScopes.first()} has no effect." +
                                 " Place on @Provides function or @Inject constructor instead.",
                             method
                         )

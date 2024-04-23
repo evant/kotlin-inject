@@ -424,8 +424,8 @@ class FailureTest {
                 """.trimIndent()
             ).compile()
         }.output().all {
-            contains("Cannot apply scope: MyScope1")
-            contains("as scope: MyScope2 is already applied")
+            contains("Cannot apply scope: @MyScope1")
+            contains("as scope: @MyScope2 is already applied")
         }
     }
 
@@ -447,8 +447,8 @@ class FailureTest {
                 """.trimIndent()
             ).compile()
         }.output().all {
-            contains("Cannot apply scope: MyScope1")
-            contains("as scope: MyScope1 is already applied to parent")
+            contains("Cannot apply scope: @MyScope1")
+            contains("as scope: @MyScope1 is already applied to parent")
         }
     }
 
@@ -547,7 +547,7 @@ class FailureTest {
             ).compile()
         }.output().all {
             contains(
-                "@Provides with scope: MyScope cannot be provided in an unscoped component"
+                "@Provides with scope: @MyScope cannot be provided in an unscoped component"
             )
         }
     }
@@ -573,7 +573,7 @@ class FailureTest {
             ).compile()
         }.output().all {
             contains(
-                "@Provides with scope: MyScope2 must match component scope: MyScope1"
+                "@Provides with scope: @MyScope2 must match component scope: @MyScope1"
             )
         }
     }
@@ -907,8 +907,8 @@ class FailureTest {
                 """.trimIndent()
             ).compile()
         }.output().all {
-            contains("Cannot apply multiple scopes: [FooSingleton, FooSingleton2]")
-            contains("Cannot apply multiple scopes: [FooSingleton, FooSingleton3]")
+            contains("Cannot apply multiple scopes: [@FooSingleton, @FooSingleton2]")
+            contains("Cannot apply multiple scopes: [@FooSingleton, @FooSingleton3]")
         }
     }
 
@@ -966,11 +966,11 @@ class FailureTest {
                 """.trimIndent()
             ).compile()
         }.output().all {
-            contains("Cannot apply scope: FooSingleton2")
-            contains("as scope: FooSingleton is already applied")
+            contains("Cannot apply scope: @FooSingleton2")
+            contains("as scope: @FooSingleton is already applied")
 
-            contains("Cannot apply scope: FooSingleton")
-            contains("as scope: FooSingleton2 is already applied")
+            contains("Cannot apply scope: @FooSingleton")
+            contains("as scope: @FooSingleton2 is already applied")
         }
     }
 
@@ -1028,11 +1028,11 @@ class FailureTest {
                 """.trimIndent()
             ).compile()
         }.output().all {
-            contains("Cannot apply scope: FooSingleton2")
-            contains("as scope: FooSingleton is already applied")
+            contains("Cannot apply scope: @FooSingleton2")
+            contains("as scope: @FooSingleton is already applied")
 
-            contains("Cannot apply scope: FooSingleton")
-            contains("as scope: FooSingleton2 is already applied")
+            contains("Cannot apply scope: @FooSingleton")
+            contains("as scope: @FooSingleton2 is already applied")
         }
     }
 }

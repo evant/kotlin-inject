@@ -82,7 +82,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     ): Map<String, TypeResultRef> {
         if (scope != null) {
             throw FailedToGenerateException(
-                "Cannot apply scope: @${scope} to type with @Assisted parameters: [${
+                "Cannot apply scope: $scope to type with @Assisted parameters: [${
                     params.filter { it.isAssisted() }.joinToString()
                 }]"
             )
@@ -176,7 +176,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             )
             if (scope != null) {
                 throw FailedToGenerateException(
-                    "Cannot apply scope: @${scope} to type with @Assisted parameters: [${
+                    "Cannot apply scope: $scope to type with @Assisted parameters: [${
                         resolvedImplicitly.joinToString()
                     }]"
                 )
@@ -355,13 +355,13 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
                 buildString {
                     val scope = result.astClass.scope(options)
                     if (scope != null) {
-                        append("@$scope ")
+                        append("$scope ")
                     }
                     append(result.astClass)
                 }
             }
             throw FailedToGenerateException(
-                """Cannot find component with scope: @$scope to inject $astClass
+                """Cannot find component with scope: $scope to inject $astClass
                     |checked: [${checkedComponents.joinToString(", ")}]
                 """.trimMargin(),
                 astClass,
@@ -418,7 +418,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     ): TypeResult {
         if (scope != null && method is AstFunction && method.isSuspend) {
             throw FailedToGenerateException(
-                "@Provides scoped with @${scope} cannot be suspend, consider returning Deferred<T> instead."
+                "@Provides scoped with $scope cannot be suspend, consider returning Deferred<T> instead."
             )
         }
         return withCycleDetection(key, method) {
