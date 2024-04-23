@@ -17,7 +17,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
         return if (!typeInfo.valid) {
             Result(astClass, null, emptyList())
         } else {
-            val result = Result(astClass, typeInfo.scopeClass, typeInfo.providerMethods)
+            val result = Result(astClass, typeInfo.scopeClass, typeInfo.providerMembers)
             result.collectTypes(astClass, accessor, typeInfo)
             result
         }
@@ -26,17 +26,17 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
     inner class Result internal constructor(
         val astClass: AstClass,
         val scopeClass: AstClass?,
-        val providerMethods: List<AstMember>,
+        val providerMembers: List<TypeInfo.ProviderMember>,
     ) {
         // Map of types to inject and how to obtain them.
-        private val types = mutableMapOf<TypeKey, Method>()
+        private val types = mutableMapOf<TypeKey, Member>()
 
         // Map of container types to inject. Used for multibinding.
-        private val containerTypes = mutableMapOf<ContainerKey, MutableList<Method>>()
+        private val containerTypes = mutableMapOf<ContainerKey, MutableList<Member>>()
 
         // Map of types obtained from generated provider methods. This can be used for lookup when the underlying method
         // is not available (ex: because we only see an interface, or it's marked protected).
-        private val providerTypes = mutableMapOf<TypeKey, ProviderMethod>()
+        private val providerTypes = mutableMapOf<TypeKey, ProviderMember>()
 
         // Map of scoped components and the accessors to obtain them
         private val scopedAccessors = mutableMapOf<AstAnnotation, ScopedComponent>()
@@ -50,7 +50,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
             }
         }
 
-        fun providerType(key: TypeKey): Pair<ProviderMethod, Result>? {
+        fun providerType(key: TypeKey): Pair<ProviderMember, Result>? {
             for (result in iterator()) {
                 val type = result.providerTypes[key]
                 if (type != null) return type to result
@@ -58,7 +58,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
             return null
         }
 
-        fun type(key: TypeKey): Pair<Method, Result>? {
+        fun type(key: TypeKey): Pair<Member, Result>? {
             for (result in iterator()) {
                 val type = result.types[key]
                 if (type != null) return type to result
@@ -66,8 +66,8 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
             return null
         }
 
-        fun containerArgs(key: ContainerKey): List<Pair<Method, Result>> {
-            val results = mutableListOf<Pair<Method, Result>>()
+        fun containerArgs(key: ContainerKey): List<Pair<Member, Result>> {
+            val results = mutableListOf<Pair<Member, Result>>()
             for (result in iterator()) {
                 val types = result.containerTypes[key]
                 if (types != null) {
@@ -92,32 +92,32 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
             typeInfo: TypeInfo,
         ) {
             if (accessor.isNotEmpty()) {
-                for (method in typeInfo.providerMethods) {
+                for ((method, qualifier) in typeInfo.providerMembers) {
                     val returnType = method.returnTypeFor(astClass)
-                    val key = TypeKey(returnType, method.qualifier(options))
+                    val key = TypeKey(returnType, qualifier)
                     addProviderMethod(key, method, accessor)
                 }
             }
 
-            for ((method, scope) in typeInfo.providesMethods) {
+            for ((member, qualifier, scope) in typeInfo.providesMembers) {
                 if (scope != null && scope != typeInfo.elementScope) {
                     if (typeInfo.elementScope != null) {
                         provider.error(
                             "@Provides with scope: $scope must match component scope: ${typeInfo.elementScope}",
-                            method
+                            member
                         )
                     } else {
                         provider.error(
                             "@Provides with scope: $scope cannot be provided in an unscoped component",
-                            method
+                            member
                         )
                     }
                 }
                 val scopedComponent = if (scope != null) astClass else null
-                if (method.hasAnnotation(INTO_MAP.packageName, INTO_MAP.simpleName)) {
+                if (member.hasAnnotation(INTO_MAP.packageName, INTO_MAP.simpleName)) {
                     // Pair<A, B> -> Map<A, B>
-                    val returnType = method.returnTypeFor(astClass)
-                    val key = TypeKey(returnType, method.qualifier(options))
+                    val returnType = member.returnTypeFor(astClass)
+                    val key = TypeKey(returnType, qualifier)
                     val resolvedType = returnType.resolvedType()
                     if (resolvedType.isPair()) {
                         val containerKey = ContainerKey.MapKey(
@@ -125,28 +125,28 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                             resolvedType.arguments[1],
                             key.qualifier
                         )
-                        addContainerType(provider, key, containerKey, method, accessor, scope, scopedComponent)
+                        addContainerType(provider, key, containerKey, member, accessor, scope, scopedComponent)
                     } else {
-                        provider.error("@IntoMap must have return type of type Pair", method)
+                        provider.error("@IntoMap must have return type of type Pair", member)
                     }
-                } else if (method.hasAnnotation(INTO_SET.packageName, INTO_SET.simpleName)) {
+                } else if (member.hasAnnotation(INTO_SET.packageName, INTO_SET.simpleName)) {
                     // A -> Set<A>
-                    val returnType = method.returnTypeFor(astClass)
-                    val key = TypeKey(returnType, method.qualifier(options))
+                    val returnType = member.returnTypeFor(astClass)
+                    val key = TypeKey(returnType, qualifier)
                     val containerKey = ContainerKey.SetKey(returnType, key.qualifier)
-                    addContainerType(provider, key, containerKey, method, accessor, scope, scopedComponent)
+                    addContainerType(provider, key, containerKey, member, accessor, scope, scopedComponent)
                 } else {
-                    val returnType = method.returnTypeFor(astClass)
-                    val key = TypeKey(returnType, method.qualifier(options))
+                    val returnType = member.returnTypeFor(astClass)
+                    val key = TypeKey(returnType, qualifier)
                     if (accessor.isNotEmpty()) {
                         // May have already added from a resolvable provider
                         if (providerTypes.containsKey(key)) continue
                         // We out outside the current class, so complain if not accessible
-                        if (method.visibility == AstVisibility.PROTECTED) {
-                            provider.error("@Provides method is not accessible", method)
+                        if (member.visibility == AstVisibility.PROTECTED) {
+                            provider.error("@Provides method is not accessible", member)
                         }
                     }
-                    addMethod(key, method, accessor, scope, scopedComponent)
+                    addMethod(key, member, accessor, scope, scopedComponent)
                 }
             }
 
@@ -157,7 +157,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                         val elemAstClass = parameter.type.toAstClass()
                         val elemTypeInfo = collectTypeInfo(elemAstClass)
 
-                        val parentResult = Result(elemAstClass, scopeClass, providerMethods)
+                        val parentResult = Result(elemAstClass, scopeClass, providerMembers)
                         parents.add(parentResult)
                         parentResult.collectTypes(
                             astClass = elemAstClass,
@@ -227,15 +227,15 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
             types[key] = method(method, accessor, scope, scopedComponent)
         }
 
-        private fun addProviderMethod(key: TypeKey, method: AstMember, accessor: Accessor) {
+        private fun addProviderMethod(key: TypeKey, member: AstMember, accessor: Accessor) {
             // Skip adding if already provided by child component.
             if (!providerTypes.containsKey(key)) {
-                providerTypes[key] = ProviderMethod(method, accessor)
+                providerTypes[key] = ProviderMember(member, accessor)
             }
         }
 
         private fun method(method: AstMember, accessor: Accessor, scope: AstAnnotation?, scopedComponent: AstClass?) =
-            Method(
+            Member(
                 method = method,
                 accessor = accessor,
                 scope = scope,
@@ -253,8 +253,8 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
         return typeInfoCache.getOrPut(astClass.toString()) {
             val isComponent = astClass.isComponent()
 
-            val providesMethods = mutableListOf<Pair<AstMember, AstAnnotation?>>()
-            val providerMethods = mutableListOf<AstMember>()
+            val providesMembers = mutableListOf<TypeInfo.ProvidesMember>()
+            val providerMembers = mutableListOf<TypeInfo.ProviderMember>()
 
             var scopeClass: AstClass? = null
             var elementScope: AstAnnotation? = null
@@ -338,19 +338,19 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                     }
                 }
             }
-            for (method in methods) {
-                val abstract = method.isAbstract
-                val methodScopes = scopes[method]
-                if (isProvides.getValue(method)) {
+            for (member in methods) {
+                val abstract = member.isAbstract
+                val methodScopes = scopes[member]
+                if (isProvides.getValue(member)) {
                     var methodScope: AstAnnotation? = null
                     if (methodScopes != null) {
-                        val scopedMethodWithScopedSuperMethod = scopedMethodsWithScopedSuperMethod[method]
+                        val scopedMethodWithScopedSuperMethod = scopedMethodsWithScopedSuperMethod[member]
                         if (methodScopes.size > 1) {
-                            provider.error("Cannot apply multiple scopes: $methodScopes", method)
+                            provider.error("Cannot apply multiple scopes: $methodScopes", member)
                             continue
                         } else if (scopedMethodWithScopedSuperMethod != null) {
                             val (scopedSuperMethod, superMethodScopes) = scopedMethodWithScopedSuperMethod
-                            provider.error("Cannot apply scope: ${methodScopes.first()}", method)
+                            provider.error("Cannot apply scope: ${methodScopes.first()}", member)
                             provider.error(
                                 "as scope: ${(superMethodScopes - methodScopes).first()} is already applied",
                                 scopedSuperMethod
@@ -361,47 +361,58 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                         }
                     }
 
-                    if (method.visibility == AstVisibility.PRIVATE) {
-                        provider.error("@Provides method must not be private", method)
+                    if (member.visibility == AstVisibility.PRIVATE) {
+                        provider.error("@Provides method must not be private", member)
                         continue
                     }
-                    if (method.returnType.isUnit()) {
-                        provider.error("@Provides method must return a value", method)
+                    if (member.returnType.isUnit()) {
+                        provider.error("@Provides method must return a value", member)
                         continue
                     }
-                    if (method.returnType.isPlatform()) {
-                        val name = method.returnType.simpleName
+                    if (member.returnType.isPlatform()) {
+                        val name = member.returnType.simpleName
                         provider.error(
                             """@Provides method must not return a platform type
                                 |This can happen when you call a platform method and leave off an explicit return type.
                                 |You can fix this be explicitly declaring the return type as $name or $name?"""
                                 .trimMargin(),
-                            method
+                            member
                         )
                         continue
                     }
 
                     if (isComponent && abstract) {
-                        provider.error("@Provides method must have a concrete implementation", method)
+                        provider.error("@Provides method must have a concrete implementation", member)
                         continue
                     } else {
-                        providesMethods.add(method to methodScope)
+                        providesMembers.add(
+                            TypeInfo.ProvidesMember(
+                                member,
+                                member.qualifier(provider, options),
+                                methodScope
+                            )
+                        )
                     }
-                } else if (method.isProvider()) {
+                } else if (member.isProvider()) {
                     if (methodScopes != null) {
                         provider.warn(
                             "Scope: ${methodScopes.first()} has no effect." +
                                 " Place on @Provides function or @Inject constructor instead.",
-                            method
+                            member
                         )
                     }
-                    providerMethods.add(method)
+                    providerMembers.add(
+                        TypeInfo.ProviderMember(
+                            member,
+                            member.qualifier(provider, options)
+                        )
+                    )
                 }
             }
 
             TypeInfo(
-                providesMethods = providesMethods,
-                providerMethods = providerMethods,
+                providesMembers = providesMembers,
+                providerMembers = providerMembers,
                 scopeClass = scopeClass,
                 elementScope = elementScope
             )
@@ -410,19 +421,30 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
 }
 
 class TypeInfo(
-    val providesMethods: List<Pair<AstMember, AstAnnotation?>> = emptyList(),
-    val providerMethods: List<AstMember> = emptyList(),
+    val providesMembers: List<ProvidesMember> = emptyList(),
+    val providerMembers: List<ProviderMember> = emptyList(),
     val scopeClass: AstClass? = null,
     val elementScope: AstAnnotation? = null,
     val valid: Boolean = true,
-)
+) {
+    data class ProvidesMember(
+        val member: AstMember,
+        val qualifier: AstAnnotation?,
+        val scope: AstAnnotation?,
+    )
 
-class ProviderMethod(
+    data class ProviderMember(
+        val member: AstMember,
+        val qualifier: AstAnnotation?,
+    )
+}
+
+class ProviderMember(
     val method: AstMember,
     val accessor: Accessor,
 )
 
-class Method(
+class Member(
     val method: AstMember,
     val accessor: Accessor = Accessor.Empty,
     val scope: AstAnnotation? = null,
