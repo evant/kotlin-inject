@@ -71,8 +71,8 @@ tasks.withType<KotlinNpmInstallTask> {
 }
 
 rootProject.the<NodeJsRootExtension>().apply {
-    nodeVersion = "22.0.0-v8-canary20240423a2eb2005bd"
-    nodeDownloadBaseUrl = "https://nodejs.org/download/v8-canary"
+    nodeVersion = "22.0.0-nightly202404032241e8c5b3"
+    nodeDownloadBaseUrl = "https://nodejs.org/download/nightly"
 }
 
 rootProject.tasks.withType<KotlinNpmInstallTask>().configureEach {
