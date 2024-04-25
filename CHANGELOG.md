@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
    ```
   then the scope: `@NamedScope("one")` and `@NamedScope("two")` would be treated as distinct. Previously they were
   treated as the same scope.
+- Legacy implicit assisted injection (not using the `@Assisted` annotation) is now an error.
 
 ### Removed
 - The KAPT backend is removed, please migrate to KSP if you haven't already.

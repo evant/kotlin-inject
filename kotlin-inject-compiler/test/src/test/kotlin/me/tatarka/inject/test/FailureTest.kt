@@ -1035,4 +1035,33 @@ class FailureTest {
             contains("as scope: @FooSingleton2 is already applied")
         }
     }
+
+    @Suppress("UnusedParameter")
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun fails_on_implicit_assisted_params(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+
+        assertFailure {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                import me.tatarka.inject.annotations.Component
+                import me.tatarka.inject.annotations.Inject
+                import me.tatarka.inject.annotations.Provides
+                import me.tatarka.inject.annotations.Assisted
+                
+                @Inject class Bar
+                @Inject class Foo(val bar: Bar, assisted: String)
+                
+                @Component abstract class MyComponent {
+                    abstract fun foo(): (String) -> Foo
+                }
+                """.trimIndent()
+            ).compile()
+        }.output().all {
+            contains("Implicit assisted parameters is no longer supported.")
+            contains("Annotate the following with @Assisted: [assisted: String]")
+        }
+    }
 }
