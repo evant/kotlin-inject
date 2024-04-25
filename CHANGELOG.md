@@ -16,6 +16,33 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   then the scope: `@NamedScope("one")` and `@NamedScope("two")` would be treated as distinct. Previously they were
   treated as the same scope.
 - Legacy implicit assisted injection (not using the `@Assisted` annotation) is now an error.
+- The build will now fail if multiple qualifiers are applied in the same place, instead of picking the first one. This
+  applies both to the new annotation (see below) and `javax.inject.Qualifier`. A minor exception is you are allowed to
+  have one of each type to aid in migration. In that case the `me.tatarka.inject` one will be chosen.
+
+### Added
+
+- Added a `me.tatarka.inject.annotations.Qualifier` annotation as an alternative to using typealias. For example, you
+  could do:
+  ```kotlin
+  @Qualifier
+  annotation class Named(val value: String) 
+  
+  @Inject
+  class MyClass(@Named("one") val one: String, @Named("two") val two: String)
+  
+  @Component
+  abstract class MyComponent {
+    abstract val myClass: MyClass
+  
+    @Provides @Named("one")
+    fun provideOne(): String = "one"
+  
+    @Provides @Named("two")
+    fun provideTwo(): String = "two" 
+  }
+  ```
+  This behaves the same as `javax.inject.Qualifier` does when you have `me.tatarka.inject.enableJavaxAnnotations=true`.
 
 ### Removed
 - The KAPT backend is removed, please migrate to KSP if you haven't already.

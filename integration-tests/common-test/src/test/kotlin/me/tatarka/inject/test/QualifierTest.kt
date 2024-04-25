@@ -55,4 +55,20 @@ class QualifierTest {
             }
         }
     }
+
+    @Test
+    fun generates_a_component_that_constructs_different_values_based_on_a_qualifier_annotation() {
+        val component = NamedComponent::class.create()
+
+        assertThat(component.one).isEqualTo("one")
+        assertThat(component.two).isEqualTo("two")
+    }
+
+    @Test
+    fun generates_a_component_that_constructs_different_scoped_values_based_on_a_qualifier_annotation() {
+        val component = ScopedNamedComponent::class.create()
+
+        assertThat(component.one).isEqualTo("one")
+        assertThat(component.two).isEqualTo("two")
+    }
 }

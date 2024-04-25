@@ -13,6 +13,7 @@ import me.tatarka.kotlin.ast.AstAnnotated
 import me.tatarka.kotlin.ast.AstAnnotation
 import me.tatarka.kotlin.ast.AstClass
 import me.tatarka.kotlin.ast.AstConstructor
+import me.tatarka.kotlin.ast.AstElement
 import me.tatarka.kotlin.ast.AstFunction
 import me.tatarka.kotlin.ast.AstMember
 import me.tatarka.kotlin.ast.AstProperty
@@ -20,7 +21,6 @@ import me.tatarka.kotlin.ast.AstProvider
 import me.tatarka.kotlin.ast.AstType
 import me.tatarka.kotlin.ast.AstVisibility
 import me.tatarka.kotlin.ast.Messenger
-import me.tatarka.kotlin.ast.annotationAnnotatedWith
 
 private const val ANNOTATION_PACKAGE_NAME = "me.tatarka.inject.annotations"
 val COMPONENT = ClassName(ANNOTATION_PACKAGE_NAME, "Component")
@@ -30,6 +30,7 @@ val INJECT = ClassName(ANNOTATION_PACKAGE_NAME, "Inject")
 val INTO_MAP = ClassName(ANNOTATION_PACKAGE_NAME, "IntoMap")
 val INTO_SET = ClassName(ANNOTATION_PACKAGE_NAME, "IntoSet")
 val ASSISTED = ClassName(ANNOTATION_PACKAGE_NAME, "Assisted")
+val QUALIFIER = ClassName(ANNOTATION_PACKAGE_NAME, "Qualifier")
 
 val JAVAX_SCOPE = ClassName("javax.inject", "Scope")
 val JAVAX_INJECT = ClassName("javax.inject", "Inject")
@@ -230,22 +231,47 @@ fun AstClass.findInjectConstructors(messenger: Messenger, options: Options): Ast
             messenger.error("Cannot annotate constructor with @Inject in an @Inject-annotated class", this)
             null
         }
+
         isInject -> primaryConstructor
         injectCtors.size > 1 -> {
             messenger.error("Class cannot contain multiple @Inject-annotated constructors", this)
             null
         }
+
         injectCtors.isNotEmpty() -> injectCtors.first()
         else -> null
     }
 }
 
-fun AstAnnotated.qualifier(options: Options): AstAnnotation? {
+fun <E> E.qualifier(provider: AstProvider, options: Options): AstAnnotation? where E : AstElement, E : AstAnnotated {
+    // check our qualifier annotation first, then check the javax qualifier annotation. This allows you to have both
+    // in case your in the middle of a migration.
+    val qualifier = checkQualifiers(
+        provider,
+        this,
+        annotationsAnnotatedWith(QUALIFIER.packageName, QUALIFIER.simpleName).toList()
+    )
+    if (qualifier != null) return qualifier
     return if (options.enableJavaxAnnotations) {
-        annotationAnnotatedWith(JAVAX_QUALIFIER.packageName, JAVAX_QUALIFIER.simpleName)
+        checkQualifiers(
+            provider,
+            this,
+            annotationsAnnotatedWith(JAVAX_QUALIFIER.packageName, JAVAX_QUALIFIER.simpleName).toList()
+        )
     } else {
         null
     }
+}
+
+private fun checkQualifiers(
+    provider: AstProvider,
+    element: AstElement,
+    qualifiers: List<AstAnnotation>,
+): AstAnnotation? {
+    if (qualifiers.size > 1) {
+        provider.error("Cannot apply multiple qualifiers: $qualifiers", element)
+    }
+    return qualifiers.firstOrNull()
 }
 
 fun AstMember.isProvider(): Boolean =
