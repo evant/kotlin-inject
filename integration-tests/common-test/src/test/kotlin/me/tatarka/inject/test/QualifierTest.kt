@@ -62,6 +62,9 @@ class QualifierTest {
 
         assertThat(component.one).isEqualTo("one")
         assertThat(component.two).isEqualTo("two")
+        assertThat(component.three).isEqualTo("three")
+        assertThat(component.four).isEqualTo("four")
+        assertThat(component.five).isEqualTo("five")
     }
 
     @Test
@@ -70,5 +73,6 @@ class QualifierTest {
 
         assertThat(component.one).isEqualTo("one")
         assertThat(component.two).isEqualTo("two")
+        assertThat(component.three).isEqualTo("three")
     }
 }

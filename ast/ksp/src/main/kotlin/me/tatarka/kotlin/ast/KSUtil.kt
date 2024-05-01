@@ -2,6 +2,7 @@ package me.tatarka.kotlin.ast
 
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSAnnotation
+import com.google.devtools.ksp.symbol.KSClassifierReference
 import com.google.devtools.ksp.symbol.KSDeclaration
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
@@ -25,12 +26,55 @@ internal fun KSAnnotated.annotationsAnnotatedWith(packageName: String, simpleNam
     }
 }
 
+internal fun KSTypeReference.annotationsAnnotatedWith(packageName: String, simpleName: String): Sequence<KSAnnotation> {
+    val annotations = annotations.mapNotNull { annotation ->
+        val t = annotation.annotationType.resolve()
+        if (t.declaration.hasAnnotation(packageName, simpleName)) {
+            annotation
+        } else {
+            null
+        }
+    }
+    ifTypeAlias {
+        return annotations + it.annotationsAnnotatedWith(packageName, simpleName)
+    }
+    return annotations
+}
+
 internal fun KSAnnotated.annotations(packageName: String, simpleName: String): Sequence<KSAnnotation> {
     return annotations.filter { it.hasName(packageName, simpleName) }
 }
 
+internal fun KSTypeReference.annotations(packageName: String, simpleName: String): Sequence<KSAnnotation> {
+    val annotations = (this as KSAnnotated).annotations(packageName, simpleName)
+    ifTypeAlias {
+        return annotations + it.annotations(packageName, simpleName)
+    }
+    return annotations
+}
+
 internal fun KSAnnotated.hasAnnotation(packageName: String, simpleName: String): Boolean {
     return annotations.any { it.hasName(packageName, simpleName) }
+}
+
+internal fun KSTypeReference.hasAnnotation(packageName: String, simpleName: String): Boolean {
+    if ((this as KSAnnotated).hasAnnotation(packageName, simpleName)) {
+        return true
+    }
+    ifTypeAlias {
+        return it.hasAnnotation(packageName, simpleName)
+    }
+    return false
+}
+
+internal inline fun KSTypeReference.ifTypeAlias(block: (KSTypeReference) -> Unit) {
+    // resolve through type aliases
+    if (element is KSClassifierReference) {
+        val declaration = resolve().declaration
+        if (declaration is KSTypeAlias) {
+            block(declaration.type)
+        }
+    }
 }
 
 private fun KSAnnotation.hasName(packageName: String, simpleName: String): Boolean =

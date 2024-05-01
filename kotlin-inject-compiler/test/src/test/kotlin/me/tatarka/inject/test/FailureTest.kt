@@ -1146,4 +1146,71 @@ class FailureTest {
             contains("createKmp2's return type should be a type annotated with @Component")
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun fails_if_multiple_qualifiers_are_applied_to_prop_and_type(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+
+        assertFailure {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                import me.tatarka.inject.annotations.Component
+                import me.tatarka.inject.annotations.Inject
+                import me.tatarka.inject.annotations.Provides
+                import me.tatarka.inject.annotations.Qualifier
+                
+                @Qualifier
+                annotation class Qualifier1
+                
+                @Qualifier
+                @Target(AnnotationTarget.TYPE)
+                annotation class Qualifier2
+                
+                @Component
+                abstract class MultipleQualifiersComponent {
+                    @Qualifier1
+                    abstract val foo: String
+                    
+                    @Qualifier1
+                    @Provides fun providesFoo(): @Qualifier2 String = "test"
+                }
+                """.trimIndent()
+            ).compile()
+        }.output().all {
+            contains("Cannot apply multiple qualifiers: [@Qualifier1, @Qualifier2]")
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun fails_if_multiple_qualifier_is_applied_to_generic_type(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+
+        assertFailure {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                import me.tatarka.inject.annotations.Component
+                import me.tatarka.inject.annotations.Inject
+                import me.tatarka.inject.annotations.Provides
+                import me.tatarka.inject.annotations.Qualifier
+                
+                @Qualifier
+                @Target(AnnotationTarget.TYPE)
+                annotation class MyQualifier
+                
+                @Component
+                abstract class MultipleQualifiersComponent {
+                    abstract val foo: List<@MyQualifier String>
+                    
+                    @Provides fun providesFoo(): List<@MyQualifier String> = "test"
+                }
+                """.trimIndent()
+            ).compile()
+        }.output().all {
+            contains("Qualifier: @MyQualifier can only be applied to the outer type")
+        }
+    }
 }

@@ -532,6 +532,18 @@ private class KSAstType private constructor(
         }.shortenPackage()
     }
 
+    override fun hasAnnotation(packageName: String, simpleName: String): Boolean {
+        return typeRef.hasAnnotation(packageName, simpleName)
+    }
+
+    override fun annotation(packageName: String, simpleName: String): AstAnnotation? {
+        return typeRef.annotations(packageName, simpleName).firstOrNull()?.let { KSAstAnnotation(resolver, it) }
+    }
+
+    override fun annotationsAnnotatedWith(packageName: String, simpleName: String): Sequence<AstAnnotation> {
+        return typeRef.annotationsAnnotatedWith(packageName, simpleName).map { KSAstAnnotation(resolver, it) }
+    }
+
     override fun toTypeName(): TypeName {
         return typeRef.toTypeName()
     }

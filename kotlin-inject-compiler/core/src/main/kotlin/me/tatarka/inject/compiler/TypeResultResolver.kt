@@ -91,7 +91,9 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         var assistedFailed = false
         val args = context.args.toMutableList()
         for (param in params) {
-            val key = TypeKey(param.type, param.qualifier(provider, options))
+            val type = param.type
+            val qualifier = qualifier(provider, options, param, type)
+            val key = TypeKey(type, qualifier)
             if (param.isAssisted()) {
                 val arg = args.removeFirstOrNull()
                 if (arg != null) {
@@ -148,7 +150,9 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         val resolvedImplicitly = mutableListOf<AstParam>()
         for ((i, param) in params.withIndex()) {
             val indexFromEnd = size - i - 1
-            val key = TypeKey(param.type, param.qualifier(provider, options))
+            val type = param.type
+            val qualifier = qualifier(provider, options, param, type)
+            val key = TypeKey(type, qualifier)
             val arg = args.getOrNull(indexFromEnd)
             if (arg != null) {
                 val (type, name) = arg
@@ -475,7 +479,9 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         return TypeResult.Container(
             creator = creator,
             args = args.map { (arg, types) ->
-                val key = TypeKey(arg.method.returnType, arg.method.qualifier(provider, options))
+                val returnType = arg.method.returnType
+                val qualifier = qualifier(provider, options, arg.method, returnType)
+                val key = TypeKey(returnType, qualifier)
                 TypeResultRef(key, mapArg(key, arg, types))
             }
         )

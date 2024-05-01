@@ -388,7 +388,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                         providesMembers.add(
                             TypeInfo.ProvidesMember(
                                 member,
-                                member.qualifier(provider, options),
+                                qualifier(provider, options, member, member.returnType),
                                 methodScope
                             )
                         )
@@ -404,7 +404,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                     providerMembers.add(
                         TypeInfo.ProviderMember(
                             member,
-                            member.qualifier(provider, options)
+                            qualifier(provider, options, member, member.returnType),
                         )
                     )
                 }
