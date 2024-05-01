@@ -23,7 +23,7 @@ abstract class JavaxComponent {
 }
 
 @Component
-abstract class NamedComponent {
+abstract class JavaxNamedComponent {
 
     @get:Named("one")
     abstract val one: String
@@ -40,7 +40,7 @@ abstract class NamedComponent {
 
 @Component
 @JavaxScope
-abstract class ScopedNamedComponent {
+abstract class JavaxScopedNamedComponent {
 
     @get:Named("one")
     abstract val one: String
@@ -68,7 +68,7 @@ class JavaxAnnotationTest {
 
     @Test
     fun generates_a_component_that_supports_the_named_qualifier() {
-        val component = NamedComponent::class.create()
+        val component = JavaxNamedComponent::class.create()
 
         assertThat(component.one).isEqualTo("one")
         assertThat(component.two).isEqualTo("two")
@@ -76,7 +76,7 @@ class JavaxAnnotationTest {
 
     @Test
     fun generates_a_scoped_component_that_supports_the_named_qualifier() {
-        val component = ScopedNamedComponent::class.create()
+        val component = JavaxScopedNamedComponent::class.create()
 
         assertThat(component.one).isEqualTo("one")
         assertThat(component.two).isEqualTo("two")

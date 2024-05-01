@@ -197,7 +197,7 @@ private val DEFAULT_IMPORTS = arrayOf(
     "kotlin.text"
 )
 
-abstract class AstType : AstElement() {
+abstract class AstType : AstElement(), AstAnnotated {
 
     abstract val packageName: String
 
