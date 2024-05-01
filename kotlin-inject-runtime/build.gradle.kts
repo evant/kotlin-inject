@@ -12,7 +12,7 @@ kotlin {
         common {
             group("commonJs") {
                 withJs()
-                withWasm()
+                withWasmJs()
             }
         }
     }
