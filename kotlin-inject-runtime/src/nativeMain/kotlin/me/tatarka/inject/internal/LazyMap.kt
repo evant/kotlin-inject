@@ -1,13 +1,14 @@
 package me.tatarka.inject.internal
 
-import kotlinx.atomicfu.locks.ReentrantLock
+import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
 
 private val NULL = Any()
 
 actual class LazyMap {
     private val map = mutableMapOf<String, Any>()
-    private val lock = ReentrantLock()
+
+    private val lock = reentrantLock()
 
     actual fun <T> get(key: String, init: () -> T): T {
         return lock.withLock {
