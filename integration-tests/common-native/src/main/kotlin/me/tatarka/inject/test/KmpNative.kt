@@ -1,6 +1,6 @@
 package me.tatarka.inject.test
 
-import me.tatarka.inject.annotations.TargetComponentAccessor
+import me.tatarka.inject.annotations.KmpComponentCreator
 
-@TargetComponentAccessor
+@KmpComponentCreator
 expect fun createNative(): KmpComponent2

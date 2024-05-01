@@ -1,7 +1,7 @@
 package me.tatarka.inject.test
 
 import me.tatarka.inject.annotations.Component
-import me.tatarka.inject.annotations.TargetComponentAccessor
+import me.tatarka.inject.annotations.KmpComponentCreator
 
 @Component
 abstract class KmpComponent
@@ -18,11 +18,11 @@ abstract class KmpComponentWithParams(
 @Component
 abstract class KmpComponent2
 
-@TargetComponentAccessor
+@KmpComponentCreator
 expect fun createKmp(): KmpComponent
 
 @Suppress("LocalVariableName")
-@TargetComponentAccessor
+@KmpComponentCreator
 expect fun createKmp(
     `data`: Any,
     `val`: Any,

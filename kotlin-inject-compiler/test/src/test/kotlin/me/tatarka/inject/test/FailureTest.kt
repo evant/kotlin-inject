@@ -1110,11 +1110,11 @@ class FailureTest {
                 "MyComponent.kt",
                 """
                 import me.tatarka.inject.annotations.Component
-                import me.tatarka.inject.annotations.TargetComponentAccessor
+                import me.tatarka.inject.annotations.KmpComponentCreator
                 
                 @Component abstract class MyComponent
                 
-                @TargetComponentAccessor
+                @KmpComponentCreator
                 fun createKmp(): MyComponent {}
                 """.trimIndent()
             ).compile()
@@ -1132,12 +1132,12 @@ class FailureTest {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
-                import me.tatarka.inject.annotations.TargetComponentAccessor
+                import me.tatarka.inject.annotations.KmpComponentCreator
                 
-                @TargetComponentAccessor
+                @KmpComponentCreator
                 expect fun createKmp()
                 
-                @TargetComponentAccessor
+                @KmpComponentCreator
                 expect fun createKmp2(): String
                 """.trimIndent()
             ).compile()

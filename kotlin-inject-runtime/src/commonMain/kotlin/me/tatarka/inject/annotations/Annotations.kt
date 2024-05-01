@@ -32,4 +32,4 @@ annotation class Assisted
 annotation class Qualifier
 
 @Target(FUNCTION)
-annotation class TargetComponentAccessor
+annotation class KmpComponentCreator
