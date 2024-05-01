@@ -49,8 +49,8 @@ kotlin {
 
     targets.all {
         compilations.all {
-            kotlinOptions {
-                allWarningsAsErrors = true
+            compileTaskProvider.configure {
+                compilerOptions.allWarningsAsErrors = true
             }
         }
     }
