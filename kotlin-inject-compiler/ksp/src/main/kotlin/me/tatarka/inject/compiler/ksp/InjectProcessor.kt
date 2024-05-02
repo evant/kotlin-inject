@@ -14,6 +14,8 @@ import me.tatarka.inject.compiler.InjectGenerator
 import me.tatarka.inject.compiler.KMP_COMPONENT_CREATE
 import me.tatarka.inject.compiler.KmpComponentCreateGenerator
 import me.tatarka.inject.compiler.Options
+import me.tatarka.kotlin.ast.AstClass
+import me.tatarka.kotlin.ast.AstFunction
 import me.tatarka.kotlin.ast.KSAstProvider
 
 class InjectProcessor(
@@ -27,6 +29,8 @@ class InjectProcessor(
     private lateinit var kmpComponentCreateGenerator: KmpComponentCreateGenerator
     private var deferredClasses: List<KSClassDeclaration> = mutableListOf()
     private var deferredFunctions: List<KSFunctionDeclaration> = mutableListOf()
+
+    private val kmpComponentCreateFunctionsByComponentType = mutableMapOf<AstClass, MutableList<AstFunction>>()
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
         provider = KSAstProvider(resolver, logger)
@@ -49,7 +53,7 @@ class InjectProcessor(
             simpleName = KMP_COMPONENT_CREATE.simpleName
         )
         deferredFunctions = kmpComponentCreateSymbols.filterNot { element ->
-            processKmpComponentCreate(element, provider, codeGenerator, kmpComponentCreateGenerator)
+            processKmpComponentCreate(element, provider, kmpComponentCreateFunctionsByComponentType)
         }
 
         return deferredClasses + deferredFunctions
@@ -69,8 +73,16 @@ class InjectProcessor(
         deferredClasses = mutableListOf()
 
         for (element in deferredFunctions) {
-            processKmpComponentCreate(element, provider, codeGenerator, kmpComponentCreateGenerator)
+            processKmpComponentCreate(element, provider, kmpComponentCreateFunctionsByComponentType)
         }
+
+        generateKmpComponentCreateFiles(
+            codeGenerator,
+            kmpComponentCreateGenerator,
+            kmpComponentCreateFunctionsByComponentType
+        )
+        kmpComponentCreateFunctionsByComponentType.clear()
+
         deferredFunctions = mutableListOf()
     }
 }
