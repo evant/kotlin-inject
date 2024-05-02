@@ -18,7 +18,7 @@ class KmpComponentCreateGenerator(
     ) = with(provider) {
         FileSpec.builder(
             packageName = astFunction.packageName,
-            fileName = astFunction.filename(returnTypeClass),
+            fileName = "KmpComponentCreate${returnTypeClass.name}",
         ).apply {
             addFunction(
                 FunSpec
@@ -66,13 +66,5 @@ class KmpComponentCreateGenerator(
                     }.build(),
             )
         }.build()
-    }
-
-    private fun AstFunction.filename(returnTypeClass: AstClass) = buildString {
-        append("Target")
-        append(returnTypeClass.name)
-        receiverParameterType?.simpleName?.filter { it.isLetter() }?.let(::append)
-        append(name.replaceFirstChar(Char::uppercase))
-        append("Accessor")
     }
 }
