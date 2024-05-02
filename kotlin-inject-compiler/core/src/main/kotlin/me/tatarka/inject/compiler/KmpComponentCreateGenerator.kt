@@ -13,58 +13,60 @@ class KmpComponentCreateGenerator(
     private val options: Options,
 ) {
     fun generate(
-        astFunction: AstFunction,
-        returnTypeClass: AstClass,
+        componentClass: AstClass,
+        kmpComponentCreateFunctions: List<AstFunction>,
     ) = with(provider) {
         FileSpec.builder(
-            packageName = astFunction.packageName,
-            fileName = "KmpComponentCreate${returnTypeClass.name}",
+            packageName = componentClass.packageName,
+            fileName = "KmpComponentCreate${componentClass.name}",
         ).apply {
-            addFunction(
-                FunSpec
-                    .builder(astFunction.name)
-                    .addOriginatingElement(astFunction)
-                    .apply {
-                        astFunction.annotations.forEach { annotation ->
-                            addAnnotation(annotation.toAnnotationSpec())
-                        }
+            kmpComponentCreateFunctions.forEach { kmpComponentCreateFunction ->
+                addFunction(
+                    FunSpec
+                        .builder(kmpComponentCreateFunction.name)
+                        .addOriginatingElement(kmpComponentCreateFunction)
+                        .apply {
+                            kmpComponentCreateFunction.annotations.forEach { annotation ->
+                                addAnnotation(annotation.toAnnotationSpec())
+                            }
 
-                        addModifiers(
-                            astFunction.visibility.toKModifier(),
-                            KModifier.ACTUAL,
-                        )
+                            addModifiers(
+                                kmpComponentCreateFunction.visibility.toKModifier(),
+                                KModifier.ACTUAL,
+                            )
 
-                        astFunction.receiverParameterType?.toTypeName()?.let(::receiver)
+                            kmpComponentCreateFunction.receiverParameterType?.toTypeName()?.let(::receiver)
 
-                        for (param in astFunction.parameters) {
-                            addParameter(param.name, param.type.toTypeName())
-                        }
+                            for (param in kmpComponentCreateFunction.parameters) {
+                                addParameter(param.name, param.type.toTypeName())
+                            }
 
-                        val funcParams = astFunction.parameters.joinToString { "%N" }
-                        val funcParamsNames = astFunction.parameters.map { it.name }.toTypedArray()
+                            val funcParams = kmpComponentCreateFunction.parameters.joinToString { "%N" }
+                            val funcParamsNames = kmpComponentCreateFunction.parameters.map { it.name }.toTypedArray()
 
-                        val returnTypeCompanion = when {
-                            options.generateCompanionExtensions -> returnTypeClass.companion?.type
-                            else -> null
-                        }
+                            val returnTypeCompanion = when {
+                                options.generateCompanionExtensions -> componentClass.companion?.type
+                                else -> null
+                            }
 
-                        val returnTypeName = returnTypeClass.type.toTypeName()
+                            val returnTypeName = componentClass.type.toTypeName()
 
-                        val (createReceiver, createReceiverClassName) = when (returnTypeCompanion) {
-                            null -> "%T::class" to returnTypeClass.toClassName()
-                            else -> "%T" to returnTypeCompanion.toAstClass().toClassName()
-                        }
-                        addCode(
-                            CodeBlock.of(
-                                "return $createReceiver.create($funcParams)",
-                                createReceiverClassName,
-                                *funcParamsNames
-                            ),
-                        )
+                            val (createReceiver, createReceiverClassName) = when (returnTypeCompanion) {
+                                null -> "%T::class" to componentClass.toClassName()
+                                else -> "%T" to returnTypeCompanion.toAstClass().toClassName()
+                            }
+                            addCode(
+                                CodeBlock.of(
+                                    "return $createReceiver.create($funcParams)",
+                                    createReceiverClassName,
+                                    *funcParamsNames
+                                ),
+                            )
 
-                        returns(returnTypeName)
-                    }.build(),
-            )
+                            returns(returnTypeName)
+                        }.build(),
+                )
+            }
         }.build()
     }
 }
