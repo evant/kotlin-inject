@@ -298,9 +298,9 @@ class RoundsTest {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
-                    import me.tatarka.inject.annotations.CreateKmpComponent
+                    import me.tatarka.inject.annotations.KmpComponentCreate
                     
-                    @CreateKmpComponent
+                    @KmpComponentCreate
                     expect fun createKmp(): MyMissingComponent
                 """.trimIndent()
             ).compile()

@@ -10,9 +10,9 @@ import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import me.tatarka.inject.compiler.COMPONENT
-import me.tatarka.inject.compiler.CREATE_KMP_COMPONENT
-import me.tatarka.inject.compiler.CreateKmpComponentGenerator
 import me.tatarka.inject.compiler.InjectGenerator
+import me.tatarka.inject.compiler.KMP_COMPONENT_CREATE
+import me.tatarka.inject.compiler.KmpComponentCreateGenerator
 import me.tatarka.inject.compiler.Options
 import me.tatarka.kotlin.ast.KSAstProvider
 
@@ -24,14 +24,14 @@ class InjectProcessor(
 
     private lateinit var provider: KSAstProvider
     private lateinit var injectGenerator: InjectGenerator
-    private lateinit var createKmpComponentGenerator: CreateKmpComponentGenerator
+    private lateinit var kmpComponentCreateGenerator: KmpComponentCreateGenerator
     private var deferredClasses: List<KSClassDeclaration> = mutableListOf()
     private var deferredFunctions: List<KSFunctionDeclaration> = mutableListOf()
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
         provider = KSAstProvider(resolver, logger)
         injectGenerator = InjectGenerator(provider, options)
-        createKmpComponentGenerator = CreateKmpComponentGenerator(provider, options)
+        kmpComponentCreateGenerator = KmpComponentCreateGenerator(provider, options)
 
         val previousDeferredClasses = deferredClasses
         val previousDeferredFunctions = deferredFunctions
@@ -44,12 +44,12 @@ class InjectProcessor(
             processInject(element, provider, codeGenerator, injectGenerator)
         }
 
-        val createKmpComponentSymbols = previousDeferredFunctions + resolver.getSymbolsWithFunctionAnnotation(
-            packageName = CREATE_KMP_COMPONENT.packageName,
-            simpleName = CREATE_KMP_COMPONENT.simpleName
+        val kmpComponentCreateSymbols = previousDeferredFunctions + resolver.getSymbolsWithFunctionAnnotation(
+            packageName = KMP_COMPONENT_CREATE.packageName,
+            simpleName = KMP_COMPONENT_CREATE.simpleName
         )
-        deferredFunctions = createKmpComponentSymbols.filterNot { element ->
-            processCreateKmpComponent(element, provider, codeGenerator, createKmpComponentGenerator)
+        deferredFunctions = kmpComponentCreateSymbols.filterNot { element ->
+            processKmpComponentCreate(element, provider, codeGenerator, kmpComponentCreateGenerator)
         }
 
         return deferredClasses + deferredFunctions
@@ -69,7 +69,7 @@ class InjectProcessor(
         deferredClasses = mutableListOf()
 
         for (element in deferredFunctions) {
-            processCreateKmpComponent(element, provider, codeGenerator, createKmpComponentGenerator)
+            processKmpComponentCreate(element, provider, codeGenerator, kmpComponentCreateGenerator)
         }
         deferredFunctions = mutableListOf()
     }

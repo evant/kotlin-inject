@@ -4,21 +4,21 @@ import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.squareup.kotlinpoet.ksp.writeTo
 import me.tatarka.inject.compiler.COMPONENT
-import me.tatarka.inject.compiler.CreateKmpComponentGenerator
+import me.tatarka.inject.compiler.KmpComponentCreateGenerator
 import me.tatarka.kotlin.ast.AstClass
 import me.tatarka.kotlin.ast.AstFunction
 import me.tatarka.kotlin.ast.KSAstProvider
 
-internal fun processCreateKmpComponent(
+internal fun processKmpComponentCreate(
     element: KSFunctionDeclaration,
     provider: KSAstProvider,
     codeGenerator: CodeGenerator,
-    createKmpComponentGenerator: CreateKmpComponentGenerator,
+    kmpComponentCreateGenerator: KmpComponentCreateGenerator,
 ): Boolean = with(provider) {
     val astFunction = element.toAstFunction()
     val returnType = astFunction.returnType
 
-    // the generated actual function will be annotated with CreateKmpComponent
+    // the generated actual function will be annotated with KmpComponentCreate
     // KSP will process them as well so we need to ignore them
     if (astFunction.isActual && element.findExpects().firstOrNull() != null) return true
     if (!astFunction.validateIsExpect(provider)) return true
@@ -27,7 +27,7 @@ internal fun processCreateKmpComponent(
     val returnTypeClass = returnType.resolvedType().toAstClass()
     if (!astFunction.validateReturnType(returnTypeClass, provider)) return true
 
-    process(astFunction, returnTypeClass, codeGenerator, createKmpComponentGenerator)
+    process(astFunction, returnTypeClass, codeGenerator, kmpComponentCreateGenerator)
     true
 }
 
@@ -53,7 +53,7 @@ private fun process(
     astFunction: AstFunction,
     returnTypeClass: AstClass,
     codeGenerator: CodeGenerator,
-    generator: CreateKmpComponentGenerator,
+    generator: KmpComponentCreateGenerator,
 ) {
     val file = generator.generate(astFunction, returnTypeClass)
     file.writeTo(codeGenerator, aggregating = false)
