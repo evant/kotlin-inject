@@ -1,7 +1,7 @@
 package me.tatarka.inject.test
 
 import me.tatarka.inject.annotations.Component
-import me.tatarka.inject.annotations.KmpComponentCreator
+import me.tatarka.inject.annotations.CreateKmpComponent
 
 @Component
 abstract class KmpComponent {
@@ -13,8 +13,8 @@ abstract class KmpComponent2 {
     companion object
 }
 
-@KmpComponentCreator
+@CreateKmpComponent
 expect fun createKmp(): KmpComponent
 
-@KmpComponentCreator
+@CreateKmpComponent
 expect fun KmpComponent.Companion.createKmp(): KmpComponent

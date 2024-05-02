@@ -8,7 +8,7 @@ import me.tatarka.kotlin.ast.AstClass
 import me.tatarka.kotlin.ast.AstFunction
 import me.tatarka.kotlin.ast.AstProvider
 
-class KmpComponentCreatorGenerator(
+class CreateKmpComponentGenerator(
     private val provider: AstProvider,
     private val options: Options,
 ) {

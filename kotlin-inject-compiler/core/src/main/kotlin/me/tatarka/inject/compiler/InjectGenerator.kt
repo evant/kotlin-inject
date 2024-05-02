@@ -31,7 +31,7 @@ val INTO_MAP = ClassName(ANNOTATION_PACKAGE_NAME, "IntoMap")
 val INTO_SET = ClassName(ANNOTATION_PACKAGE_NAME, "IntoSet")
 val ASSISTED = ClassName(ANNOTATION_PACKAGE_NAME, "Assisted")
 val QUALIFIER = ClassName(ANNOTATION_PACKAGE_NAME, "Qualifier")
-val KMP_COMPONENT_CREATOR = ClassName(ANNOTATION_PACKAGE_NAME, "KmpComponentCreator")
+val CREATE_KMP_COMPONENT = ClassName(ANNOTATION_PACKAGE_NAME, "CreateKmpComponent")
 
 val JAVAX_SCOPE = ClassName("javax.inject", "Scope")
 val JAVAX_INJECT = ClassName("javax.inject", "Inject")

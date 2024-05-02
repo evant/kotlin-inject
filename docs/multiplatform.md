@@ -47,7 +47,7 @@ sourceSets {
 ```
 
 > [!NOTE]  
-> `kotlin-inject-runtime-kmp` is the same as `kotlin-inject-runtime` aside from adding the `KmpComponentCreator` annotation.
+> `kotlin-inject-runtime-kmp` is the same as `kotlin-inject-runtime` aside from adding the `CreateKmpComponent` annotation.
 
 ### Adding the compiler dependencies
 
@@ -100,18 +100,18 @@ expect fun createKmp(): MyKmpComponent
 actual fun createKmp(): MyKmpComponent = MyKmpComponent::class.create()
 ```
 
-Creating an `actual fun` for each platform can be tedious, so kotlin-inject provides a `KmpComponentCreator` annotation.
+Creating an `actual fun` for each platform can be tedious, so kotlin-inject provides a `CreateKmpComponent` annotation.
 
 ```kotlin  
 @Component
 abstract class MyKmpComponent
 
-@KmpComponentCreator
+@CreateKmpComponent
 expect fun createKmp(): MyKmpComponent
 ```
 
 > [!NOTE]  
-> Make sure you are using the `kotlin-inject-runtime-kmp` artifact in order to have access to the `KmpComponentCreator` annotation.
+> Make sure you are using the `kotlin-inject-runtime-kmp` artifact in order to have access to the `CreateKmpComponent` annotation.
 
 kotlin-inject's processor will generate an `actual fun` in each target's source set that calls through to the `create` function for `MyKmpComponent`. The generated code looks like this:
 
@@ -124,24 +124,24 @@ The annotated `expect fun`'s parameters will be passed to the `Component`'s `cre
 Because these are regular `expect/actual` functions, an extension function can be used, which can be helpful for namespacing:
 
 ```kotlin
-@KmpComponentCreator
+@CreateKmpComponent
 expect fun MyKmpComponent.Companion.createKmp(): MyKmpComponent
 ```
 
 in which case the generated code would look like:
 
 ```kotlin
-@KmpComponentCreator
+@CreateKmpComponent
 actual fun MyKmpComponent.Companion.createKmp(): MyKmpComponent = MyKmpComponent::class.create()
 ```
 
 #### Shared source sets
 
-`KmpComponentCreator` can be used for all shared source sets, not just `commonMain`.
+`CreateKmpComponent` can be used for all shared source sets, not just `commonMain`.
 
 For example, you won't be able to access the `create` functions in each of the ios target source sets (`iosArm64`, `iosSimulatorArm64`, etc...) from an `ios` shared source set.
 
-You can define a `KmpComponentCreator` which will allow you to create the `Component` in the `ios` shared source set
+You can define a `CreateKmpComponent` which will allow you to create the `Component` in the `ios` shared source set
 
 ```kotlin
 // common source set
@@ -153,7 +153,7 @@ val myKmpComponent: MyKmpComponent = MyKmpComponent::class.create()
 
 // ios source set
 // the actual createKmp functions will only be generated in the targets that depend on the ios source set
-@KmpComponentCreator
+@CreateKmpComponent
 expect fun MyKmpComponent.Companion.createKmp(): MyKmpComponent
 
 val myKmpComponent: MyKmpComponent = MyKmpComponent.createKmp()
@@ -163,7 +163,7 @@ val myKmpComponent: MyKmpComponent = MyKmpComponent.createKmp()
 
 Usage is the same as mentioned [here](https://github.com/evant/kotlin-inject/blob/main/README.md#usage).
 
-The only difference is for projects that generate code into each KMP target source set, in which case you would use the `KmpComponentCreator` to create the `Component` when necessary.
+The only difference is for projects that generate code into each KMP target source set, in which case you would use the `CreateKmpComponent` to create the `Component` when necessary.
 
 #### KSP Common Source Set Configuration
 
