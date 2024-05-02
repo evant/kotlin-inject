@@ -4,81 +4,57 @@ This document covers using kotlin-inject in a multiplatform project. The example
 setting up an android and iOS project but the pattern should be the same for other platforms. You can check out
 [greeter](https://github.com/evant/kotlin-inject-samples/tree/main/multiplatform/greeter) for a full sample.
 
-## Download
+## Gradle
 
-Using [ksp](https://github.com/google/ksp)
+See the [README](https://github.com/evant/kotlin-inject/blob/main/README.md) for instructions on how to add kotlin-inject to your project.
 
-`settings.gradle`
-
-```kotlin
-pluginManagement {
-    repositories {
-        mavenCentral()
-        gradlePluginPortal()
-    }
-}
-
-dependencyResolutionManagement {
-    repositories {
-        mavenCentral()
-        google()
-    }
-}
-```
-
-`build.gradle`
-
-Add Plugin
+Replace the kotlin-jvm plugin with the kotlin-multiplatform plugin
 ```kotlin
 plugins {
-    id("org.jetbrains.kotlin.multiplatform") version "1.9.23"
-    id("com.android.library")
-    id("com.google.devtools.ksp") version "1.9.23-1.0.20"
+    id("org.jetbrains.kotlin.multiplatform")
+    id("com.google.devtools.ksp")
 }
 ```
 
 Set up targets
 ```kotlin
 kotlin {
-  androidTarget()
+    androidTarget()
 
-  listOf(
-    iosX64(),
-    iosArm64(),
-    iosSimulatorArm64()
-  ).forEach {
-    it.binaries.framework {
-      baseName = "shared"
+    listOf(
+        iosX64(),
+        iosArm64(),
+        iosSimulatorArm64()
+    ).forEach {
+        it.binaries.framework {
+            baseName = "shared"
+        }
     }
-  }
-  ...
+
+    // add your project's other targets...
+}
 ```
 
-Add Runtime dependency in commonMain
+Add the runtime dependency in commonMain
 ```kotlin
 sourceSets {
     commonMain {
         dependencies {
-            implementation("me.tatarka.inject:kotlin-inject-runtime:0.6.3")
+            implementation("me.tatarka.inject:kotlin-inject-runtime:$kotlinInjectVersion")
         }
     }
-    ...
 }
 ```
 
 Add the compiler dependency in root level `dependencies` block for each of the platforms you're targeting
 ```kotlin
 dependencies {
-    add("kspIosX64", "me.tatarka.inject:kotlin-inject-compiler-ksp:0.6.3")
-    add("kspIosArm64", "me.tatarka.inject:kotlin-inject-compiler-ksp:0.6.3")
-    add("kspIosSimulatorArm64", "me.tatarka.inject:kotlin-inject-compiler-ksp:0.6.3")
-    add("kspAndroid", "me.tatarka.inject:kotlin-inject-compiler-ksp:0.6.3")
+    add("kspIosX64", "me.tatarka.inject:kotlin-inject-compiler-ksp:$kotlinInjectVersion")
+    add("kspIosArm64", "me.tatarka.inject:kotlin-inject-compiler-ksp:$kotlinInjectVersion")
+    add("kspIosSimulatorArm64", "me.tatarka.inject:kotlin-inject-compiler-ksp:$kotlinInjectVersion")
+    add("kspAndroid", "me.tatarka.inject:kotlin-inject-compiler-ksp:$kotlinInjectVersion")
 }
 ```
-
-Note: You'll have to add the compiler for each of the chipset separately like done above.
-KSP will eventually have better multiplatform support and we'll be able to simply
-have `ksp(libs.kotlinInject.compiler)` :crossed_fingers:
 
 ## Usage
 
