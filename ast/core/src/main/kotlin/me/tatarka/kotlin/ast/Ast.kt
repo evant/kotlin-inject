@@ -2,6 +2,7 @@ package me.tatarka.kotlin.ast
 
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterSpec
@@ -22,6 +23,7 @@ interface AstProvider {
 
     fun AstElement.toTrace(): String
 
+    fun FunSpec.Builder.addOriginatingElement(element: AstFunction): FunSpec.Builder
     fun TypeSpec.Builder.addOriginatingElement(element: AstClass): TypeSpec.Builder
 }
 
@@ -137,9 +139,13 @@ abstract class AstConstructor(private val parent: AstClass) : AstElement(), AstA
 }
 
 abstract class AstFunction : AstMember() {
+    abstract val annotations: Sequence<AstAnnotation>
+
     abstract val parameters: List<AstParam>
 
     abstract val isSuspend: Boolean
+
+    abstract val packageName: String
 
     abstract override fun equals(other: Any?): Boolean
 
@@ -262,6 +268,8 @@ interface AstHasModifiers {
     val visibility: AstVisibility
 
     val isAbstract: Boolean
+    val isActual: Boolean
+    val isExpect: Boolean
 }
 
 enum class AstVisibility {

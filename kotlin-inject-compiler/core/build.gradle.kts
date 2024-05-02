@@ -5,7 +5,7 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":kotlin-inject-runtime"))
+    implementation(project(":kotlin-inject-runtime-kmp"))
     api(project(":ast:ast-core"))
 
     testImplementation(libs.kotlin.test)

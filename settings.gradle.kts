@@ -16,6 +16,7 @@ dependencyResolutionManagement {
 rootProject.name = "kotlin-inject"
 
 include(":kotlin-inject-runtime")
+include(":kotlin-inject-runtime-kmp")
 include(":kotlin-inject-compiler:core")
 project(":kotlin-inject-compiler:core").name = "kotlin-inject-compiler-core"
 include(":kotlin-inject-compiler:ksp")

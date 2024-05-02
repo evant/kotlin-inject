@@ -289,4 +289,23 @@ class RoundsTest {
             doesNotContain("Cannot provide", "as it is already provided")
         }
     }
+
+    @Test
+    fun errors_on_missing_target_component_accessor_return_type() {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+            .symbolProcessor(SimpleClassProcessor.Provider("Source", "Generated"))
+        assertFailure {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                    import me.tatarka.inject.annotations.KmpComponentCreate
+                    
+                    @KmpComponentCreate
+                    expect fun createKmp(): MyMissingComponent
+                """.trimIndent()
+            ).compile()
+        }.message().isNotNull().all {
+            contains("Unresolved reference: MyMissingComponent")
+        }
+    }
 }

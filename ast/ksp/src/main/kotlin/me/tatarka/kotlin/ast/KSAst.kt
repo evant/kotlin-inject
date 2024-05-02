@@ -31,6 +31,7 @@ import com.google.devtools.ksp.symbol.Visibility
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
@@ -52,6 +53,10 @@ class KSAstProvider(
 
     fun KSClassDeclaration.toAstClass(): AstClass {
         return KSAstClass(resolver, this)
+    }
+
+    fun KSFunctionDeclaration.toAstFunction(): AstFunction {
+        return KSAstFunction(resolver, this)
     }
 
     override fun findFunctions(packageName: String, functionName: String): Sequence<AstFunction> {
@@ -83,6 +88,11 @@ class KSAstProvider(
         } else {
             toString()
         }
+    }
+
+    override fun FunSpec.Builder.addOriginatingElement(element: AstFunction): FunSpec.Builder = apply {
+        val file = (element as KSAstFunction).declaration.containingFile ?: return@apply
+        addOriginatingKSFile(file)
     }
 
     override fun TypeSpec.Builder.addOriginatingElement(element: AstClass): TypeSpec.Builder = apply {
@@ -161,6 +171,12 @@ private class KSAstClass(override val resolver: Resolver, override val declarati
 
     override val isAbstract: Boolean
         get() = declaration.isAbstract()
+
+    override val isActual: Boolean
+        get() = declaration.isActual
+
+    override val isExpect: Boolean
+        get() = declaration.isExpect
 
     override val isInterface: Boolean
         get() = declaration.classKind == ClassKind.INTERFACE
@@ -292,14 +308,28 @@ private class KSAstFunction(override val resolver: Resolver, override val declar
             KSAstParam(resolver, null, param)
         }
 
+    override val annotations: Sequence<AstAnnotation>
+        get() = declaration.annotations.map { annotation ->
+            KSAstAnnotation(resolver, annotation)
+        }
+
     override val name: String
         get() = declaration.simpleName.asString()
 
     override val isAbstract: Boolean
         get() = declaration.isAbstract
 
+    override val isActual: Boolean
+        get() = declaration.isActual
+
+    override val isExpect: Boolean
+        get() = declaration.isExpect
+
     override val isSuspend: Boolean
         get() = declaration.modifiers.contains(Modifier.SUSPEND)
+
+    override val packageName: String
+        get() = declaration.packageName.asString()
 
     override val receiverParameterType: AstType?
         get() = declaration.extensionReceiver?.let { KSAstType(resolver, it) }
@@ -352,6 +382,12 @@ private class KSAstProperty(override val resolver: Resolver, override val declar
 
     override val isAbstract: Boolean
         get() = declaration.isAbstract()
+
+    override val isActual: Boolean
+        get() = declaration.isActual
+
+    override val isExpect: Boolean
+        get() = declaration.isExpect
 
     override val receiverParameterType: AstType?
         get() = declaration.extensionReceiver?.let { KSAstType(resolver, it) }
