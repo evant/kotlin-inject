@@ -20,7 +20,7 @@ kotlin {
             kotlin.srcDir("../common/src/main/kotlin")
             kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
             dependencies {
-                implementation(project(":kotlin-inject-runtime"))
+                implementation(project(":kotlin-inject-runtime-kmp"))
                 implementation(project(":integration-tests:module"))
             }
         }

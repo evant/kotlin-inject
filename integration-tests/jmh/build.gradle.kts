@@ -5,7 +5,7 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":kotlin-inject-runtime"))
+    implementation(project(":kotlin-inject-runtime-kmp"))
 
     jmhImplementation(kotlin("stdlib"))
 }

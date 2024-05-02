@@ -40,11 +40,14 @@ Add the runtime dependency in commonMain
 sourceSets {
     commonMain {
         dependencies {
-            implementation("me.tatarka.inject:kotlin-inject-runtime:$kotlinInjectVersion")
+            implementation("me.tatarka.inject:kotlin-inject-kmp-runtime:$kotlinInjectVersion")
         }
     }
 }
 ```
+
+> [!NOTE]  
+> `kotlin-inject-runtime-kmp` is the same as `kotlin-inject-runtime` aside from adding the `KmpComponentCreator` annotation.
 
 ### Adding the compiler dependencies
 
@@ -106,6 +109,9 @@ abstract class MyKmpComponent
 @KmpComponentCreator
 expect fun createKmp(): MyKmpComponent
 ```
+
+> [!NOTE]  
+> Make sure you are using the `kotlin-inject-runtime-kmp` artifact in order to have access to the `KmpComponentCreator` annotation.
 
 kotlin-inject's processor will generate an `actual fun` in each target's source set that calls through to the `create` function for `MyKmpComponent`. The generated code looks like this:
 
