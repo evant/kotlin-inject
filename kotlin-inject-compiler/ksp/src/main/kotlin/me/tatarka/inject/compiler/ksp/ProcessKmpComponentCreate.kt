@@ -38,7 +38,7 @@ internal fun generateKmpComponentCreateFiles(
 ) {
     kmpComponentCreateFunctionsByComponentType.forEach { (componentType, kmpComponentCreateFunctions) ->
         val file = generator.generate(componentType, kmpComponentCreateFunctions)
-        file.writeTo(codeGenerator, aggregating = false)
+        file.writeTo(codeGenerator, aggregating = true)
     }
 }
 
