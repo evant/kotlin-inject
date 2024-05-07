@@ -70,11 +70,6 @@ tasks.withType<KotlinNpmInstallTask> {
     args += "--ignore-scripts"
 }
 
-rootProject.the<NodeJsRootExtension>().apply {
-    nodeVersion = "22.0.0-nightly202404032241e8c5b3"
-    nodeDownloadBaseUrl = "https://nodejs.org/download/nightly"
-}
-
 rootProject.tasks.withType<KotlinNpmInstallTask>().configureEach {
     args.add("--ignore-engines")
 }
