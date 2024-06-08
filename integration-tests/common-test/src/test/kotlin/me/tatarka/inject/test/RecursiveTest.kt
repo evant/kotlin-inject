@@ -24,6 +24,14 @@ class RecursiveTest {
     }
 
     @Test
+    fun generates_a_component_that_provides_a_lazy_scoped_dea_recursively() {
+        val component: LazyScopedCycleComponent = LazyScopedCycleComponent::class.create()
+        val foo = component.foo
+
+        assertThat(foo).isSameInstanceAs(foo.lazy.value.foo.value)
+    }
+
+    @Test
     fun generates_a_component_that_provides_a_function_dea_recursively() {
         val component = FunctionCycleComponent::class.create()
         val bar = component.bar
