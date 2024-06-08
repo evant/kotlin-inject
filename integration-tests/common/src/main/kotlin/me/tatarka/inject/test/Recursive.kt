@@ -8,6 +8,25 @@ class LazyCycleFoo(val bar: LazyCycleBar)
 
 class LazyCycleBar(val foo: Lazy<LazyCycleFoo>)
 
+@CustomScope
+@Inject
+class LazyScopedCycleFoo(
+    val lazy: Lazy<LazyScopedCycleBar>,
+    val real: LazyScopedCycleBar,
+)
+
+@Inject
+class LazyScopedCycleBar(
+    val foo: Lazy<LazyScopedCycleFoo>
+)
+
+@CustomScope
+@Component
+abstract class LazyScopedCycleComponent {
+    abstract val foo: LazyScopedCycleFoo
+    abstract val bar: LazyScopedCycleBar
+}
+
 @Inject
 class FBar(val foo: () -> FFoo)
 

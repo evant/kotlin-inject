@@ -558,7 +558,8 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     private fun maybeLateInit(key: TypeKey, result: TypeResult): TypeResult {
         // TODO: better way to determine this?
         val validResultType =
-            result !is TypeResult.LocalVar && result !is TypeResult.Lazy && result !is TypeResult.Function
+            result !is TypeResult.LocalVar && result !is TypeResult.Lazy &&
+                result !is TypeResult.Function && result !is TypeResult.Scoped
         if (!validResultType) return result
         val name = cycleDetector.hitResolvable(key) ?: return result
         return LateInit(name, key, result)
