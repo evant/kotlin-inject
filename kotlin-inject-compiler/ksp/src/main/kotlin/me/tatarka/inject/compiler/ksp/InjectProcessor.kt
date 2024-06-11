@@ -37,7 +37,15 @@ class InjectProcessor(
         injectGenerator = InjectGenerator(provider, options)
         kmpComponentCreateGenerator = KmpComponentCreateGenerator(provider, options)
 
-        val previousDeferredClasses = deferredClasses
+        val previousDeferredClasses = deferredClasses.map { original ->
+            // This attempts to reload / refresh the symbol of the deferred classes. KSP forbids to cache symbols
+            // across rounds, which is what deferredClasses is doing. As an alternative,
+            // getSymbolsWithClassAnnotation() could look at all files and not only newly added files in this round
+            // and not remember deferred symbols.
+            //
+            // For more details: https://github.com/google/ksp/issues/1854
+            original.qualifiedName?.let { resolver.getClassDeclarationByName(it) } ?: original
+        }
         val previousDeferredFunctions = deferredFunctions
 
         val componentSymbols = previousDeferredClasses + resolver.getSymbolsWithClassAnnotation(
