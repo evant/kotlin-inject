@@ -41,14 +41,14 @@ class InjectProcessor(
         kmpComponentCreateGenerator = KmpComponentCreateGenerator(provider, options)
 
         val componentSymbols =
-            resolver.getSymbolsWithAnnotation(COMPONENT.canonicalName).mapNotNull { it as? KSClassDeclaration }
+            resolver.getSymbolsWithAnnotation(COMPONENT.canonicalName).filterIsInstance<KSClassDeclaration>()
         val deferredClasses = componentSymbols.filterNot { element ->
             processInject(element, provider, codeGenerator, injectGenerator)
         }.toList()
         deferredClassNames = deferredClasses.mapNotNull { it.qualifiedName }
 
         val kmpComponentCreateSymbols = resolver.getSymbolsWithAnnotation(KMP_COMPONENT_CREATE.canonicalName)
-            .mapNotNull { it as? KSFunctionDeclaration }
+            .filterIsInstance<KSFunctionDeclaration>()
         val deferredFunctions = kmpComponentCreateSymbols.filterNot { element ->
             processKmpComponentCreate(element, provider, kmpComponentCreateFunctionsByComponentType)
         }.toList()
@@ -61,7 +61,12 @@ class InjectProcessor(
         try {
             // Last round, generate as much as we can, reporting errors for types that still can't be resolved.
             val resolver = lastResolver ?: return
-            for (element in deferredClassNames.mapNotNull { resolver.getClassDeclarationByName(it) }) {
+            for (name in deferredClassNames) {
+                val element = resolver.getClassDeclarationByName(name)
+                if (element == null) {
+                    logger.error("Failed to resolve: $name")
+                    continue
+                }
                 processInject(
                     element,
                     provider,
@@ -71,12 +76,15 @@ class InjectProcessor(
                 )
             }
 
-            for (element in deferredFunctionNames.flatMap {
-                resolver.getFunctionDeclarationsByName(
-                    it,
+            for (name in deferredFunctionNames) {
+                val element = resolver.getFunctionDeclarationsByName(
+                    name,
                     includeTopLevel = true
-                )
-            }) {
+                ).firstOrNull()
+                if (element == null) {
+                    logger.error("Failed to resolve: $name")
+                    continue
+                }
                 processKmpComponentCreate(element, provider, kmpComponentCreateFunctionsByComponentType)
             }
 
