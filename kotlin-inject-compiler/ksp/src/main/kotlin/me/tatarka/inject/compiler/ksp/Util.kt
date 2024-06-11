@@ -1,11 +1,8 @@
 package me.tatarka.inject.compiler.ksp
 
-import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSAnnotation
-import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSDeclaration
-import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.KSTypeParameter
 import com.google.devtools.ksp.symbol.KSTypeReference
@@ -112,48 +109,4 @@ fun KSType.isConcrete(): Boolean {
     if (declaration is KSTypeParameter) return false
     if (arguments.isEmpty()) return true
     return arguments.all { it.type?.resolve()?.isConcrete() ?: false }
-}
-
-/**
- * A 'fast' version of [Resolver.getSymbolsWithAnnotation]. We only care about class annotations so we can skip a lot
- * of the tree.
- */
-fun Resolver.getSymbolsWithClassAnnotation(packageName: String, simpleName: String): Sequence<KSClassDeclaration> {
-    suspend fun SequenceScope<KSClassDeclaration>.visit(declarations: Sequence<KSDeclaration>) {
-        for (declaration in declarations) {
-            if (declaration is KSClassDeclaration) {
-                if (declaration.hasAnnotation(packageName, simpleName)) {
-                    yield(declaration)
-                }
-                visit(declaration.declarations)
-            }
-        }
-    }
-    return sequence {
-        for (file in getNewFiles()) {
-            visit(file.declarations)
-        }
-    }
-}
-
-/**
- * A 'fast' version of [Resolver.getSymbolsWithAnnotation]. We only care about function annotations so we can skip a lot
- * of the tree.
- */
-fun Resolver.getSymbolsWithFunctionAnnotation(
-    packageName: String,
-    simpleName: String
-): Sequence<KSFunctionDeclaration> {
-    suspend fun SequenceScope<KSFunctionDeclaration>.visit(declarations: Sequence<KSDeclaration>) {
-        for (declaration in declarations) {
-            if (declaration is KSFunctionDeclaration && declaration.hasAnnotation(packageName, simpleName)) {
-                yield(declaration)
-            }
-        }
-    }
-    return sequence {
-        for (file in getNewFiles()) {
-            visit(file.declarations)
-        }
-    }
 }

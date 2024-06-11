@@ -9,6 +9,7 @@ import com.google.devtools.ksp.processing.SymbolProcessorProvider
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
+import com.google.devtools.ksp.symbol.KSName
 import me.tatarka.inject.compiler.COMPONENT
 import me.tatarka.inject.compiler.InjectGenerator
 import me.tatarka.inject.compiler.KMP_COMPONENT_CREATE
@@ -27,63 +28,89 @@ class InjectProcessor(
     private lateinit var provider: KSAstProvider
     private lateinit var injectGenerator: InjectGenerator
     private lateinit var kmpComponentCreateGenerator: KmpComponentCreateGenerator
-    private var deferredClasses: List<KSClassDeclaration> = mutableListOf()
-    private var deferredFunctions: List<KSFunctionDeclaration> = mutableListOf()
+    private var lastResolver: Resolver? = null
+    private var deferredClassNames: List<KSName> = mutableListOf()
+    private var deferredFunctionNames: List<KSName> = mutableListOf()
 
     private val kmpComponentCreateFunctionsByComponentType = mutableMapOf<AstClass, MutableList<AstFunction>>()
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
+        lastResolver = resolver
         provider = KSAstProvider(resolver, logger)
         injectGenerator = InjectGenerator(provider, options)
         kmpComponentCreateGenerator = KmpComponentCreateGenerator(provider, options)
 
-        val previousDeferredClasses = deferredClasses
-        val previousDeferredFunctions = deferredFunctions
-
-        val componentSymbols = previousDeferredClasses + resolver.getSymbolsWithClassAnnotation(
-            packageName = COMPONENT.packageName,
-            simpleName = COMPONENT.simpleName
-        )
-        deferredClasses = componentSymbols.filterNot { element ->
+        val componentSymbols =
+            resolver.getSymbolsWithAnnotation(COMPONENT.canonicalName).filterIsInstance<KSClassDeclaration>()
+        val deferredClasses = componentSymbols.filterNot { element ->
             processInject(element, provider, codeGenerator, injectGenerator)
+        }.toList()
+        deferredClassNames = deferredClasses.mapNotNull {
+            val name = it.qualifiedName
+            if (name == null) {
+                logger.warn("Unable to defer symbol: ${it.simpleName.asString()}, no qualified name", it)
+            }
+            name
         }
 
-        val kmpComponentCreateSymbols = previousDeferredFunctions + resolver.getSymbolsWithFunctionAnnotation(
-            packageName = KMP_COMPONENT_CREATE.packageName,
-            simpleName = KMP_COMPONENT_CREATE.simpleName
-        )
-        deferredFunctions = kmpComponentCreateSymbols.filterNot { element ->
+        val kmpComponentCreateSymbols = resolver.getSymbolsWithAnnotation(KMP_COMPONENT_CREATE.canonicalName)
+            .filterIsInstance<KSFunctionDeclaration>()
+        val deferredFunctions = kmpComponentCreateSymbols.filterNot { element ->
             processKmpComponentCreate(element, provider, kmpComponentCreateFunctionsByComponentType)
+        }.toList()
+        deferredFunctionNames = deferredFunctions.mapNotNull {
+            val name = it.qualifiedName
+            if (name == null) {
+                logger.warn("Unable to defer symbol: ${it.simpleName.asString()}, no qualified name", it)
+            }
+            name
         }
 
         return deferredClasses + deferredFunctions
     }
 
     override fun finish() {
-        // Last round, generate as much as we can, reporting errors for types that still can't be resolved.
-        for (element in deferredClasses) {
-            processInject(
-                element,
-                provider,
+        try {
+            // Last round, generate as much as we can, reporting errors for types that still can't be resolved.
+            val resolver = lastResolver ?: return
+            for (name in deferredClassNames) {
+                val element = resolver.getClassDeclarationByName(name)
+                if (element == null) {
+                    logger.error("Failed to resolve: ${name.asString()}")
+                    continue
+                }
+                processInject(
+                    element,
+                    provider,
+                    codeGenerator,
+                    injectGenerator,
+                    skipValidation = true
+                )
+            }
+
+            for (name in deferredFunctionNames) {
+                val element = resolver.getFunctionDeclarationsByName(
+                    name,
+                    includeTopLevel = true
+                ).firstOrNull()
+                if (element == null) {
+                    logger.error("Failed to resolve: ${name.asString()}")
+                    continue
+                }
+                processKmpComponentCreate(element, provider, kmpComponentCreateFunctionsByComponentType)
+            }
+
+            generateKmpComponentCreateFiles(
                 codeGenerator,
-                injectGenerator,
-                skipValidation = true
+                kmpComponentCreateGenerator,
+                kmpComponentCreateFunctionsByComponentType
             )
+            kmpComponentCreateFunctionsByComponentType.clear()
+        } finally {
+            lastResolver = null
+            deferredClassNames = emptyList()
+            deferredFunctionNames = mutableListOf()
         }
-        deferredClasses = mutableListOf()
-
-        for (element in deferredFunctions) {
-            processKmpComponentCreate(element, provider, kmpComponentCreateFunctionsByComponentType)
-        }
-
-        generateKmpComponentCreateFiles(
-            codeGenerator,
-            kmpComponentCreateGenerator,
-            kmpComponentCreateFunctionsByComponentType
-        )
-        kmpComponentCreateFunctionsByComponentType.clear()
-
-        deferredFunctions = mutableListOf()
     }
 }
 
