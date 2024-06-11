@@ -45,14 +45,26 @@ class InjectProcessor(
         val deferredClasses = componentSymbols.filterNot { element ->
             processInject(element, provider, codeGenerator, injectGenerator)
         }.toList()
-        deferredClassNames = deferredClasses.mapNotNull { it.qualifiedName }
+        deferredClassNames = deferredClasses.mapNotNull {
+            val name = it.qualifiedName
+            if (name == null) {
+                logger.warn("Unable to defer symbol: ${it.simpleName.asString()}, no qualified name", it)
+            }
+            name
+        }
 
         val kmpComponentCreateSymbols = resolver.getSymbolsWithAnnotation(KMP_COMPONENT_CREATE.canonicalName)
             .filterIsInstance<KSFunctionDeclaration>()
         val deferredFunctions = kmpComponentCreateSymbols.filterNot { element ->
             processKmpComponentCreate(element, provider, kmpComponentCreateFunctionsByComponentType)
         }.toList()
-        deferredFunctionNames = deferredFunctions.mapNotNull { it.qualifiedName }
+        deferredFunctionNames = deferredFunctions.mapNotNull {
+            val name = it.qualifiedName
+            if (name == null) {
+                logger.warn("Unable to defer symbol: ${it.simpleName.asString()}, no qualified name", it)
+            }
+            name
+        }
 
         return deferredClasses + deferredFunctions
     }
@@ -64,7 +76,7 @@ class InjectProcessor(
             for (name in deferredClassNames) {
                 val element = resolver.getClassDeclarationByName(name)
                 if (element == null) {
-                    logger.error("Failed to resolve: $name")
+                    logger.error("Failed to resolve: ${name.asString()}")
                     continue
                 }
                 processInject(
@@ -82,7 +94,7 @@ class InjectProcessor(
                     includeTopLevel = true
                 ).firstOrNull()
                 if (element == null) {
-                    logger.error("Failed to resolve: $name")
+                    logger.error("Failed to resolve: ${name.asString()}")
                     continue
                 }
                 processKmpComponentCreate(element, provider, kmpComponentCreateFunctionsByComponentType)
