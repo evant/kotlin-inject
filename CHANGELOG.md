@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.7.0] 2024-06-12
 
 ### Changed
 - `@Scope` annotations now take arguments into account. This means for example, if you have
@@ -43,9 +43,32 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   }
   ```
   This behaves the same as `javax.inject.Qualifier` does when you have `me.tatarka.inject.enableJavaxAnnotations=true`.
+- Added a new `@KmpComponentCreate` annotation for nicer multiplatform support. This allows you to create component
+  instances from common code when generating platform-specific outputs.
+  ```kotlin
+  // src/commonMain
+  @Component
+  abstract class MyKmpComponent
+   
+  @KmpComponentCreate
+  expect fun createKmp(): MyKmpComponent
+  ```
+  see the new [multiplatform docs](docs/multiplatform.md) for more details.
+- You can now use an `@Inject` annotation on an inner class provided the outer class can be provided.
+  ```kotlin
+  @Inject class Outer { @Inject inner class Inner }
+  
+  @Component abstract class MyComponent { abstract val inner: Outer.Inner }
+  ```
 
 ### Removed
 - The KAPT backend is removed, please migrate to KSP if you haven't already.
+
+### Fixed
+- Fixed cases of invalid code generation (#321, #337, #313).
+- Fixed an exception thrown on KSP2 when running multiple rounds (google/ksp#1854).
+- Fixed various issues with handling method overrides in components (#309, #375)
+- Allow scope annotations on both an interface and component implementation if they are the same scope (#320).
 
 ## [0.6.3] 2023-09-02
 
