@@ -64,22 +64,8 @@ repositories {
 }
 
 dependencies {
-    ksp("me.tatarka.inject:kotlin-inject-compiler-ksp:0.6.3")
-    implementation("me.tatarka.inject:kotlin-inject-runtime:0.6.3")
-}
-```
-
-### or with KAPT (deprecated)
-
-```groovy
-plugins {
-  id("org.jetbrains.kotlin.jvm") version "1.9.0"
-  id("org.jetbrains.kotlin.kapt") version "1.9.0"
-}
-
-dependencies {
-  kapt("me.tatarka.inject:kotlin-inject-compiler-kapt:0.6.3")
-  implementation("me.tatarka.inject:kotlin-inject-runtime:0.6.3")
+    ksp("me.tatarka.inject:kotlin-inject-compiler-ksp:0.7.0")
+    implementation("me.tatarka.inject:kotlin-inject-runtime:0.7.0")
 }
 ```
 
@@ -187,10 +173,41 @@ val parent = ParentComponent::class.create()
 val child = ChildComponent::class.create(parent)
 ```
 
+### Qualifiers
+
+If you have multiple instances of the same type you want to differentiate, you can use a `@Qualifier`. They will be
+treated as separate types for the purposes of injection. They can be placed either on the variable or the type.
+
+```kotlin
+@Qualifier
+@Target(
+  AnnotationTarget.PROPERTY_GETTER,
+  AnnotationTarget.FUNCTION,
+  AnnotationTarget.VALUE_PARAMETER,
+  AnnotationTarget.TYPE
+)
+annotation class Named(val value: String)
+
+@Component
+abstract class MyComponent {
+  @Provides
+  fun dep1(): @Named("one") Dep = Dep("one")
+
+  @Provides
+  fun dep2(): @Named("two") Dep = Dep("two")
+
+  @Provides
+  fun provides(@Named("one") dep1: Dep, @Named("two") dep2: Dep): Thing = Thing(dep1, dep2)
+}
+
+@Inject
+class InjectedClass(@Named("one") dep1: Dep, @Named("two") dep2: Dep)
+```
+
 ### Type Alias Support
 
-If you have multiple instances of the same type you want to differentiate, you can use type aliases. They will be
-treated as separate types for the purposes of injection.
+Alternatively different typealises will be treated as different types. (Note: this is going away in a future release, so
+consider using a `@Qualifier` annotation instead. There will be a migration path.)
 
 ```kotlin
 typealias Dep1 = Dep
