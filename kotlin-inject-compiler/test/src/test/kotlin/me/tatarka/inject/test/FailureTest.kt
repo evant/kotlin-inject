@@ -823,7 +823,6 @@ class FailureTest {
         }
     }
 
-
     @ParameterizedTest
     @EnumSource(Target::class)
     fun fails_if_cycle_is_in_lazy_dependency(target: Target) {
