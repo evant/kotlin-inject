@@ -823,6 +823,35 @@ class FailureTest {
         }
     }
 
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun fails_if_cycle_is_in_lazy_dependency(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+
+        assertFailure {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                import me.tatarka.inject.annotations.Component
+                import me.tatarka.inject.annotations.Inject
+                
+                @Inject
+                class Cycle(val cycle: Cycle)        
+                
+                @Inject
+                class Dep(val cycle: Lazy<Cycle>)
+
+                @Component abstract class MyComponent {
+                    abstract val dep: Dep
+                }  
+                """.trimIndent()
+            ).compile()
+        }.output().all {
+            contains("Cycle detected")
+        }
+    }
+
     @ParameterizedTest
     @EnumSource(Target::class)
     fun fails_if_scoped_provides_is_suspend(target: Target) {

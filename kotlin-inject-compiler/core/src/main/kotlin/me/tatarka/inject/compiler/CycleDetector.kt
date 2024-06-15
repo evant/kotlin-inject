@@ -38,8 +38,9 @@ class CycleDetector {
      * @see CycleResult
      */
     fun <T> check(key: TypeKey, element: AstElement, block: (CycleResult) -> T): T {
-        val cycleResult = if (entries.any { it is Entry.Element && it.value == element }) {
-            if (entries.any { it is Entry.Delayed }) {
+        val lastRepeatIndex = entries.indexOfLast { it is Entry.Element && it.value == element }
+        val cycleResult = if (lastRepeatIndex != -1) {
+            if (entries.indexOfLast { it is Entry.Delayed } > lastRepeatIndex) {
                 val name = key.type.toVariableName()
                 resolving.add(Resolving(key, name))
                 CycleResult.Resolvable(name)
