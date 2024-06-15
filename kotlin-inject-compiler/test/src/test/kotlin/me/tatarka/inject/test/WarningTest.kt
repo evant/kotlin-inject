@@ -31,6 +31,7 @@ class WarningTest {
                 
                 @Scope annotation class MyScope1
                 @Scope annotation class MyScope2
+                @Scope annotation class MyScope3
                 
                 @MyScope1 @Component abstract class MyComponent1 {
                     @get:MyScope1 abstract val foo: String
@@ -43,11 +44,18 @@ class WarningTest {
                     
                     @Provides fun str(): String = ""
                 }
+            
+                @MyScope3 @Component abstract class MyComponent3 {
+                    @MyScope3 abstract val foo: String
+
+                    @Provides fun str(): String = ""
+                }
                 """.trimIndent()
             ).compile()
         ).warnings().all {
             contains("Scope: @MyScope1 has no effect. Place on @Provides function or @Inject constructor instead.")
             contains("Scope: @MyScope2 has no effect. Place on @Provides function or @Inject constructor instead.")
+            contains("Scope: @MyScope3 has no effect. Place on @Provides function or @Inject constructor instead.")
         }
     }
 
