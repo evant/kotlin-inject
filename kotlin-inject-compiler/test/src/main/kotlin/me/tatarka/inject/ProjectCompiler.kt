@@ -6,15 +6,16 @@ import com.google.devtools.ksp.processing.SymbolProcessorProvider
 import com.tschuchort.compiletesting.CompilationResult
 import com.tschuchort.compiletesting.KotlinCompilation
 import com.tschuchort.compiletesting.SourceFile
+import com.tschuchort.compiletesting.kspLoggingLevels
 import com.tschuchort.compiletesting.kspProcessorOptions
 import com.tschuchort.compiletesting.kspWithCompilation
 import com.tschuchort.compiletesting.symbolProcessorProviders
 import me.tatarka.inject.compiler.Options
 import me.tatarka.inject.compiler.ksp.InjectProcessorProvider
 import org.intellij.lang.annotations.Language
+import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
 import org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi
 import java.io.File
-import javax.tools.Diagnostic
 
 class ProjectCompiler(
     private val target: Target,
@@ -40,7 +41,9 @@ class ProjectCompiler(
         return this
     }
 
-    fun compile(): TestCompilationResult {
+    fun compile(
+        vararg loggingLevels: CompilerMessageSeverity
+    ): TestCompilationResult {
         val result = TestCompilationResult(
             KotlinCompilation().apply {
                 workingDir = this@ProjectCompiler.workingDir
@@ -58,44 +61,20 @@ class ProjectCompiler(
                 // work-around for https://github.com/ZacSweers/kotlin-compile-testing/issues/197
                 kspWithCompilation = true
                 messageOutputStream = System.out
+
+                if(loggingLevels.isNotEmpty()) {
+                    kspLoggingLevels = loggingLevels.toSet()
+                }
             }.compile()
         )
 
         if (!result.success) {
             @Suppress("TooGenericExceptionThrown")
-            throw Exception(result.output(Diagnostic.Kind.ERROR))
+            // this will include everything that was specified by kspLoggingLevels
+            // which might include more than just errors
+            throw Exception(result.output())
         }
         return result
-    }
-}
-
-private fun String.filterByKind(kind: Diagnostic.Kind): String = buildString {
-    var currentKind: Diagnostic.Kind? = null
-    for (line in this@filterByKind.lineSequence()) {
-        val lineKind = line.matchLine()
-        if (lineKind != null) {
-            currentKind = lineKind
-        }
-        if (currentKind == kind) {
-            append(line)
-            append('\n')
-        }
-    }
-}
-
-private fun String.matchLine(): Diagnostic.Kind? {
-    if (length < 2) return null
-    val matchedKind = when (get(0)) {
-        'e' -> Diagnostic.Kind.ERROR
-        'w' -> Diagnostic.Kind.WARNING
-        'v' -> Diagnostic.Kind.NOTE
-        else -> null
-    } ?: return null
-
-    return if (get(1) == ':') {
-        matchedKind
-    } else {
-        null
     }
 }
 
@@ -108,5 +87,5 @@ class TestCompilationResult(private val result: CompilationResult) {
         get() = result.exitCode == KotlinCompilation.ExitCode.OK
 
     @OptIn(ExperimentalCompilerApi::class)
-    fun output(kind: Diagnostic.Kind): String = result.messages.filterByKind(kind)
+    fun output(): String = result.messages
 }
