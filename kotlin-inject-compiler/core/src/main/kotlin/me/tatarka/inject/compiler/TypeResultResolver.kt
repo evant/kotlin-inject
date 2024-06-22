@@ -577,7 +577,15 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
      */
     private fun trace(message: String): String = "$message\n" + cycleDetector.trace(provider)
 
-    private fun cannotFind(key: TypeKey): String = trace("Cannot find an @Inject constructor or provider for: $key")
+    private fun cannotFind(key: TypeKey): String {
+        val platformNullabilityClarification = if (key.type.isPlatform()) {
+            "\nThis might be caused by undefined nullability of requested dependency. " +
+                "Consider specifying nullability explicitly, with @NonNull annotation if it's in java code."
+        } else {
+            ""
+        }
+        return trace("Cannot find an @Inject constructor or provider for: $key$platformNullabilityClarification")
+    }
 
     private val TypeResult.isCacheable: Boolean
         // don't cache local vars as they may not be in scope when requesting the type from a different location

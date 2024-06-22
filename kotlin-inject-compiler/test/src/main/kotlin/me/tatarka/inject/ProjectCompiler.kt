@@ -30,6 +30,11 @@ class ProjectCompiler(
         return this
     }
 
+    fun javaSource(fileName: String, @Language("java") source: String): ProjectCompiler {
+        sourceFiles.add(SourceFile.java(fileName, source))
+        return this
+    }
+
     fun options(options: Options): ProjectCompiler {
         this.options = options
         return this

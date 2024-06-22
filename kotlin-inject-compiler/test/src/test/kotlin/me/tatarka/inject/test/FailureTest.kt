@@ -502,6 +502,61 @@ class FailureTest {
 
     @ParameterizedTest
     @EnumSource(Target::class)
+    fun fails_if_inject_constructor_requires_a_platform_type(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+        assertFailure {
+            projectCompiler
+                .javaSource(
+                    "JavaIFoo.java",
+                    """
+                    package test;
+
+                    import me.tatarka.inject.annotations.Inject;
+
+                    public class JavaIFoo  {
+
+                        private final Foo foo;
+
+                        @Inject
+                        public JavaIFoo(Foo foo) {
+                            this.foo = foo;
+                        }
+
+                        public Foo getFoo() {
+                            return foo;
+                        }
+                    }
+                    """.trimIndent()
+                )
+                .source(
+                    "MyComponent.kt",
+                    """
+                    package test
+
+                    import me.tatarka.inject.annotations.Component
+                    import me.tatarka.inject.annotations.Inject
+                    import me.tatarka.inject.annotations.Provides
+                    
+                    class Foo
+
+                    @Component
+                    abstract class JavaProvidedDependencyComponent {
+                        abstract val javaFoo: JavaIFoo
+                        
+                        @Provides fun foo(): Foo = Foo
+                    }
+                    """.trimIndent()
+                ).compile()
+        }.output().all {
+            contains(
+                "This might be caused by undefined nullability of requested dependency. " +
+                    "Consider specifying nullability explicitly, with @NonNull annotation if it's in java code."
+            )
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
     fun fails_if_provides_in_parent_component_is_protected(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
         assertFailure {
