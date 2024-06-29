@@ -4,11 +4,15 @@ import assertk.assertThat
 import assertk.assertions.isNotNull
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
+import me.tatarka.inject.annotations.Provides
 import kotlin.test.Test
 
 @Component
 abstract class JavaInjectConstructorComponent {
     abstract val foo: JavaFoo
+
+    @Provides
+    fun Foo.bind(): IFoo = this
 
     abstract val foo2: JavaJavaXFoo
 }
@@ -22,6 +26,9 @@ class JavaJavaXBar(val foo: JavaJavaXFoo)
 @Component
 abstract class JavaProvidesComponent {
     abstract val bar: JavaBar
+
+    @Provides
+    fun Foo.bind(): IFoo = this
 
     abstract val bar2: JavaJavaXBar
 }
