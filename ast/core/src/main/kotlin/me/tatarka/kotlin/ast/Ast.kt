@@ -235,6 +235,8 @@ abstract class AstType : AstElement(), AstAnnotated {
     }
 
     abstract fun toTypeName(): TypeName
+
+    abstract fun makeNonNullable(): AstType
 }
 
 abstract class AstAnnotation : AstElement() {

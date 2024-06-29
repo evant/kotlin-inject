@@ -4,14 +4,14 @@ import me.tatarka.inject.annotations.Inject;
 
 public class JavaFoo {
 
-    private final Foo foo;
+    private final IFoo foo;
 
     @Inject
-    public JavaFoo(Foo foo) {
+    public JavaFoo(IFoo foo) {
         this.foo = foo;
     }
 
-    public Foo getFoo() {
+    public IFoo getFoo() {
         return foo;
     }
 }

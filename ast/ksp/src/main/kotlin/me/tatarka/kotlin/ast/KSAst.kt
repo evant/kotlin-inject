@@ -547,6 +547,10 @@ private class KSAstType private constructor(
     override fun toTypeName(): TypeName {
         return typeRef.toTypeName()
     }
+
+    override fun makeNonNullable(): AstType {
+        return KSAstType(resolver, typeRef, type.makeNotNullable())
+    }
 }
 
 private class KSAstParam(

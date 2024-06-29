@@ -91,7 +91,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         var assistedFailed = false
         val args = context.args.toMutableList()
         for (param in params) {
-            val type = param.type
+            val type = withPlatformNullabilityAsNotNull(param.type)
             val qualifier = qualifier(provider, options, param, type)
             val key = TypeKey(type, qualifier)
             if (param.isAssisted()) {
@@ -150,7 +150,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         val resolvedImplicitly = mutableListOf<AstParam>()
         for ((i, param) in params.withIndex()) {
             val indexFromEnd = size - i - 1
-            val type = param.type
+            val type = withPlatformNullabilityAsNotNull(param.type)
             val qualifier = qualifier(provider, options, param, type)
             val key = TypeKey(type, qualifier)
             val arg = args.getOrNull(indexFromEnd)
@@ -188,6 +188,15 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         }
 
         return paramsWithName
+    }
+
+    /**
+     * Converts platform nullability to non-null. It's only viable for parameters in java code, never for provided types
+     */
+    private fun withPlatformNullabilityAsNotNull(type: AstType) = if (type.isPlatform()) {
+        type.makeNonNullable()
+    } else {
+        type
     }
 
     /**
