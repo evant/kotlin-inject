@@ -5,6 +5,7 @@ import assertk.assertThat
 import assertk.assertions.contains
 import me.tatarka.inject.ProjectCompiler
 import me.tatarka.inject.Target
+import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
 import org.junit.jupiter.api.io.TempDir
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
@@ -51,8 +52,8 @@ class WarningTest {
                     @Provides fun str(): String = ""
                 }
                 """.trimIndent()
-            ).compile()
-        ).warnings().all {
+            ).compile(CompilerMessageSeverity.WARNING)
+        ).output().all {
             contains("Scope: @MyScope1 has no effect. Place on @Provides function or @Inject constructor instead.")
             contains("Scope: @MyScope2 has no effect. Place on @Provides function or @Inject constructor instead.")
             contains("Scope: @MyScope3 has no effect. Place on @Provides function or @Inject constructor instead.")
@@ -88,8 +89,8 @@ class WarningTest {
                     @Provides fun str(): String = ""
                 }
                 """.trimIndent()
-            ).compile()
-        ).warnings().all {
+            ).compile(CompilerMessageSeverity.WARNING)
+        ).output().all {
             contains("Scope: @MyScope1 has no effect. Place on @Provides function or @Inject constructor instead.")
             contains("Scope: @MyScope2 has no effect. Place on @Provides function or @Inject constructor instead.")
         }

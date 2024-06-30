@@ -9,5 +9,5 @@ import javax.tools.Diagnostic
 
 fun Assert<Throwable>.output(): Assert<String> = message().isNotNull()
 
-fun Assert<TestCompilationResult>.warnings(): Assert<String> =
-    prop("warnings") { it.output(Diagnostic.Kind.WARNING) }
+fun Assert<TestCompilationResult>.output(): Assert<String> =
+    prop("output") { it.output() }
