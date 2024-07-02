@@ -203,6 +203,10 @@ abstract class AstType : AstElement(), AstAnnotated {
 
     abstract val simpleName: String
 
+    /**
+     * Returns a list of type arguments. This method may throw an [IllegalStateException] if the type
+     * cannot be resolved.
+     */
     abstract val arguments: List<AstType>
 
     abstract val isError: Boolean

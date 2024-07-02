@@ -466,7 +466,10 @@ private class KSAstType private constructor(
 
     override val arguments: List<AstType>
         get() = type.arguments.map {
-            KSAstType(resolver, it.type!!)
+            val argumentType = checkNotNull(it.type) {
+                "Couldn't resolve type for $it with variance ${it.variance} from parent type $type"
+            }
+            KSAstType(resolver, argumentType)
         }
 
     override val isError: Boolean

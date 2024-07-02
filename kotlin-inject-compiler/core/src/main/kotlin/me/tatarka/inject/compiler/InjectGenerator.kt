@@ -253,7 +253,16 @@ fun <E> qualifier(
 ): AstAnnotation? where E : AstElement, E : AstAnnotated {
     // check for qualifiers incorrectly applied to type arguments
     fun checkTypeArgs(packageName: String, simpleName: String, type: AstType) {
-        for (typeArg in type.arguments) {
+        @Suppress("SwallowedException")
+        val arguments = try {
+            type.arguments
+        } catch (e: IllegalStateException) {
+            // We do a deep analysis of all types, but not all types are necessarily resolvable, e.g.
+            // this may happen with star projections. In this case stop checking type arguments.
+            return
+        }
+
+        for (typeArg in arguments) {
             val argQualifier = typeArg.annotationAnnotatedWith(packageName, simpleName)
             if (argQualifier != null) {
                 provider.error("Qualifier: $argQualifier can only be applied to the outer type", typeArg)
