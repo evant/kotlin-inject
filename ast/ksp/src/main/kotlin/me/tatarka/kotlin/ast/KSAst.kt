@@ -606,6 +606,9 @@ private class KSAstAnnotation(private val resolver: Resolver, val annotation: KS
         }
     }
 
+    override fun argument(name: String): Any? =
+        annotation.arguments.firstOrNull { it.name?.getShortName() == name }?.value
+
     override fun equals(other: Any?): Boolean {
         return other is KSAstAnnotation && annotation.eqv(other.annotation)
     }

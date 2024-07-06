@@ -253,6 +253,10 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             return Object(astClass.type)
         }
 
+        if (astClass.isAssistedFactory(options)) {
+            return assistedFactory(astClass, key)
+        }
+
         return null
     }
 
@@ -335,6 +339,95 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
                 Provides(withTypes(types), arg.accessor, arg.method, arg.scope, key)
             }
         )
+    }
+
+    private fun Context.assistedFactory(astClass: AstClass, key: TypeKey): TypeResult? {
+        if (!astClass.isInterface) {
+            throw FailedToGenerateException("Assisted factory $astClass must be an interface.", astClass)
+        }
+        val abstractMethods = astClass.allMethods.filter { it.isAbstract }
+        if (abstractMethods.size > 1) {
+            throw FailedToGenerateException(
+                "Assisted factory $astClass has too many abstract functions: ${abstractMethods.map { it.name }}.",
+                astClass
+            )
+        }
+        val factoryFunction = abstractMethods.firstOrNull() as? AstFunction
+            ?: throw FailedToGenerateException("Assisted factory $astClass doesn't have any functions.", astClass)
+        if (factoryFunction.receiverParameterType != null) {
+            throw FailedToGenerateException(
+                "Assisted factory $astClass function ${factoryFunction.name} has a receiver parameter. " +
+                    "Receiver parameters are not supported in assisted factory.",
+                astClass
+            )
+        }
+
+        // TODO: cleanup and extract a few functions
+        val namedArgs = factoryFunction.parameters.map { param -> param.type to param.name }
+        val injectedFunctionName = astClass.assistedFactoryFunctionName()
+        if (injectedFunctionName.isNullOrBlank()) {
+            return TypeResult.AssistedFactory(
+                type = key.type,
+                function = factoryFunction,
+                parameters = namedArgs,
+                result = resolveOrNull(
+                    context = this.withArgs(namedArgs),
+                    element = factoryFunction,
+                    key = TypeKey(factoryFunction.returnType)
+                ) ?: return null,
+            )
+        } else {
+            val functionName = injectedFunctionName.substringAfterLast(".")
+            val functionPackage = injectedFunctionName.substringBeforeLast(".", key.type.packageName)
+            // TODO: make sure found functions are global or static
+            val functions = provider.findFunctions(functionPackage, functionName)
+                .toList()
+            val function = if (functions.isEmpty()) {
+                throw FailedToGenerateException("Inject function not found for Assisted factory $astClass.", astClass)
+            } else if (functions.size == 1) {
+                functions.first()
+            } else {
+                val injectFunctions = functions.filter { it.isInject() }
+                if (injectFunctions.isEmpty()) {
+                    throw FailedToGenerateException(
+                        "Inject function not found for Assisted factory $astClass.",
+                        astClass
+                    )
+                } else if (injectFunctions.size > 1) {
+                    throw FailedToGenerateException(
+                        "Too many candidates found for inject function for Assisted factory $astClass.",
+                        astClass
+                    )
+                } else {
+                    injectFunctions.first()
+                }
+            }
+            if (function.receiverParameterType != null) {
+                throw FailedToGenerateException(
+                    "Cannot inject function with receiver parameter in Assisted factory $astClass.",
+                    astClass
+                )
+            }
+            if (function.returnType != factoryFunction.returnType) {
+                throw FailedToGenerateException(
+                    "Return type of inject function doesn't match assisted factory's return type $astClass.",
+                    astClass
+                )
+            }
+
+            return TypeResult.AssistedFunctionFactory(
+                type = key.type,
+                function = factoryFunction,
+                parameters = namedArgs,
+                injectFunction = function,
+                injectFunctionParameters = resolveParams(
+                    context = this.withArgs(namedArgs),
+                    element = function,
+                    scope = null,
+                    params = function.parameters
+                ),
+            )
+        }
     }
 
     private fun Context.functionType(element: AstElement, key: TypeKey): TypeResult? {

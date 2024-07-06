@@ -1,6 +1,7 @@
 package me.tatarka.inject.test
 
 import me.tatarka.inject.annotations.Assisted
+import me.tatarka.inject.annotations.AssistedFactory
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Provides
@@ -11,6 +12,23 @@ class AssistedBar(val foo: Foo, @Assisted val name: String)
 @Component
 abstract class AssistedComponent {
     abstract val barFactory: (name: String) -> AssistedBar
+}
+
+@Inject
+class FactoryAssistedBar(@Assisted val num: Int, val foo: Foo, @Assisted val name: String)
+
+@AssistedFactory
+interface AssistedBarFactory {
+    fun build(num: Int, name: String): FactoryAssistedBar
+}
+
+@Inject
+class SomethingDependantOnAssistedFactory(val factory: AssistedBarFactory)
+
+@Component
+abstract class AssistedFactoryComponent {
+    abstract val barFactory: AssistedBarFactory
+    abstract val somethingDependant: SomethingDependantOnAssistedFactory
 }
 
 @Inject

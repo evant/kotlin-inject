@@ -43,6 +43,8 @@ interface AstAnnotated {
     fun annotationsAnnotatedWith(packageName: String, simpleName: String): Sequence<AstAnnotation>
 }
 
+fun AstAnnotated.hasAnnotation(annotation: ClassName) = hasAnnotation(annotation.packageName, annotation.simpleName)
+
 fun AstAnnotated.annotationAnnotatedWith(packageName: String, simpleName: String): AstAnnotation? =
     annotationsAnnotatedWith(packageName, simpleName).firstOrNull()
 
@@ -247,6 +249,8 @@ abstract class AstAnnotation : AstElement() {
     abstract val type: AstType
 
     abstract fun toAnnotationSpec(): AnnotationSpec
+
+    abstract fun argument(name: String): Any?
 }
 
 abstract class AstParam : AstElement(), AstAnnotated {

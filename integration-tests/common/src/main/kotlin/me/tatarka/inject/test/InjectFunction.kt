@@ -1,6 +1,7 @@
 package me.tatarka.inject.test
 
 import me.tatarka.inject.annotations.Assisted
+import me.tatarka.inject.annotations.AssistedFactory
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.test.module.externalFunction
@@ -10,6 +11,22 @@ abstract class FunctionInjectionComponent {
     abstract val bar: bar
 
     abstract val externalFunction: externalFunction
+
+    abstract val fooFactory: FooFactory
+
+    abstract val barFactory: BarFactory
+
+    abstract val externalFunctionFactory: ExternalFunctionFactory
+}
+
+@AssistedFactory("me.tatarka.inject.test.module.externalFunction")
+interface ExternalFunctionFactory {
+    operator fun invoke(): String
+}
+
+@AssistedFactory("foo")
+interface FooFactory {
+    operator fun invoke(arg: F): String
 }
 
 typealias F = String
@@ -19,6 +36,11 @@ typealias foo = (F) -> String
 @Inject
 @Suppress("UNUSED_PARAMETER")
 fun foo(dep: Foo, @Assisted arg: F): String = arg
+
+@AssistedFactory("bar")
+interface BarFactory {
+    operator fun invoke(): String
+}
 
 typealias bar = () -> String
 

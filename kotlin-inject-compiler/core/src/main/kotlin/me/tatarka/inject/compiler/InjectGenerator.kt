@@ -22,6 +22,7 @@ import me.tatarka.kotlin.ast.AstType
 import me.tatarka.kotlin.ast.AstVisibility
 import me.tatarka.kotlin.ast.Messenger
 import me.tatarka.kotlin.ast.annotationAnnotatedWith
+import me.tatarka.kotlin.ast.hasAnnotation
 
 private const val ANNOTATION_PACKAGE_NAME = "me.tatarka.inject.annotations"
 val COMPONENT = ClassName(ANNOTATION_PACKAGE_NAME, "Component")
@@ -31,12 +32,17 @@ val INJECT = ClassName(ANNOTATION_PACKAGE_NAME, "Inject")
 val INTO_MAP = ClassName(ANNOTATION_PACKAGE_NAME, "IntoMap")
 val INTO_SET = ClassName(ANNOTATION_PACKAGE_NAME, "IntoSet")
 val ASSISTED = ClassName(ANNOTATION_PACKAGE_NAME, "Assisted")
+val ASSISTED_FACTORY = ClassName(ANNOTATION_PACKAGE_NAME, "AssistedFactory")
+const val ASSISTED_FACTORY_FUNCTION_ARG = "injectFunction"
 val QUALIFIER = ClassName(ANNOTATION_PACKAGE_NAME, "Qualifier")
 val KMP_COMPONENT_CREATE = ClassName(ANNOTATION_PACKAGE_NAME, "KmpComponentCreate")
 
 val JAVAX_SCOPE = ClassName("javax.inject", "Scope")
 val JAVAX_INJECT = ClassName("javax.inject", "Inject")
 val JAVAX_QUALIFIER = ClassName("javax.inject", "Qualifier")
+
+// TODO: implement the rest of assisted stuff
+val DAGGER_ASSISTED_FACTORY = ClassName("dagger.assisted", "AssistedFactory")
 
 val SCOPED_COMPONENT = ClassName("me.tatarka.inject.internal", "ScopedComponent")
 val LAZY_MAP = ClassName("me.tatarka.inject.internal", "LazyMap")
@@ -212,16 +218,23 @@ fun AstAnnotated.scopes(options: Options): Sequence<AstAnnotation> {
     return scopeAnnotations
 }
 
-fun AstAnnotated.isComponent() = hasAnnotation(COMPONENT.packageName, COMPONENT.simpleName)
+fun AstAnnotated.isComponent() = hasAnnotation(COMPONENT)
 
-fun AstMember.isProvides() = hasAnnotation(PROVIDES.packageName, PROVIDES.simpleName)
+fun AstMember.isProvides() = hasAnnotation(PROVIDES)
 
-fun AstAnnotated.isInject() = hasAnnotation(INJECT.packageName, INJECT.simpleName)
+fun AstAnnotated.isInject() = hasAnnotation(INJECT)
+
+fun AstAnnotated.isAssistedFactory(options: Options) =
+    hasAnnotation(ASSISTED_FACTORY) || options.enableJavaxAnnotations && hasAnnotation(DAGGER_ASSISTED_FACTORY)
+
+fun AstAnnotated.assistedFactoryFunctionName() =
+    annotation(ASSISTED_FACTORY.packageName, ASSISTED_FACTORY.simpleName)
+        ?.argument(ASSISTED_FACTORY_FUNCTION_ARG) as? String
 
 fun AstClass.findInjectConstructors(messenger: Messenger, options: Options): AstConstructor? {
     val injectCtors = constructors.filter {
         if (options.enableJavaxAnnotations) {
-            it.hasAnnotation(JAVAX_INJECT.packageName, JAVAX_INJECT.simpleName) || it.isInject()
+            it.hasAnnotation(JAVAX_INJECT) || it.isInject()
         } else {
             it.isInject()
         }
@@ -270,6 +283,7 @@ fun <E> qualifier(
             checkTypeArgs(packageName, simpleName, typeArg)
         }
     }
+
     fun qualifier(
         packageName: String,
         simpleName: String,

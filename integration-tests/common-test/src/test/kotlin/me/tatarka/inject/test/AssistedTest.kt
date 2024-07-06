@@ -17,7 +17,7 @@ class AssistedTest {
 
     @Test
     fun generates_a_component_that_provides_an_assisted_function() {
-        val component = AssistedComponent::class.create()
+        val component:AssistedComponent = AssistedComponent::class.create()
 
         assertThat(component.barFactory("name").name).isEqualTo("name")
     }

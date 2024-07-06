@@ -857,6 +857,38 @@ class FailureTest {
 
     @ParameterizedTest
     @EnumSource(Target::class)
+    fun fails_if_assisted_factory_is_used_in_a_cycle(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+
+        assertFailure {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                import me.tatarka.inject.annotations.Component
+                import me.tatarka.inject.annotations.Assisted
+                import me.tatarka.inject.annotations.Inject
+                import me.tatarka.inject.annotations.AssistedFactory
+                    
+                @Inject class Dep1(val dep2: Dep2, @Assisted val arg: Int)
+                
+                @Inject class Dep2(val factory: Factory)
+
+                @AssistedFactory interface Factory {
+                    fun build(arg: Int): Dep1
+                }
+
+                @Component abstract class MyComponent {
+                    abstract val factory: Factory
+                }  
+                """.trimIndent()
+            ).compile()
+        }.output().all {
+            contains("Cycle detected")
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
     fun fails_if_cycle_is_in_lazy_dependency(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
 

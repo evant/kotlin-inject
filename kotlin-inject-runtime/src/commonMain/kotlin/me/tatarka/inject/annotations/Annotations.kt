@@ -28,5 +28,15 @@ annotation class IntoMap
 @Target(VALUE_PARAMETER)
 annotation class Assisted
 
+@Target(CLASS)
+annotation class AssistedFactory(
+    /**
+     * Indicates that a global function should be called as an underlying factory.
+     * If set it will behave similar to function injection.
+     * Can be a function name if the function is in the same package or a full name with package otherwise.
+     */
+    val injectFunction: String = ""
+)
+
 @Target(ANNOTATION_CLASS)
 annotation class Qualifier
