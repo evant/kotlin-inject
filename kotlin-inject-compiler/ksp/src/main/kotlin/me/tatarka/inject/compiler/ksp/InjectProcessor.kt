@@ -42,9 +42,19 @@ class InjectProcessor(
 
         val componentSymbols =
             resolver.getSymbolsWithAnnotation(COMPONENT.canonicalName).filterIsInstance<KSClassDeclaration>()
-        val deferredClasses = componentSymbols.filterNot { element ->
-            processInject(element, provider, codeGenerator, injectGenerator)
-        }.toList()
+        val deferredClasses = componentSymbols
+            .distinctBy {
+                // Classes keep being processed multiple times and throw a FileAlreadyExistsException in multi round
+                // scenarios. The function above getSymbolsWithAnnotation() returns deferred symbols twice for some
+                // reason in the next round.
+                //
+                // https://github.com/google/ksp/issues/1993
+                it.qualifiedName
+            }
+            .filterNot { element ->
+                processInject(element, provider, codeGenerator, injectGenerator)
+            }
+            .toList()
         deferredClassNames = deferredClasses.mapNotNull {
             val name = it.qualifiedName
             if (name == null) {
