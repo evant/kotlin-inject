@@ -366,7 +366,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         val injectedFunctionName = astClass.assistedFactoryFunctionName()
         if (injectedFunctionName.isNullOrBlank()) {
             return TypeResult.AssistedFactory(
-                type = key.type,
+                factoryType = key.type,
                 function = factoryFunction,
                 parameters = namedArgs,
                 result = resolveOrNull(
@@ -420,7 +420,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             }
 
             return TypeResult.AssistedFunctionFactory(
-                type = key.type,
+                factoryType = key.type,
                 function = factoryFunction,
                 parameters = namedArgs,
                 injectFunction = function,

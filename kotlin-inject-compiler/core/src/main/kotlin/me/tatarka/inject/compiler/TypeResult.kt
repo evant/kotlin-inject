@@ -92,14 +92,14 @@ sealed class TypeResult {
     }
 
     class AssistedFactory(
-        val type: AstType,
+        val factoryType: AstType,
         val function: AstFunction,
         val result: TypeResultRef,
         val parameters: List<Pair<AstType, String>>,
     ) : TypeResult()
 
     class AssistedFunctionFactory(
-        val type: AstType,
+        val factoryType: AstType,
         val function: AstFunction,
         val parameters: List<Pair<AstType, String>>,
         val injectFunction: AstFunction,

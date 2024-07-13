@@ -106,6 +106,8 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
                     }
                     add("%L.", accessorInScope)
                 }
+            } else if (implicitAccessor.isNotEmpty()) {
+                add("this@%L.", className)
             }
 
             if (receiver != null) {
@@ -258,8 +260,10 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
     }
 
     private fun TypeResult.AssistedFactory.generate(): CodeBlock {
+        val generatedReturn = with(copy(implicitAccessor = Accessor(factoryType.simpleName))) { result.generate() }
+
         val typeSpec = TypeSpec.anonymousClassBuilder()
-            .addSuperinterface(type.toTypeName())
+            .addSuperinterface(factoryType.toTypeName())
             .addFunction(
                 FunSpec.builder(function.name)
                     .addModifiers(KModifier.OVERRIDE)
@@ -271,7 +275,7 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
                     .addAnnotations(function.annotations.map { it.toAnnotationSpec() }.asIterable())
                     .addParameters(parameters.map { ParameterSpec.builder(it.second, it.first.toTypeName()).build() })
                     .returns(result.key.type.toTypeName())
-                    .addCode(CodeBlock.of("return·%L", result.generate()))
+                    .addCode(CodeBlock.of("return·%L", generatedReturn))
                     .build()
             )
             .build()
@@ -280,7 +284,7 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
 
     private fun TypeResult.AssistedFunctionFactory.generate(): CodeBlock {
         val typeSpec = TypeSpec.anonymousClassBuilder()
-            .addSuperinterface(type.toTypeName())
+            .addSuperinterface(factoryType.toTypeName())
             .addFunction(
                 FunSpec.builder(function.name)
                     .addModifiers(KModifier.OVERRIDE)
@@ -295,7 +299,9 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
                     .addCode(
                         CodeBlock.builder().apply {
                             add("return·")
-                            addFunctionCall(injectFunction.toMemberName(), injectFunctionParameters)
+                            with(copy(implicitAccessor = Accessor(factoryType.simpleName))) {
+                                addFunctionCall(injectFunction.toMemberName(), injectFunctionParameters)
+                            }
                         }.build()
                     )
                     .build()

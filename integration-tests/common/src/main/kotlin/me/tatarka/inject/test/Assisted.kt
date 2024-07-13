@@ -14,8 +14,15 @@ abstract class AssistedComponent {
     abstract val barFactory: (name: String) -> AssistedBar
 }
 
+class SomethingProvided()
+
 @Inject
-class FactoryAssistedBar(@Assisted val num: Int, val foo: Foo, @Assisted val name: String)
+class FactoryAssistedBar(
+    @Assisted val num: Int,
+    val foo: Foo,
+    @Assisted val name: String,
+    val provided: SomethingProvided,
+)
 
 @AssistedFactory
 interface AssistedBarFactory {
@@ -29,6 +36,9 @@ class SomethingDependantOnAssistedFactory(val factory: AssistedBarFactory)
 abstract class AssistedFactoryComponent {
     abstract val barFactory: AssistedBarFactory
     abstract val somethingDependant: SomethingDependantOnAssistedFactory
+
+    @get:Provides
+    val name: SomethingProvided = SomethingProvided() // makes sure names don't clash with assisted params
 }
 
 @Inject
