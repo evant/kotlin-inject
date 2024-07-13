@@ -3,6 +3,7 @@ package me.tatarka.inject.test
 import assertk.all
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import assertk.assertions.isNotNull
 import assertk.assertions.isSameInstanceAs
 import assertk.assertions.prop
 import kotlin.test.Test
@@ -66,5 +67,22 @@ class AssistedTest {
             prop(AssistedAndUnrelatedDep::unrelatedDependency).prop(UnrelatedDependency::someString)
                 .isEqualTo("provided")
         }
+    }
+
+    @Test
+    fun generates_a_component_with_assisted_factory() {
+        val component: AssistedFactoryComponent = AssistedFactoryComponent::class.create()
+        val expectedName = "asd"
+        val expectedNum = 42
+        assertThat(component.barFactory.build(expectedNum, expectedName)).all {
+            prop(FactoryAssistedBar::name).isEqualTo(expectedName)
+            prop(FactoryAssistedBar::num).isEqualTo(expectedNum)
+        }
+    }
+
+    @Test
+    fun generates_a_component_that_injects_assisted_factory_in_constructor() {
+        val component: AssistedFactoryComponent = AssistedFactoryComponent::class.create()
+        assertThat(component.somethingDependant.factory.build(42, "asd")).isNotNull()
     }
 }
