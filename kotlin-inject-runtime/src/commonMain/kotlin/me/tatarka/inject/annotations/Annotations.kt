@@ -31,7 +31,7 @@ annotation class Assisted
 @Target(CLASS)
 annotation class AssistedFactory(
     /**
-     * Indicates that a global function should be called as an underlying factory.
+     * Indicates that a top level function should be called as an underlying factory.
      * If set it will behave similar to function injection.
      * Can be a function name if the function is in the same package or a full name with package otherwise.
      */

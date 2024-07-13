@@ -362,7 +362,6 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             )
         }
 
-        // TODO: cleanup and extract a few functions
         val namedArgs = factoryFunction.parameters.map { param -> param.type to param.name }
         val injectedFunctionName = astClass.assistedFactoryFunctionName()
         if (injectedFunctionName.isNullOrBlank()) {
@@ -379,7 +378,6 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         } else {
             val functionName = injectedFunctionName.substringAfterLast(".")
             val functionPackage = injectedFunctionName.substringBeforeLast(".", key.type.packageName)
-            // TODO: make sure found functions are global or static
             val functions = provider.findFunctions(functionPackage, functionName)
                 .toList()
             val function = if (functions.isEmpty()) {
@@ -411,6 +409,12 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             if (function.returnType != factoryFunction.returnType) {
                 throw FailedToGenerateException(
                     "Return type of inject function doesn't match assisted factory's return type $astClass.",
+                    astClass
+                )
+            }
+            if (!function.isTopLevel) {
+                throw FailedToGenerateException(
+                    "Only top level functions can be injected in assisted factory: $astClass.",
                     astClass
                 )
             }

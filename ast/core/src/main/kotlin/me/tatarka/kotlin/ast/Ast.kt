@@ -149,6 +149,8 @@ abstract class AstFunction : AstMember() {
 
     abstract val packageName: String
 
+    abstract val isTopLevel: Boolean
+
     abstract override fun equals(other: Any?): Boolean
 
     abstract override fun hashCode(): Int

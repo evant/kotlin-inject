@@ -19,7 +19,6 @@ class InjectFunctionTest {
 
         assertThat(component.barFactory()).isEqualTo("test")
         assertThat(component.externalFunctionFactory()).isEqualTo("external")
-        assertThat(component.objectFunctionFactory("42").name).isEqualTo("42")
     }
 
     @Test

@@ -17,19 +17,6 @@ abstract class FunctionInjectionComponent {
     abstract val barFactory: BarFactory
 
     abstract val externalFunctionFactory: ExternalFunctionFactory
-
-    abstract val objectFunctionFactory: ObjectFunctionFactory
-}
-
-@AssistedFactory("me.tatarka.inject.test.ObjectWithFunction.objectFunction")
-interface ObjectFunctionFactory {
-    operator fun invoke(name: String): SomethingNotInjectable
-}
-
-class SomethingNotInjectable(val name: String)
-
-object ObjectWithFunction {
-    fun objectFunction(@Assisted name: String): SomethingNotInjectable = SomethingNotInjectable(name)
 }
 
 @AssistedFactory("me.tatarka.inject.test.module.externalFunction")

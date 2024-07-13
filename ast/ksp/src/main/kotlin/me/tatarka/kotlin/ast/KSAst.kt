@@ -12,6 +12,7 @@ import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.FileLocation
+import com.google.devtools.ksp.symbol.FunctionKind
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
@@ -330,6 +331,9 @@ private class KSAstFunction(override val resolver: Resolver, override val declar
 
     override val packageName: String
         get() = declaration.packageName.asString()
+
+    override val isTopLevel: Boolean
+        get() = declaration.functionKind == FunctionKind.TOP_LEVEL
 
     override val receiverParameterType: AstType?
         get() = declaration.extensionReceiver?.let { KSAstType(resolver, it) }

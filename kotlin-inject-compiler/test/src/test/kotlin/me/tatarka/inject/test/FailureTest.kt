@@ -1338,4 +1338,42 @@ class FailureTest {
             contains("e: [ksp] Cannot find an @Inject constructor or provider for: Foo")
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun fails_if_trying_to_inject_class_function_to_assisted_factory(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+
+        assertFailure {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                import me.tatarka.inject.annotations.Component
+                import me.tatarka.inject.annotations.Inject
+                import me.tatarka.inject.annotations.Provides
+                import me.tatarka.inject.annotations.Qualifier
+                import me.tatarka.inject.annotations.Assisted
+                import me.tatarka.inject.annotations.AssistedFactory
+                
+                class SomethingNotInjectable(val name: String)
+                
+                class ClassWithFunction {
+                    fun classFunction(@Assisted name: String): SomethingNotInjectable = SomethingNotInjectable(name)
+                }
+
+                @AssistedFactory("ClassWithFunction.classFunction")
+                interface ClassFunctionFactory {
+                    operator fun invoke(name: String): SomethingNotInjectable
+                }
+                
+                @Component
+                abstract class MultipleQualifiersComponent {
+                    abstract val classFunctionFactory: ClassFunctionFactory
+                }
+                """.trimIndent()
+            ).compile()
+        }.output().all {
+            contains("Only top level functions can be injected in assisted factory")
+        }
+    }
 }
