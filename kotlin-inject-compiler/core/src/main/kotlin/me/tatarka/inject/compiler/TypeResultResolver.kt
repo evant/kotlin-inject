@@ -253,7 +253,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             return Object(astClass.type)
         }
 
-        if (astClass.isAssistedFactory(options)) {
+        if (astClass.isAssistedFactory()) {
             return assistedFactory(astClass, key)
         }
 

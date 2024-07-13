@@ -41,9 +41,6 @@ val JAVAX_SCOPE = ClassName("javax.inject", "Scope")
 val JAVAX_INJECT = ClassName("javax.inject", "Inject")
 val JAVAX_QUALIFIER = ClassName("javax.inject", "Qualifier")
 
-// TODO: implement the rest of assisted stuff
-val DAGGER_ASSISTED_FACTORY = ClassName("dagger.assisted", "AssistedFactory")
-
 val SCOPED_COMPONENT = ClassName("me.tatarka.inject.internal", "ScopedComponent")
 val LAZY_MAP = ClassName("me.tatarka.inject.internal", "LazyMap")
 
@@ -224,8 +221,7 @@ fun AstMember.isProvides() = hasAnnotation(PROVIDES)
 
 fun AstAnnotated.isInject() = hasAnnotation(INJECT)
 
-fun AstAnnotated.isAssistedFactory(options: Options) =
-    hasAnnotation(ASSISTED_FACTORY) || options.enableJavaxAnnotations && hasAnnotation(DAGGER_ASSISTED_FACTORY)
+fun AstAnnotated.isAssistedFactory() = hasAnnotation(ASSISTED_FACTORY)
 
 fun AstAnnotated.assistedFactoryFunctionName() =
     annotation(ASSISTED_FACTORY.packageName, ASSISTED_FACTORY.simpleName)
