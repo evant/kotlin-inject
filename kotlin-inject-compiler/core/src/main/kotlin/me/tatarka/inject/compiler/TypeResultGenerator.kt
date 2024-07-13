@@ -61,6 +61,7 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
 
     private fun TypeResultRef.generate() = result.generate()
 
+    @Suppress("CyclomaticComplexMethod")
     private fun TypeResult.generate(): CodeBlock {
         return when (this) {
             is TypeResult.Provider -> generate()
