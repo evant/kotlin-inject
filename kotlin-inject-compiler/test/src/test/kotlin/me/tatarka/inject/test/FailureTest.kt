@@ -1273,4 +1273,36 @@ class FailureTest {
             contains("Qualifier: @MyQualifier can only be applied to the outer type")
         }
     }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun fails_if_cannot_find_inject_or_provider_and_root_is_a_type_parameter(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+
+        assertFailure {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                import me.tatarka.inject.annotations.Component
+                import me.tatarka.inject.annotations.Inject
+                import me.tatarka.inject.annotations.Provides
+
+                class Foo
+
+                @Inject class Bar(val foo: Foo)
+
+                interface DestinationComponent<C> {
+                  val c: C
+                }
+
+                @Inject class CType(val bar: Bar)
+
+                @Component
+                abstract class FooBarComponent : DestinationComponent<CType>
+                """.trimIndent()
+            ).compile()
+        }.output().all {
+            contains("e: [ksp] Cannot find an @Inject constructor or provider for: Foo")
+        }
+    }
 }

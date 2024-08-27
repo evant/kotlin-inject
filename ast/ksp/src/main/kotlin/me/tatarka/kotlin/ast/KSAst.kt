@@ -21,6 +21,7 @@ import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.KSTypeAlias
+import com.google.devtools.ksp.symbol.KSTypeParameter
 import com.google.devtools.ksp.symbol.KSTypeReference
 import com.google.devtools.ksp.symbol.KSValueParameter
 import com.google.devtools.ksp.symbol.Modifier
@@ -529,6 +530,8 @@ private class KSAstType private constructor(
         // rely on KotlinPoet's toString() as it includes type params
         // we check for error first because KotlinPoet will throw an exception
         return if (type.isError) {
+            typeRef.toString()
+        } else if (type.declaration is KSTypeParameter) {
             typeRef.toString()
         } else {
             typeRef.toTypeName().toString()
