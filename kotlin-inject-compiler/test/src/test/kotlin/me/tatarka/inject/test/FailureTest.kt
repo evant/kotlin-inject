@@ -2,8 +2,10 @@ package me.tatarka.inject.test
 
 import assertk.all
 import assertk.assertFailure
+import assertk.assertThat
 import assertk.assertions.contains
 import assertk.assertions.doesNotContain
+import assertk.assertions.isTrue
 import me.tatarka.inject.ProjectCompiler
 import me.tatarka.inject.Target
 import me.tatarka.inject.compiler.Options
@@ -580,6 +582,36 @@ class FailureTest {
 
     @ParameterizedTest
     @EnumSource(Target::class)
+    fun scopes_with_args_should_match_equality(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+
+        val result = projectCompiler.source(
+            "MyComponent.kt",
+            """
+            import me.tatarka.inject.annotations.Provides
+            import me.tatarka.inject.annotations.Component
+            import me.tatarka.inject.annotations.Scope
+            import kotlin.reflect.KClass
+
+            @Scope
+            annotation class SingleIn(val scope: KClass<*>)
+
+            abstract class AppScope private constructor()
+            
+            @Component
+            @SingleIn(AppScope::class)
+            abstract class MyComponent {
+              @Provides
+              @SingleIn(AppScope::class)
+              fun provideValue(): String = "value"
+            }
+            """.trimIndent()
+        ).compile()
+        assertThat(result.success).isTrue()
+    }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
     fun fails_if_type_is_missing_arg_even_if_used_as_default_value(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
 
@@ -587,20 +619,20 @@ class FailureTest {
             projectCompiler.source(
                 "MyComponent.kt",
                 """
-               import me.tatarka.inject.annotations.Inject
-               import me.tatarka.inject.annotations.Component
-               
-               @Component abstract class MyComponent {
-                abstract val foo: Foo
-               }
-               
-               @Inject class Foo(bar: Bar = Bar(""))
-               
-               @Inject class Bar(value: String)
-               
-               @Component abstract class MyChildComponent(@Component val parent: MyParentComponent) {
-                 abstract val foo: String
-               }
+                import me.tatarka.inject.annotations.Inject
+                import me.tatarka.inject.annotations.Component
+                
+                @Component abstract class MyComponent {
+                 abstract val foo: Foo
+                }
+                
+                @Inject class Foo(bar: Bar = Bar(""))
+                
+                @Inject class Bar(value: String)
+                
+                @Component abstract class MyChildComponent(@Component val parent: MyParentComponent) {
+                  abstract val foo: String
+                }
                 """.trimIndent()
             ).compile()
         }.output().all {
