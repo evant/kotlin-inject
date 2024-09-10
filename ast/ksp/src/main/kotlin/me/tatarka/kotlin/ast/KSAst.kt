@@ -531,10 +531,13 @@ private class KSAstType private constructor(
         // we check for error first because KotlinPoet will throw an exception
         return if (type.isError) {
             typeRef.toString()
-        } else if (type.declaration is KSTypeParameter) {
-            typeRef.toString()
         } else {
-            typeRef.toTypeName().toString()
+            try {
+                typeRef.toTypeName().toString()
+            }
+            catch (_: Throwable) {
+                typeRef.toString()
+            }
         }.shortenPackage()
     }
 

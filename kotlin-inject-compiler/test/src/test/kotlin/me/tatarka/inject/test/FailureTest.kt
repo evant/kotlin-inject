@@ -1293,6 +1293,7 @@ class FailureTest {
 
                 interface DestinationComponent<C> {
                   val c: C
+                  val cProvider: () -> C
                 }
 
                 @Inject class CType(val bar: Bar)
