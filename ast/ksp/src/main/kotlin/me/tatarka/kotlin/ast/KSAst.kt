@@ -21,7 +21,6 @@ import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.KSTypeAlias
-import com.google.devtools.ksp.symbol.KSTypeParameter
 import com.google.devtools.ksp.symbol.KSTypeReference
 import com.google.devtools.ksp.symbol.KSValueParameter
 import com.google.devtools.ksp.symbol.Modifier
@@ -534,8 +533,7 @@ private class KSAstType private constructor(
         } else {
             try {
                 typeRef.toTypeName().toString()
-            }
-            catch (_: Throwable) {
+            } catch (_: Throwable) {
                 typeRef.toString()
             }
         }.shortenPackage()
