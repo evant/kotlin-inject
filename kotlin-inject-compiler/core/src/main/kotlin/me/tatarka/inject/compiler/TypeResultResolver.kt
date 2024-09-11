@@ -18,7 +18,7 @@ import me.tatarka.kotlin.ast.AstType
 @Suppress("NAME_SHADOWING", "FunctionNaming", "FunctionName")
 class TypeResultResolver(private val provider: AstProvider, private val options: Options) {
 
-    private val cycleDetector = CycleDetector()
+    private val cycleDetector = CycleDetector<TypeKey, AstElement>()
     private val typeCache = mutableMapOf<TypeCacheKey, TypeResult>()
 
     /**
@@ -246,7 +246,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         val astClass = key.type.toAstClass()
         val injectCtor = astClass.findInjectConstructors(provider.messenger, options)
         if (injectCtor != null) {
-            return constructor(key, injectCtor, astClass)
+            return constructor(key, injectCtor.asMemberOf(element), astClass)
         }
 
         if (astClass.isInject() && astClass.isObject) {
@@ -563,7 +563,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             when (cycleResult) {
                 is CycleResult.None -> f()
                 is CycleResult.Cycle -> throw FailedToGenerateException(trace("Cycle detected"))
-                is CycleResult.Resolvable -> TypeResult.LocalVar(cycleResult.name)
+                is CycleResult.Resolvable -> TypeResult.LocalVar(cycleResult.key.type.toVariableName())
             }
         }
         return maybeLateInit(key, result)
@@ -575,15 +575,17 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             result !is TypeResult.LocalVar && result !is TypeResult.Lazy &&
                 result !is TypeResult.Function && result !is TypeResult.Scoped
         if (!validResultType) return result
-        val name = cycleDetector.hitResolvable(key) ?: return result
-        return LateInit(name, key, result)
+        if (!cycleDetector.hitResolvable(key)) return result
+        return LateInit(key.type.toVariableName(), key, result)
     }
 
     /**
      * Produce a trace with the given message prefix. This will show all the lines with
      * elements that were traversed for this context.
      */
-    private fun trace(message: String): String = "$message\n" + cycleDetector.trace(provider)
+    private fun trace(message: String): String = "$message\n" + cycleDetector.trace {
+        with(provider) { it.toTrace() }
+    }
 
     private fun cannotFind(key: TypeKey): String = trace("Cannot find an @Inject constructor or provider for: $key")
 

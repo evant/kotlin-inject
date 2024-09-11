@@ -3,6 +3,7 @@ package me.tatarka.inject.test
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Provides
+import me.tatarka.inject.annotations.Scope
 
 interface Lvl1
 interface Lvl2
@@ -36,3 +37,57 @@ abstract class ComplexCycleComponent {
     @Provides
     fun lvl4(impl: Lvl4Impl): Lvl4 = impl
 }
+
+@Scope
+annotation class Singleton
+
+@Singleton
+@Inject
+class Interceptor(val client1: Lazy<Client1>, val client2: Lazy<Client2>)
+
+@Inject
+class Client1(val interceptor: Interceptor)
+
+@Inject
+class Client2(val interceptor: Interceptor)
+
+@Inject
+class Repository(val client1: Client1, val client2: Client2)
+
+@Singleton
+@Component
+interface MyComponent {
+    val interceptor: Interceptor
+    val repository: Repository
+}
+
+//class MyComponentImpl : MyComponent, ScopedComponent {
+//    override val _scoped: LazyMap = LazyMap()
+//
+//    override val repository: Repository
+//        get() {
+//            val interceptor = _scoped.get("me.tatarka.inject.test.Interceptor") {
+//                run<Interceptor> {
+//                    lateinit var interceptor: Interceptor
+//                    Interceptor(
+//                        client1 = lazy {
+//                            Client1(
+//                                interceptor = interceptor
+//                            )
+//                        },
+//                        client2 = lazy {
+//                            Client2(
+//                                interceptor = interceptor
+//                            )
+//                        }
+//                    ).also {
+//                        interceptor = it
+//                    }
+//                }
+//            }
+//            return Repository(
+//                client1 = Client1(interceptor),
+//                client2 = Client2(interceptor)
+//            )
+//        }
+//}
