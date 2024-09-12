@@ -38,11 +38,16 @@ kotlin {
         nativeTest {
             kotlin.srcDir("../common-native/src/test/kotlin")
         }
+        jvmMain {
+            kotlin.srcDir("../common-jvm/src/main/kotlin")
+            dependencies {
+                api(libs.javax.inject)
+            }
+        }
         jvmTest {
             kotlin.srcDir("../common-jvm/src/test/kotlin")
             dependencies {
                 implementation(libs.kotlin.reflect)
-                implementation(libs.javax.inject)
             }
         }
     }
