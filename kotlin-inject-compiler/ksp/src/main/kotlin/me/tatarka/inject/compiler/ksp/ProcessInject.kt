@@ -21,7 +21,7 @@ internal fun processInject(
     provider: KSAstProvider,
     codeGenerator: CodeGenerator,
     injectGenerator: InjectGenerator,
-    skipValidation: Boolean = false
+    skipValidation: Boolean = false,
 ): Boolean = with(provider) {
     val astClass = element.toAstClass()
     if (skipValidation || validate(element)) {
@@ -34,7 +34,7 @@ internal fun processInject(
 
 private fun validate(declaration: KSClassDeclaration): Boolean {
     return declaration.accept(
-        object : KSValidateVisitor({ node, _ ->
+        object : KSValidateVisitor({ node, data ->
             when (node) {
                 is KSFunctionDeclaration ->
                     node.getVisibility() != Visibility.PRIVATE &&
@@ -50,6 +50,8 @@ private fun validate(declaration: KSClassDeclaration): Boolean {
                                 ) ?: true
                             )
 
+                // skip validating inner classes/companion objects as they aren't scanned for types
+                is KSClassDeclaration -> node == data
                 else -> true
             }
         }) {
@@ -72,7 +74,7 @@ private fun process(
     astClass: AstClass,
     provider: KSAstProvider,
     codeGenerator: CodeGenerator,
-    generator: InjectGenerator
+    generator: InjectGenerator,
 ) {
     try {
         val file = generator.generate(astClass)
