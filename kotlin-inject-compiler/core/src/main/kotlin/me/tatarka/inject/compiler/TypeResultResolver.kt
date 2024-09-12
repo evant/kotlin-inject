@@ -257,7 +257,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     }
 
     private fun Context.method(key: TypeKey, creator: Member): TypeResult {
-        return if (creator.scopedComponent != null && skipScoped != creator.method.returnType) {
+        return if (creator.scopedComponent != null && skipScoped != key) {
             Scoped(
                 context = this,
                 accessor = creator.accessor,
@@ -379,8 +379,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
                 astClass,
             )
         }
-        // constructor type is resolved from a typealias, need to resolve skipScoped too to ensure match
-        return if (scopedResult != null && skipScoped?.resolvedType() != injectCtor.type) {
+        return if (scopedResult != null && skipScoped != key) {
             val (scopedComponent, types) = scopedResult
             Scoped(
                 context = withTypes(types),
@@ -460,7 +459,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     ) = TypeResult.Scoped(
         key = key,
         accessor = accessor,
-        result = resolve(context.withoutScoped(key.type, scopedComponent), element, key)
+        result = resolve(context.withoutScoped(key, scopedComponent), element, key)
     )
 
     private fun Constructor(
