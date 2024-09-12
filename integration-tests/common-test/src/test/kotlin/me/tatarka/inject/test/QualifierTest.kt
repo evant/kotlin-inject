@@ -83,4 +83,11 @@ class QualifierTest {
         assertThat(component.bar.one).isSameInstanceAs(component.bar.one)
         assertThat(component.bar.two).isSameInstanceAs(component.bar.two)
     }
+
+    @Test
+    fun generates_a_component_that_constructs_samed_scoped_values_based_on_a_qualifier_annotation() {
+        val component = ScopedNamedComponent3::class.create()
+
+        assertThat(component.one).isSameInstanceAs(component.two)
+    }
 }

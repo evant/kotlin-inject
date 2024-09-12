@@ -248,7 +248,7 @@ fun AstClass.findInjectConstructors(messenger: Messenger, options: Options): Ast
 fun <E> qualifier(
     provider: AstProvider,
     options: Options,
-    element: E,
+    element: E?,
     type: AstType,
 ): AstAnnotation? where E : AstElement, E : AstAnnotated {
     // check for qualifiers incorrectly applied to type arguments
@@ -274,11 +274,11 @@ fun <E> qualifier(
         packageName: String,
         simpleName: String,
         provider: AstProvider,
-        element: E,
+        element: E?,
         type: AstType,
     ): AstAnnotation? {
         val qualifiers = (
-            element.annotationsAnnotatedWith(packageName, simpleName) +
+            element?.annotationsAnnotatedWith(packageName, simpleName).orEmpty() +
                 type.annotationsAnnotatedWith(packageName, simpleName)
             ).toList()
         if (qualifiers.size > 1) {
