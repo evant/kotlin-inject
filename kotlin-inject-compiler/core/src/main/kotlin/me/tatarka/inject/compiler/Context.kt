@@ -16,10 +16,10 @@ data class Context(
     val scopeInterface: AstClass?,
     val nameAllocator: NameAllocator,
     val args: List<Pair<AstType, String>> = emptyList(),
-    val skipScoped: AstType? = null,
+    val skipScoped: TypeKey? = null,
     val skipProvider: AstType? = null,
 ) {
-    fun withoutScoped(scoped: AstType, scopeComponent: AstClass) =
+    fun withoutScoped(scoped: TypeKey, scopeComponent: AstClass) =
         copy(skipScoped = scoped, scopeComponent = scopeComponent)
 
     fun withoutProvider(provider: AstType) = copy(skipProvider = provider)

@@ -1,6 +1,7 @@
 package me.tatarka.inject.test
 
 import me.tatarka.inject.annotations.Component
+import me.tatarka.inject.annotations.Inject
 import me.tatarka.inject.annotations.Provides
 import me.tatarka.inject.annotations.Qualifier
 
@@ -71,3 +72,34 @@ abstract class ScopedNamedComponent {
         @Provides get() = "three"
 }
 
+@Inject
+class ScopedNamedBar(
+    @Named("two")
+    val two: IFoo,
+
+    @Named("one")
+    val one: IFoo,
+)
+
+@Component
+@CustomScope
+abstract class ScopedNamedComponent2 {
+    abstract val bar: ScopedNamedBar
+
+    @CustomScope
+    @Provides
+    @Named("one")
+    fun provideFoo1(): IFoo {
+        return Foo()
+    }
+
+    @CustomScope
+    @Provides
+    @Named("two")
+    fun provideFoo2(
+        @Named("one")
+        foo: IFoo,
+    ): IFoo {
+        return Foo()
+    }
+}
