@@ -11,7 +11,7 @@ import me.tatarka.inject.annotations.Qualifier
     AnnotationTarget.PROPERTY_GETTER,
     AnnotationTarget.FUNCTION,
     AnnotationTarget.VALUE_PARAMETER,
-    AnnotationTarget.TYPE
+    AnnotationTarget.TYPE,
 )
 annotation class Named(val value: String)
 
@@ -89,17 +89,41 @@ abstract class ScopedNamedComponent2 {
     @CustomScope
     @Provides
     @Named("one")
-    fun provideFoo1(): IFoo {
-        return Foo()
-    }
+    fun provideFoo1(): IFoo = Foo()
 
     @CustomScope
     @Provides
     @Named("two")
-    fun provideFoo2(
-        @Named("one")
-        foo: IFoo,
-    ): IFoo {
-        return Foo()
-    }
+    fun provideFoo2(@Named("one") foo: IFoo): IFoo = Foo()
+}
+
+@Component
+@CustomScope
+interface ScopedNamedComponent3 {
+    @get:Named("one")
+    val one: IBar
+
+    @get:Named("two")
+    val two: IBar
+
+    val CustomScopeBar.bindOne: IBar @Provides @Named("one") get() = this
+    val CustomScopeBar.bindTwo: IBar @Provides @Named("two") get() = this
+}
+
+@Component
+@CustomScope
+interface HttpComponent2 {
+    @get:Named("one")
+    val one: IBar
+
+    @get:Named("two")
+    val two: IBar
+
+    @Named("one")
+    @Provides
+    fun bineOne(one: CustomScopeBar): IBar = one
+
+    @Named("two")
+    @Provides
+    fun bindTwo(two: CustomScopeBar): IBar = two
 }

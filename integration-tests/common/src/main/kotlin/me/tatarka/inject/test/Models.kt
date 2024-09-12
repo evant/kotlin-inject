@@ -62,7 +62,7 @@ annotation class CustomScope
 
 var customScopeBarConstructorCount = 0
 
-@CustomScope @Inject class CustomScopeBar {
+@CustomScope @Inject class CustomScopeBar : IBar {
     init {
         customScopeBarConstructorCount++
     }

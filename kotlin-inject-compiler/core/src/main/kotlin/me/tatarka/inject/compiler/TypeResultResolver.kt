@@ -439,7 +439,8 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
                 methodName = method.name,
                 accessor = accessor,
                 receiver = method.receiverParameterType?.let {
-                    val key = TypeKey(it, key.qualifier)
+                    val qualifier = qualifier(provider, options, null, it)
+                    val key = TypeKey(it, qualifier)
                     resolve(context, method, key)
                 },
                 isProperty = method is AstProperty,
