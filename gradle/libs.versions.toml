@@ -1,5 +1,5 @@
 [versions]
-kotlin-inject = "0.7.2-SNAPSHOT"
+kotlin-inject = "0.7.2"
 kotlin = "2.0.0"
 ksp = "2.0.0-1.0.22"
 kotlinpoet = "1.16.0"
