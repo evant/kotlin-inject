@@ -40,7 +40,7 @@ Add the runtime dependency in commonMain
 sourceSets {
     commonMain {
         dependencies {
-            implementation("me.tatarka.inject:kotlin-inject-runtime-kmp:0.7.1")
+            implementation("me.tatarka.inject:kotlin-inject-runtime-kmp:0.7.2")
         }
     }
 }
@@ -67,10 +67,10 @@ dependencies {
     kspCommonMainMetadata(libs.kotlinInject)
 
     // 2. Configure code generation into each KMP target source set
-    kspAndroid("me.tatarka.inject:kotlin-inject-compiler-ksp:0.7.1")
-    kspIosX64("me.tatarka.inject:kotlin-inject-compiler-ksp:0.7.1")
-    kspIosArm64("me.tatarka.inject:kotlin-inject-compiler-ksp:0.7.1")
-    kspIosSimulatorArm64("me.tatarka.inject:kotlin-inject-compiler-ksp:0.7.1")
+    kspAndroid("me.tatarka.inject:kotlin-inject-compiler-ksp:0.7.2")
+    kspIosX64("me.tatarka.inject:kotlin-inject-compiler-ksp:0.7.2")
+    kspIosArm64("me.tatarka.inject:kotlin-inject-compiler-ksp:0.7.2")
+    kspIosSimulatorArm64("me.tatarka.inject:kotlin-inject-compiler-ksp:0.7.2")
 }
 ```
 

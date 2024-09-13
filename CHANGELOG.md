@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.7.2] 2024-09-13
+
+### Changed
+- kotlin updated to 2.0.0
+
+### Fixed
+- Fixed various issues with qualifier annotations.
+- Fixed issue with inner class or companion inside a component extending the component interface causing an error.
+- Fixed crash when attempting to display a type parameter.
+- Added ksp work-around when running multiple rounds to prevent a FileAlreadyExistsException on a duplicate symbol.
+- Fixed injecting into a java constructor that doesn't have a nullability annotation defined.
+- Fixed various issues when resolving cycles.
+
 ## [0.7.1] 2024-06-12
 
 ### Fixed
