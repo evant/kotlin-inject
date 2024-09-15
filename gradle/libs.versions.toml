@@ -4,6 +4,8 @@ kotlin = "2.0.0"
 ksp = "2.0.0-1.0.22"
 kotlinpoet = "1.16.0"
 junit5 = "5.9.3"
+jdk = "17"
+jvmTarget = "11"
 detekt = "1.23.6"
 [libraries]
 kotlin-gradle = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }

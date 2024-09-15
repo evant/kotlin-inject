@@ -7,11 +7,16 @@ plugins {
 
 val libs = the<LibrariesForLibs>()
 
-kotlin.compilerOptions.jvmTarget = JvmTarget.JVM_11
+kotlin.compilerOptions.jvmTarget = libs.versions.jvmTarget.map(JvmTarget::fromTarget)
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
+    toolchain {
+        languageVersion.set(libs.versions.jdk.map(JavaLanguageVersion::of))
+    }
+}
+
+tasks.withType<JavaCompile>().configureEach {
+    options.release.set(libs.versions.jvmTarget.map(String::toInt))
 }
 
 // Ensure xml test reports are generated
