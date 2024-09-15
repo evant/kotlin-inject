@@ -1,15 +1,17 @@
+import org.gradle.accessors.dm.LibrariesForLibs
+import org.gradle.kotlin.dsl.assign
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTargetWithTests
 import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
-import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootExtension
-import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin
 import org.jetbrains.kotlin.gradle.targets.js.npm.tasks.KotlinNpmInstallTask
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 
 plugins {
     kotlin("multiplatform")
 }
+
+val libs = the<LibrariesForLibs>()
 
 kotlin {
     js {
@@ -47,13 +49,12 @@ kotlin {
     }
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
+tasks.withType<JavaCompile>().configureEach {
+    options.release.set(libs.versions.jvmTarget.map(String::toInt))
 }
 
-tasks.withType<KotlinCompile>().configureEach {
-    compilerOptions.jvmTarget = JvmTarget.JVM_11
+tasks.withType<KotlinJvmCompile>().configureEach {
+    compilerOptions.jvmTarget = libs.versions.jvmTarget.map(JvmTarget::fromTarget)
 }
 
 // Run only the native tests
