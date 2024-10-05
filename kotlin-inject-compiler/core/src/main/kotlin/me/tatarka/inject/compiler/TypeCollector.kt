@@ -164,6 +164,13 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                             accessor = accessor + parameter.name,
                             typeInfo = elemTypeInfo
                         )
+
+                        // When accessor is empty, check for duplicates from previously collected Results
+                        if (!accessor.isNotEmpty()) {
+                            for (parent in parents.minus(parentResult).plus(this)) {
+                                checkDuplicateTypesBetweenResults(provider, parentResult, parent)
+                            }
+                        }
                     }
                 }
             }
@@ -180,6 +187,31 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                 } else {
                     scopedAccessors[typeInfo.elementScope] = ScopedComponent(astClass, accessor)
                 }
+            }
+        }
+
+        private fun checkDuplicateTypesBetweenResults(provider: AstProvider, result1: Result, result2: Result) {
+            fun Result.getAllTypesAndMethods(): Map<TypeKey, AstMember> =
+                types.mapValues { it.value.method } +
+                    providerTypes.mapValues { it.value.method }
+
+            fun Result.getContainerTypesAndMethods(): Map<TypeKey, AstMember> =
+                containerTypes.mapKeys { it.key.containerTypeKey(provider) }
+                    .mapValues { it.value.first().method }
+
+            val result1Types = result1.getAllTypesAndMethods()
+            val result1TypesAndContainerTypes = result1Types + result1.getContainerTypesAndMethods()
+
+            val result2Types = result2.getAllTypesAndMethods()
+            val result2TypesAndContainerTypes = result2Types + result2.getContainerTypesAndMethods()
+
+            // We should allow for both Results to contribute to the same multibinding type
+            result1Types.keys.intersect(result2TypesAndContainerTypes.keys).forEach {
+                duplicate(it, result1Types.getValue(it), result2TypesAndContainerTypes.getValue(it))
+            }
+
+            result1TypesAndContainerTypes.keys.intersect(result2Types.keys).forEach {
+                duplicate(it, result1TypesAndContainerTypes.getValue(it), result2Types.getValue(it))
             }
         }
 
