@@ -12,6 +12,7 @@ import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.FileLocation
+import com.google.devtools.ksp.symbol.FunctionKind
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
@@ -331,6 +332,9 @@ private class KSAstFunction(override val resolver: Resolver, override val declar
     override val packageName: String
         get() = declaration.packageName.asString()
 
+    override val isTopLevel: Boolean
+        get() = declaration.functionKind == FunctionKind.TOP_LEVEL
+
     override val receiverParameterType: AstType?
         get() = declaration.extensionReceiver?.let { KSAstType(resolver, it) }
 
@@ -605,6 +609,9 @@ private class KSAstAnnotation(private val resolver: Resolver, val annotation: KS
             annotation.toAnnotationSpec(omitDefaultValues = true)
         }
     }
+
+    override fun argument(name: String): Any? =
+        annotation.arguments.firstOrNull { it.name?.getShortName() == name }?.value
 
     override fun equals(other: Any?): Boolean {
         return other is KSAstAnnotation && annotation.eqv(other.annotation)

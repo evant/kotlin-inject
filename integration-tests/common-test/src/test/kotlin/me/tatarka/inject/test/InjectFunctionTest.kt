@@ -13,6 +13,13 @@ class InjectFunctionTest {
         assertThat(component.bar()).isEqualTo("test")
         assertThat(component.externalFunction()).isEqualTo("external")
     }
+    @Test
+    fun generates_a_component_that_provides_a_function_factory() {
+        val component: FunctionInjectionComponent = FunctionInjectionComponent::class.create()
+
+        assertThat(component.barFactory()).isEqualTo("test")
+        assertThat(component.externalFunctionFactory()).isEqualTo("external")
+    }
 
     @Test
     fun generates_a_component_that_provides_a_function_with_receiver() {

@@ -253,6 +253,10 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             return Object(astClass.type)
         }
 
+        if (astClass.isAssistedFactory()) {
+            return assistedFactory(astClass, key)
+        }
+
         return null
     }
 
@@ -335,6 +339,44 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
                 Provides(withTypes(types), arg.accessor, arg.method, arg.scope, key)
             }
         )
+    }
+
+    private fun Context.assistedFactory(astClass: AstClass, key: TypeKey): TypeResult? {
+        val factoryFunction = findAssistedFactoryFunction(astClass)
+
+        val namedArgs = factoryFunction.parameters.map { param -> param.type to param.name }
+        val injectFunction = findAssistedFactoryInjectFunction(
+            context = this,
+            key = key,
+            astClass = astClass,
+            factoryFunction = factoryFunction
+        )
+
+        if (injectFunction == null) {
+            return TypeResult.AssistedFactory(
+                factoryType = key.type,
+                function = factoryFunction,
+                parameters = namedArgs,
+                result = resolveOrNull(
+                    context = withArgs(namedArgs),
+                    element = factoryFunction,
+                    key = TypeKey(factoryFunction.returnType)
+                ) ?: return null,
+            )
+        } else {
+            return TypeResult.AssistedFunctionFactory(
+                factoryType = key.type,
+                function = factoryFunction,
+                parameters = namedArgs,
+                injectFunction = injectFunction,
+                injectFunctionParameters = resolveParams(
+                    context = withArgs(namedArgs),
+                    element = injectFunction,
+                    scope = null,
+                    params = injectFunction.parameters
+                ),
+            )
+        }
     }
 
     private fun Context.functionType(element: AstElement, key: TypeKey): TypeResult? {

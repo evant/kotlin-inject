@@ -5,6 +5,8 @@ import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.LambdaTypeName
+import com.squareup.kotlinpoet.MemberName
+import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeName
@@ -59,6 +61,7 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
 
     private fun TypeResultRef.generate() = result.generate()
 
+    @Suppress("CyclomaticComplexMethod")
     private fun TypeResult.generate(): CodeBlock {
         return when (this) {
             is TypeResult.Provider -> generate()
@@ -73,6 +76,8 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
             is TypeResult.Lazy -> generate()
             is TypeResult.LateInit -> generate()
             is TypeResult.LocalVar -> generate()
+            is TypeResult.AssistedFactory -> generate()
+            is TypeResult.AssistedFunctionFactory -> generate()
         }
     }
 
@@ -102,6 +107,8 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
                     }
                     add("%L.", accessorInScope)
                 }
+            } else if (implicitAccessor.isNotEmpty()) {
+                add("this@%L.", className)
             }
 
             if (receiver != null) {
@@ -253,6 +260,57 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
         }.build()
     }
 
+    private fun TypeResult.AssistedFactory.generate(): CodeBlock {
+        val generatedReturn = with(copy(implicitAccessor = Accessor(factoryType.simpleName))) { result.generate() }
+
+        val typeSpec = TypeSpec.anonymousClassBuilder()
+            .addSuperinterface(factoryType.toTypeName())
+            .addFunction(
+                FunSpec.builder(function.name)
+                    .addModifiers(KModifier.OVERRIDE)
+                    .apply {
+                        if (function.isSuspend) {
+                            addModifiers(KModifier.SUSPEND)
+                        }
+                    }
+                    .addAnnotations(function.annotations.map { it.toAnnotationSpec() }.asIterable())
+                    .addParameters(parameters.map { ParameterSpec.builder(it.second, it.first.toTypeName()).build() })
+                    .returns(result.key.type.toTypeName())
+                    .addCode(CodeBlock.of("return·%L", generatedReturn))
+                    .build()
+            )
+            .build()
+        return CodeBlock.of("%L", typeSpec)
+    }
+
+    private fun TypeResult.AssistedFunctionFactory.generate(): CodeBlock {
+        val typeSpec = TypeSpec.anonymousClassBuilder()
+            .addSuperinterface(factoryType.toTypeName())
+            .addFunction(
+                FunSpec.builder(function.name)
+                    .addModifiers(KModifier.OVERRIDE)
+                    .apply {
+                        if (function.isSuspend) {
+                            addModifiers(KModifier.SUSPEND)
+                        }
+                    }
+                    .addAnnotations(function.annotations.map { it.toAnnotationSpec() }.asIterable())
+                    .addParameters(parameters.map { ParameterSpec.builder(it.second, it.first.toTypeName()).build() })
+                    .returns(function.returnType.toTypeName())
+                    .addCode(
+                        CodeBlock.builder().apply {
+                            add("return·")
+                            with(copy(implicitAccessor = Accessor(factoryType.simpleName))) {
+                                addFunctionCall(injectFunction.toMemberName(), injectFunctionParameters)
+                            }
+                        }.build()
+                    )
+                    .build()
+            )
+            .build()
+        return CodeBlock.of("%L", typeSpec)
+    }
+
     private fun TypeResult.Function.generate(): CodeBlock {
         return CodeBlock.builder().apply {
             // don't use beginControlFlow() so the arg list can be kept on the same line
@@ -288,25 +346,32 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
             }
             add("\n⇥")
 
-            add("%M(", name)
-            if (parameters.isNotEmpty()) {
-                add("\n⇥")
-            }
-            parameters.entries.forEachIndexed { i, (paramName, param) ->
-                if (i != 0) {
-                    add(",\n")
-                }
-                add("$paramName = ")
-                add(param.generate())
-            }
-            if (parameters.isNotEmpty()) {
-                add("\n⇤")
-            }
-            add(")")
+            addFunctionCall(name, parameters)
 
             // don't use endControlFlow() because it emits a newline after the closing brace
             add("\n⇤}")
         }.build()
+    }
+
+    private fun CodeBlock.Builder.addFunctionCall(
+        functionName: MemberName,
+        functionParameters: Map<String, TypeResultRef>,
+    ) {
+        add("%M(", functionName)
+        if (functionParameters.isNotEmpty()) {
+            add("\n⇥")
+        }
+        functionParameters.entries.forEachIndexed { i, (paramName, param) ->
+            if (i != 0) {
+                add(",\n")
+            }
+            add("$paramName = ")
+            add(param.generate())
+        }
+        if (functionParameters.isNotEmpty()) {
+            add("\n⇤")
+        }
+        add(")")
     }
 
     private fun TypeResult.Object.generate(): CodeBlock {

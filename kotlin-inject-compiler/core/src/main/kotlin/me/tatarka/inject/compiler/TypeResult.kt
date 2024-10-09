@@ -2,6 +2,7 @@ package me.tatarka.inject.compiler
 
 import com.squareup.kotlinpoet.MemberName
 import me.tatarka.kotlin.ast.AstAnnotation
+import me.tatarka.kotlin.ast.AstFunction
 import me.tatarka.kotlin.ast.AstType
 
 /**
@@ -89,6 +90,21 @@ sealed class TypeResult {
         override val children
             get() = args.iterator()
     }
+
+    class AssistedFactory(
+        val factoryType: AstType,
+        val function: AstFunction,
+        val result: TypeResultRef,
+        val parameters: List<Pair<AstType, String>>,
+    ) : TypeResult()
+
+    class AssistedFunctionFactory(
+        val factoryType: AstType,
+        val function: AstFunction,
+        val parameters: List<Pair<AstType, String>>,
+        val injectFunction: AstFunction,
+        val injectFunctionParameters: Map<String, TypeResultRef>
+    ) : TypeResult()
 
     /**
      * A lambda function that returns the type.

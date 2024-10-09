@@ -22,6 +22,7 @@ import me.tatarka.kotlin.ast.AstType
 import me.tatarka.kotlin.ast.AstVisibility
 import me.tatarka.kotlin.ast.Messenger
 import me.tatarka.kotlin.ast.annotationAnnotatedWith
+import me.tatarka.kotlin.ast.hasAnnotation
 
 private const val ANNOTATION_PACKAGE_NAME = "me.tatarka.inject.annotations"
 val COMPONENT = ClassName(ANNOTATION_PACKAGE_NAME, "Component")
@@ -31,6 +32,8 @@ val INJECT = ClassName(ANNOTATION_PACKAGE_NAME, "Inject")
 val INTO_MAP = ClassName(ANNOTATION_PACKAGE_NAME, "IntoMap")
 val INTO_SET = ClassName(ANNOTATION_PACKAGE_NAME, "IntoSet")
 val ASSISTED = ClassName(ANNOTATION_PACKAGE_NAME, "Assisted")
+val ASSISTED_FACTORY = ClassName(ANNOTATION_PACKAGE_NAME, "AssistedFactory")
+const val ASSISTED_FACTORY_FUNCTION_ARG = "injectFunction"
 val QUALIFIER = ClassName(ANNOTATION_PACKAGE_NAME, "Qualifier")
 val KMP_COMPONENT_CREATE = ClassName(ANNOTATION_PACKAGE_NAME, "KmpComponentCreate")
 
@@ -212,16 +215,22 @@ fun AstAnnotated.scopes(options: Options): Sequence<AstAnnotation> {
     return scopeAnnotations
 }
 
-fun AstAnnotated.isComponent() = hasAnnotation(COMPONENT.packageName, COMPONENT.simpleName)
+fun AstAnnotated.isComponent() = hasAnnotation(COMPONENT)
 
-fun AstMember.isProvides() = hasAnnotation(PROVIDES.packageName, PROVIDES.simpleName)
+fun AstMember.isProvides() = hasAnnotation(PROVIDES)
 
-fun AstAnnotated.isInject() = hasAnnotation(INJECT.packageName, INJECT.simpleName)
+fun AstAnnotated.isInject() = hasAnnotation(INJECT)
+
+fun AstAnnotated.isAssistedFactory() = hasAnnotation(ASSISTED_FACTORY)
+
+fun AstAnnotated.assistedFactoryFunctionName() =
+    annotation(ASSISTED_FACTORY.packageName, ASSISTED_FACTORY.simpleName)
+        ?.argument(ASSISTED_FACTORY_FUNCTION_ARG) as? String
 
 fun AstClass.findInjectConstructors(messenger: Messenger, options: Options): AstConstructor? {
     val injectCtors = constructors.filter {
         if (options.enableJavaxAnnotations) {
-            it.hasAnnotation(JAVAX_INJECT.packageName, JAVAX_INJECT.simpleName) || it.isInject()
+            it.hasAnnotation(JAVAX_INJECT) || it.isInject()
         } else {
             it.isInject()
         }
@@ -243,6 +252,94 @@ fun AstClass.findInjectConstructors(messenger: Messenger, options: Options): Ast
         injectCtors.isNotEmpty() -> injectCtors.first()
         else -> null
     }
+}
+
+/**
+ * Finds a function to be generated for the assisted factory
+ * @throws FailedToGenerateException there are too many or none functions to generate
+ */
+fun findAssistedFactoryFunction(astClass: AstClass): AstFunction {
+    if (!astClass.isInterface) {
+        throw FailedToGenerateException("Assisted factory $astClass must be an interface.", astClass)
+    }
+    val abstractMethods = astClass.allMethods.filter { it.isAbstract }
+    if (abstractMethods.size > 1) {
+        throw FailedToGenerateException(
+            "Assisted factory $astClass has too many abstract functions: ${abstractMethods.map { it.name }}.",
+            astClass
+        )
+    }
+    val factoryFunction = abstractMethods.firstOrNull() as? AstFunction
+        ?: throw FailedToGenerateException("Assisted factory $astClass doesn't have any functions.", astClass)
+
+    if (factoryFunction.receiverParameterType != null) {
+        throw FailedToGenerateException(
+            "Assisted factory $astClass function ${factoryFunction.name} has a receiver parameter. " +
+                "Receiver parameters are not supported in assisted factory.",
+            astClass
+        )
+    }
+
+    return factoryFunction
+}
+
+/**
+ * Finds a function specified in injectFunction parameter of @AssistedFactory annotation
+ * @return null if function not specified
+ * @throws FailedToGenerateException if function is specified, but not found or doesn't match requirements
+ */
+fun findAssistedFactoryInjectFunction(
+    context: Context,
+    key: TypeKey,
+    astClass: AstClass,
+    factoryFunction: AstFunction,
+): AstFunction? {
+    val injectedFunctionName = astClass.assistedFactoryFunctionName()
+    if (injectedFunctionName.isNullOrBlank()) return null
+
+    val functionName = injectedFunctionName.substringAfterLast(".")
+    val functionPackage = injectedFunctionName.substringBeforeLast(".", key.type.packageName)
+    val functions = context.provider.findFunctions(functionPackage, functionName)
+        .toList()
+    val function = if (functions.isEmpty()) {
+        throw FailedToGenerateException("Inject function not found for Assisted factory $astClass.", astClass)
+    } else if (functions.size == 1) {
+        functions.first()
+    } else {
+        val injectFunctions = functions.filter { it.isInject() }
+        if (injectFunctions.isEmpty()) {
+            throw FailedToGenerateException(
+                "Inject function not found for Assisted factory $astClass.",
+                astClass
+            )
+        } else if (injectFunctions.size > 1) {
+            throw FailedToGenerateException(
+                "Too many candidates found for inject function for Assisted factory $astClass.",
+                astClass
+            )
+        } else {
+            injectFunctions.first()
+        }
+    }
+    if (function.receiverParameterType != null) {
+        throw FailedToGenerateException(
+            "Cannot inject function with receiver parameter in Assisted factory $astClass.",
+            astClass
+        )
+    }
+    if (function.returnType != factoryFunction.returnType) {
+        throw FailedToGenerateException(
+            "Return type of inject function doesn't match assisted factory's return type $astClass.",
+            astClass
+        )
+    }
+    if (!function.isTopLevel) {
+        throw FailedToGenerateException(
+            "Only top level functions can be injected in assisted factory: $astClass.",
+            astClass
+        )
+    }
+    return function
 }
 
 fun <E> qualifier(
@@ -270,6 +367,7 @@ fun <E> qualifier(
             checkTypeArgs(packageName, simpleName, typeArg)
         }
     }
+
     fun qualifier(
         packageName: String,
         simpleName: String,
