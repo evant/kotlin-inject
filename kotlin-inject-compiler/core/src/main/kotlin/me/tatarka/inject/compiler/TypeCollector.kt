@@ -152,6 +152,24 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
 
             val constructor = astClass.primaryConstructor
             if (constructor != null) {
+                fun Result.getAllTypesAndMethods(): Map<TypeKey, AstMember> =
+                    types.mapValues { it.value.method } +
+                        providerTypes.mapValues { it.value.method }
+
+                fun Result.getContainerTypesAndMethods(): Map<TypeKey, AstMember> =
+                    containerTypes.mapKeys { it.key.containerTypeKey(provider) }
+                        .mapValues { it.value.first().method }
+
+                val childAndParentsTypes = mutableMapOf<TypeKey, AstMember>()
+                val childAndParentsContainerTypes = mutableMapOf<TypeKey, AstMember>()
+                val needsToCheckDuplicateTypesWithParents = !accessor.isNotEmpty()
+
+                if (needsToCheckDuplicateTypesWithParents) {
+                    // Start adding the children types
+                    childAndParentsTypes.putAll(getAllTypesAndMethods())
+                    childAndParentsContainerTypes.putAll(getContainerTypesAndMethods())
+                }
+
                 for (parameter in constructor.parameters) {
                     if (parameter.isComponent()) {
                         val elemAstClass = parameter.type.toAstClass()
@@ -165,11 +183,18 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                             typeInfo = elemTypeInfo
                         )
 
-                        // When accessor is empty, check for duplicates from previously collected Results
-                        if (!accessor.isNotEmpty()) {
-                            for (parent in parents.minus(parentResult).plus(this)) {
-                                checkDuplicateTypesBetweenResults(provider, parentResult, parent)
-                            }
+                        if (needsToCheckDuplicateTypesWithParents) {
+                            val parentTypes = parentResult.getAllTypesAndMethods()
+                            val parentContainerTypes = parentResult.getContainerTypesAndMethods()
+                            checkDuplicateTypesBetweenResults(
+                                parentTypes,
+                                parentContainerTypes,
+                                childAndParentsTypes,
+                                childAndParentsContainerTypes
+                            )
+
+                            childAndParentsTypes.putAll(parentTypes)
+                            childAndParentsContainerTypes.putAll(parentContainerTypes)
                         }
                     }
                 }
@@ -190,20 +215,15 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
             }
         }
 
-        private fun checkDuplicateTypesBetweenResults(provider: AstProvider, result1: Result, result2: Result) {
-            fun Result.getAllTypesAndMethods(): Map<TypeKey, AstMember> =
-                types.mapValues { it.value.method } +
-                    providerTypes.mapValues { it.value.method }
+        private fun checkDuplicateTypesBetweenResults(
+            result1Types: Map<TypeKey, AstMember>,
+            result1ContainerTypes: Map<TypeKey, AstMember>,
+            result2Types: Map<TypeKey, AstMember>,
+            result2ContainerTypes: Map<TypeKey, AstMember>,
+        ) {
+            val result1TypesAndContainerTypes = result1Types + result1ContainerTypes
 
-            fun Result.getContainerTypesAndMethods(): Map<TypeKey, AstMember> =
-                containerTypes.mapKeys { it.key.containerTypeKey(provider) }
-                    .mapValues { it.value.first().method }
-
-            val result1Types = result1.getAllTypesAndMethods()
-            val result1TypesAndContainerTypes = result1Types + result1.getContainerTypesAndMethods()
-
-            val result2Types = result2.getAllTypesAndMethods()
-            val result2TypesAndContainerTypes = result2Types + result2.getContainerTypesAndMethods()
+            val result2TypesAndContainerTypes = result2Types + result2ContainerTypes
 
             // We should allow for both Results to contribute to the same multibinding type
             result1Types.keys.intersect(result2TypesAndContainerTypes.keys).forEach {
