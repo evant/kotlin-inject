@@ -9,6 +9,7 @@ import assertk.assertions.isTrue
 import me.tatarka.inject.ProjectCompiler
 import me.tatarka.inject.Target
 import me.tatarka.inject.compiler.Options
+import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.io.TempDir
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
@@ -130,6 +131,165 @@ class FailureTest {
             ).compile()
         }.output()
             .contains("Cannot provide: String", "as it is already provided")
+    }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun fails_if_the_same_type_is_provided_by_child_and_parent(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+        assertFailure {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                    import me.tatarka.inject.annotations.Component
+                    import me.tatarka.inject.annotations.Provides
+                    
+                    interface Parent {
+                        val string1: String
+                    }
+
+                    @Component abstract class MyComponent(@Component val parent: Parent) {
+                        @Provides fun providesString2(): String = "two"
+                    }
+                """.trimIndent()
+            ).compile()
+        }.output()
+            .contains("Cannot provide: String", "as it is already provided")
+    }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun fails_if_the_same_type_is_provided_by_child_and_parent_component(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+        assertFailure {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                    import me.tatarka.inject.annotations.Component
+                    import me.tatarka.inject.annotations.Provides
+                    
+                    @Component abstract class Parent {
+                        @Provides fun providesString1(): String = "one"
+                    }
+
+                    @Component abstract class MyComponent(@Component val parent: Parent) {
+                        @Provides fun providesString2(): String = "two"
+                    }
+                """.trimIndent()
+            ).compile()
+        }.output()
+            .contains("Cannot provide: String", "as it is already provided")
+    }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun some_test(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+        assertDoesNotThrow {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                    import me.tatarka.inject.annotations.Component
+                    import me.tatarka.inject.annotations.Provides
+                    import me.tatarka.inject.annotations.Inject
+                    
+                    @Component abstract class ParentComponent {
+                        abstract val parentString: String
+                    
+                        @Provides
+                        protected fun foo() = "parent"
+                    }
+                    
+                    @Component abstract class SimpleChildComponent1(@Component val parent: ParentComponent) {
+                        abstract val childString: String
+                    }
+                    
+                    @Component abstract class SimpleChildComponent2(@Component val parent: SimpleChildComponent1) {
+                        abstract val childString: String
+                    }
+                """.trimIndent()
+            ).compile()
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun fails_if_a_type_is_provided_by_child_as_multibinding_and_by_parent_component_as_type(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+        assertFailure {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                    import me.tatarka.inject.annotations.Component
+                    import me.tatarka.inject.annotations.Provides
+                    import me.tatarka.inject.annotations.IntoSet
+                    
+                    @Component abstract class Parent {
+                        @Provides fun providesSetOfString1(): Set<String> = setOf("one")
+                    }
+        
+                    @Component abstract class MyComponent(@Component val parent: Parent) {
+                        @IntoSet @Provides fun providesListOfString2(): String = "two"
+                    }
+                """.trimIndent()
+            ).compile()
+        }.output()
+            .contains("Cannot provide: Set<kotlin.String>", "as it is already provided")
+    }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun doesnt_fail_if_a_type_is_provided_by_child_as_multibinding_and_by_parent_component_as_multibinding(
+        target: Target
+    ) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+        assertDoesNotThrow {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                    import me.tatarka.inject.annotations.Component
+                    import me.tatarka.inject.annotations.Provides
+                    import me.tatarka.inject.annotations.IntoSet
+                    
+                    @Component abstract class Parent {
+                        @IntoSet @Provides fun providesListOfString1(): String = "one"
+                    }
+        
+                    @Component abstract class MyComponent(@Component val parent: Parent) {
+                        @IntoSet @Provides fun providesListOfString2(): String = "two"
+                    }
+                """.trimIndent()
+            ).compile()
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun fails_if_the_same_type_is_provided_by_two_parents(target: Target) {
+        val projectCompiler = ProjectCompiler(target, workingDir)
+        assertFailure {
+            projectCompiler.source(
+                "MyComponent.kt",
+                """
+                    import me.tatarka.inject.annotations.Component
+                    import me.tatarka.inject.annotations.Provides
+                    
+                    interface Parent1 {
+                        val int1: Int
+                    }
+
+                    interface Parent2 {
+                        val int2: Int
+                    }
+
+                    @Component abstract class MyComponent(
+                        @Component val parent1: Parent1, 
+                        @Component val parent2: Parent2
+                    )
+                """.trimIndent()
+            ).compile()
+        }.output()
+            .contains("Cannot provide: Int", "as it is already provided")
     }
 
     @ParameterizedTest

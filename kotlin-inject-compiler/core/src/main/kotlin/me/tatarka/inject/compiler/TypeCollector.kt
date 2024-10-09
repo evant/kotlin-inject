@@ -152,6 +152,24 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
 
             val constructor = astClass.primaryConstructor
             if (constructor != null) {
+                fun Result.getAllTypesAndMethods(): Map<TypeKey, AstMember> =
+                    types.mapValues { it.value.method } +
+                        providerTypes.mapValues { it.value.method }
+
+                fun Result.getContainerTypesAndMethods(): Map<TypeKey, AstMember> =
+                    containerTypes.mapKeys { it.key.containerTypeKey(provider) }
+                        .mapValues { it.value.first().method }
+
+                val childAndParentsTypes = mutableMapOf<TypeKey, AstMember>()
+                val childAndParentsContainerTypes = mutableMapOf<TypeKey, AstMember>()
+                val needsToCheckDuplicateTypesWithParents = !accessor.isNotEmpty()
+
+                if (needsToCheckDuplicateTypesWithParents) {
+                    // Start adding the children types
+                    childAndParentsTypes.putAll(getAllTypesAndMethods())
+                    childAndParentsContainerTypes.putAll(getContainerTypesAndMethods())
+                }
+
                 for (parameter in constructor.parameters) {
                     if (parameter.isComponent()) {
                         val elemAstClass = parameter.type.toAstClass()
@@ -164,6 +182,20 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                             accessor = accessor + parameter.name,
                             typeInfo = elemTypeInfo
                         )
+
+                        if (needsToCheckDuplicateTypesWithParents) {
+                            val parentTypes = parentResult.getAllTypesAndMethods()
+                            val parentContainerTypes = parentResult.getContainerTypesAndMethods()
+                            checkDuplicateTypesBetweenResults(
+                                parentTypes,
+                                parentContainerTypes,
+                                childAndParentsTypes,
+                                childAndParentsContainerTypes
+                            )
+
+                            childAndParentsTypes.putAll(parentTypes)
+                            childAndParentsContainerTypes.putAll(parentContainerTypes)
+                        }
                     }
                 }
             }
@@ -180,6 +212,26 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                 } else {
                     scopedAccessors[typeInfo.elementScope] = ScopedComponent(astClass, accessor)
                 }
+            }
+        }
+
+        private fun checkDuplicateTypesBetweenResults(
+            result1Types: Map<TypeKey, AstMember>,
+            result1ContainerTypes: Map<TypeKey, AstMember>,
+            result2Types: Map<TypeKey, AstMember>,
+            result2ContainerTypes: Map<TypeKey, AstMember>,
+        ) {
+            val result1TypesAndContainerTypes = result1Types + result1ContainerTypes
+
+            val result2TypesAndContainerTypes = result2Types + result2ContainerTypes
+
+            // We should allow for both Results to contribute to the same multibinding type
+            result1Types.keys.intersect(result2TypesAndContainerTypes.keys).forEach {
+                duplicate(it, result1Types.getValue(it), result2TypesAndContainerTypes.getValue(it))
+            }
+
+            result1TypesAndContainerTypes.keys.intersect(result2Types.keys).forEach {
+                duplicate(it, result1TypesAndContainerTypes.getValue(it), result2Types.getValue(it))
             }
         }
 
