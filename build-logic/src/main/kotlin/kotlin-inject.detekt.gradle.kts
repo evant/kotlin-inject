@@ -16,6 +16,7 @@ dependencies {
 }
 
 tasks.withType<Detekt>().configureEach {
+    jvmTarget = libs.versions.jvmTarget.get()
     parallel = true
     buildUponDefaultConfig = true
     config.from(file(rootProject.projectDir.resolve(".static/detekt-config.yml")))
