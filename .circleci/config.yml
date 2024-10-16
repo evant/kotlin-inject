@@ -51,7 +51,7 @@ commands:
 jobs:
   build-linux:
     docker:
-      - image: cimg/openjdk:17.0.9-browsers@sha256:8839dc66dbde220adecfa1319727aa88162a9ce73522e11ddcffa72771da5616
+      - image: cimg/openjdk:22.0.2-browsers@sha256:6a2c48853a3693d1673ae10a0146c999de37d810cc507ef085ec7f15e03396e5
     resource_class: large
     <<: *defaults
     steps:
@@ -73,7 +73,7 @@ jobs:
             - gradle_publish
   build-macos:
     macos:
-      xcode: "14.1.0"
+      xcode: "16.0.0"
     resource_class: macos.m1.medium.gen1
     <<: *defaults
     steps:
