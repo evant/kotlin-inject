@@ -35,7 +35,7 @@ val appComponent = AppComponent::class.create()
 val repo = appComponent.repo
 ```
 
-## Download 
+## Download
 
 Using [ksp](https://github.com/google/ksp)
 
@@ -456,7 +456,15 @@ ComponentWithoutDep::class.create().myClass.dep // Dep("default")
 
 ### Options
 
-You can provide some additional options to the processor.
+You can [pass options to the processor](https://kotlinlang.org/docs/ksp-quickstart.html#pass-options-to-processors) which enables certain functionality. You do this in the main `build.gradle.kts` file of your project. For example:
+
+```kotlin
+ksp {
+    arg("me.tatarka.inject.dumpGraph", "true")
+}
+```
+
+The following options exist:
 
 - `me.tatarka.inject.enableJavaxAnnotations=true`
 
