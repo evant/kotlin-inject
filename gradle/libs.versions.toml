@@ -1,8 +1,8 @@
 [versions]
 kotlin-inject = "0.7.3-SNAPSHOT"
-kotlin = "2.0.0"
-ksp = "2.0.0-1.0.22"
-kotlinpoet = "1.16.0"
+kotlin = "2.0.10"
+ksp = "2.0.10-1.0.24"
+kotlinpoet = "2.0.0"
 junit5 = "5.9.3"
 jvmTarget = "11"
 detekt = "1.23.6"
