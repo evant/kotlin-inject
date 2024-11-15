@@ -7,9 +7,9 @@ import com.tschuchort.compiletesting.CompilationResult
 import com.tschuchort.compiletesting.DiagnosticSeverity
 import com.tschuchort.compiletesting.KotlinCompilation
 import com.tschuchort.compiletesting.SourceFile
+import com.tschuchort.compiletesting.configureKsp
 import com.tschuchort.compiletesting.kspProcessorOptions
 import com.tschuchort.compiletesting.kspWithCompilation
-import com.tschuchort.compiletesting.symbolProcessorProviders
 import me.tatarka.inject.compiler.Options
 import me.tatarka.inject.compiler.ksp.InjectProcessorProvider
 import org.intellij.lang.annotations.Language
@@ -47,10 +47,10 @@ class ProjectCompiler(
                 sources = sourceFiles
                 when (target) {
                     Target.KSP -> {
-                        options?.toMap()?.let { kspProcessorOptions.putAll(it) }
-                        symbolProcessorProviders = mutableListOf<SymbolProcessorProvider>().apply {
-                            add(InjectProcessorProvider())
-                            addAll(symbolProcessors)
+                        configureKsp(useKsp2 = true) {
+                            options?.toMap()?.let { kspProcessorOptions.putAll(it) }
+                            symbolProcessorProviders.add(InjectProcessorProvider())
+                            symbolProcessorProviders.addAll(symbolProcessors)
                         }
                     }
                 }
@@ -77,7 +77,6 @@ class TestCompilationResult(private val result: CompilationResult) {
     val success: Boolean
         get() = result.exitCode == KotlinCompilation.ExitCode.OK
 
-    @OptIn(ExperimentalCompilerApi::class)
     fun output(vararg severities: DiagnosticSeverity): String = when {
         severities.isEmpty() -> result.messages
         else -> result.messagesWithSeverity(*severities)

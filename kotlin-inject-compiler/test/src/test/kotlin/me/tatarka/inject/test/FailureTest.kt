@@ -1495,7 +1495,7 @@ class FailureTest {
                 """.trimIndent()
             ).compile()
         }.output().all {
-            contains("e: [ksp] Cannot find an @Inject constructor or provider for: Foo")
+            contains("Cannot find an @Inject constructor or provider for: Foo")
         }
     }
 
