@@ -496,7 +496,11 @@ private class KSAstType private constructor(
     override fun resolvedType(): AstType {
         val declaration = type.declaration
         return if (declaration is KSTypeAlias) {
-            KSAstType(resolver, declaration.type.resolve().replace(type.arguments))
+            if (type.arguments.isEmpty()) {
+                KSAstType(resolver, declaration.type.resolve())
+            } else {
+                KSAstType(resolver, declaration.type.resolve().replace(type.arguments))
+            }
         } else {
             this
         }

@@ -91,11 +91,9 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         var assistedFailed = false
         val args = context.args.toMutableList()
         for (param in params) {
-            val type = if (param.type.isPlatform()) {
-                param.type.makeNonNullable()
-            } else {
-                param.type
-            }
+            val resolvedType = if (param.type.isTypeAlias()) param.type.resolvedType() else param.type
+            val type = if (resolvedType.isPlatform()) resolvedType.makeNonNullable() else resolvedType
+
             val qualifier = qualifier(provider, options, param, type)
             val key = TypeKey(type, qualifier)
             if (param.isAssisted()) {
