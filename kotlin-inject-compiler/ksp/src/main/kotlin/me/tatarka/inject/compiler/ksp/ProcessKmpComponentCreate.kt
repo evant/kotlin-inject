@@ -4,15 +4,20 @@ import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.squareup.kotlinpoet.ksp.writeTo
 import me.tatarka.inject.compiler.COMPONENT
+import me.tatarka.inject.compiler.ComponentClassInfo
+import me.tatarka.inject.compiler.KmpComponentCreateFunctionInfo
 import me.tatarka.inject.compiler.KmpComponentCreateGenerator
 import me.tatarka.kotlin.ast.AstClass
 import me.tatarka.kotlin.ast.AstFunction
 import me.tatarka.kotlin.ast.KSAstProvider
 
+private typealias KmpComponentCreateFunctionsByComponentType =
+    MutableMap<ComponentClassInfo, MutableList<KmpComponentCreateFunctionInfo>>
+
 internal fun processKmpComponentCreate(
     element: KSFunctionDeclaration,
     provider: KSAstProvider,
-    kmpComponentCreateFunctionsByComponentType: MutableMap<AstClass, MutableList<AstFunction>>
+    kmpComponentCreateFunctionsByComponentType: KmpComponentCreateFunctionsByComponentType
 ): Boolean = with(provider) {
     val astFunction = element.toAstFunction()
     val returnType = astFunction.returnType
@@ -26,7 +31,25 @@ internal fun processKmpComponentCreate(
     val returnTypeClass = returnType.resolvedType().toAstClass()
     if (!astFunction.validateReturnType(returnTypeClass, provider)) return true
 
-    kmpComponentCreateFunctionsByComponentType.getOrPut(returnTypeClass, ::ArrayList).add(astFunction)
+    val returnTypeClassInfo = ComponentClassInfo(
+        packageName = returnTypeClass.packageName,
+        name = returnTypeClass.name,
+        companionClassName = returnTypeClass.companion?.type?.toAstClass()?.toClassName(),
+        typeName = returnTypeClass.type.toTypeName(),
+        className = returnTypeClass.toClassName(),
+    )
+
+    val functionInfo = KmpComponentCreateFunctionInfo(
+        name = astFunction.name,
+        annotations = astFunction.annotations.map { it.toAnnotationSpec() }.toList(),
+        visibility = astFunction.visibility.toKModifier(),
+        receiverParameterType = astFunction.receiverParameterType?.toTypeName(),
+        parameters = astFunction.parameters.map { it.name to it.type.toTypeName() },
+        parametersTemplate = astFunction.parameters.joinToString { "%N" },
+        parameterNames = astFunction.parameters.map { it.name },
+    )
+
+    kmpComponentCreateFunctionsByComponentType.getOrPut(returnTypeClassInfo, ::ArrayList).add(functionInfo)
 
     true
 }
@@ -34,7 +57,7 @@ internal fun processKmpComponentCreate(
 internal fun generateKmpComponentCreateFiles(
     codeGenerator: CodeGenerator,
     generator: KmpComponentCreateGenerator,
-    kmpComponentCreateFunctionsByComponentType: Map<AstClass, List<AstFunction>>
+    kmpComponentCreateFunctionsByComponentType: Map<ComponentClassInfo, List<KmpComponentCreateFunctionInfo>>
 ) {
     kmpComponentCreateFunctionsByComponentType.forEach { (componentType, kmpComponentCreateFunctions) ->
         val file = generator.generate(componentType, kmpComponentCreateFunctions)

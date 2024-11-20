@@ -11,12 +11,12 @@ import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSName
 import me.tatarka.inject.compiler.COMPONENT
+import me.tatarka.inject.compiler.ComponentClassInfo
 import me.tatarka.inject.compiler.InjectGenerator
 import me.tatarka.inject.compiler.KMP_COMPONENT_CREATE
+import me.tatarka.inject.compiler.KmpComponentCreateFunctionInfo
 import me.tatarka.inject.compiler.KmpComponentCreateGenerator
 import me.tatarka.inject.compiler.Options
-import me.tatarka.kotlin.ast.AstClass
-import me.tatarka.kotlin.ast.AstFunction
 import me.tatarka.kotlin.ast.KSAstProvider
 
 class InjectProcessor(
@@ -32,7 +32,8 @@ class InjectProcessor(
     private var deferredClassNames: List<KSName> = mutableListOf()
     private var deferredFunctionNames: List<KSName> = mutableListOf()
 
-    private val kmpComponentCreateFunctionsByComponentType = mutableMapOf<AstClass, MutableList<AstFunction>>()
+    private val kmpComponentCreateFunctionsByComponentType =
+        mutableMapOf<ComponentClassInfo, MutableList<KmpComponentCreateFunctionInfo>>()
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
         lastResolver = resolver
