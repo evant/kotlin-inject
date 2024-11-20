@@ -69,6 +69,36 @@ class ProjectCompiler(
     }
 }
 
+private fun String.filterByKind(vararg kind: DiagnosticSeverity): String = buildString {
+    var currentKind: DiagnosticSeverity? = null
+    for (line in this@filterByKind.lineSequence()) {
+        val lineKind = line.matchLine()
+        if (lineKind != null) {
+            currentKind = lineKind
+        }
+        if (currentKind in kind) {
+            append(line)
+            append('\n')
+        }
+    }
+}
+
+private fun String.matchLine(): DiagnosticSeverity? {
+    if (length < 2) return null
+    val matchedKind = when (get(0)) {
+        'e' -> DiagnosticSeverity.ERROR
+        'w' -> DiagnosticSeverity.WARNING
+        'v' -> DiagnosticSeverity.LOGGING
+        else -> null
+    } ?: return null
+
+    return if (get(1) == ':') {
+        matchedKind
+    } else {
+        null
+    }
+}
+
 enum class Target {
     KSP
 }
@@ -77,8 +107,6 @@ class TestCompilationResult(private val result: CompilationResult) {
     val success: Boolean
         get() = result.exitCode == KotlinCompilation.ExitCode.OK
 
-    fun output(vararg severities: DiagnosticSeverity): String = when {
-        severities.isEmpty() -> result.messages
-        else -> result.messagesWithSeverity(*severities)
-    }
+    fun output(vararg severities: DiagnosticSeverity): String =
+        result.messages.filterByKind(*severities)
 }

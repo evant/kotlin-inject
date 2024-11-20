@@ -86,8 +86,8 @@ class RoundsTest {
                 """.trimIndent()
             ).compile()
         }.message().isNotNull().all {
-            contains("Unresolved reference: Invalid")
-            doesNotContain("Unresolved reference: create")
+            contains("Unresolved reference 'Invalid'")
+            doesNotContain("Unresolved reference 'create'")
         }
     }
 
@@ -133,8 +133,8 @@ class RoundsTest {
                 """.trimIndent()
             ).compile()
         }.message().isNotNull().all {
-            contains("Unresolved reference: Foo")
-            doesNotContain("Unresolved reference: create")
+            contains("Unresolved reference 'Foo'")
+            doesNotContain("Unresolved reference 'create'")
         }
     }
 
@@ -157,8 +157,8 @@ class RoundsTest {
                 """.trimIndent()
             ).compile()
         }.message().isNotNull().all {
-            contains("Unresolved reference: Foo")
-            doesNotContain("Unresolved reference: create")
+            contains("Unresolved reference 'Foo'")
+            doesNotContain("Unresolved reference 'create'")
         }
     }
 
@@ -181,8 +181,8 @@ class RoundsTest {
                 """.trimIndent()
             ).compile()
         }.message().isNotNull().all {
-            contains("Unresolved reference: Foo")
-            doesNotContain("Unresolved reference: create")
+            contains("Unresolved reference 'Foo'")
+            doesNotContain("Unresolved reference 'create'")
         }
     }
 
@@ -205,8 +205,8 @@ class RoundsTest {
                 """.trimIndent()
             ).compile()
         }.message().isNotNull().all {
-            contains("Unresolved reference: Foo")
-            doesNotContain("Unresolved reference: create")
+            contains("Unresolved reference 'Foo'")
+            doesNotContain("Unresolved reference 'create'")
         }
     }
 
@@ -230,7 +230,7 @@ class RoundsTest {
             ).compile()
         }.message().isNotNull().all {
             contains("@Provides method must not be private")
-            doesNotContain("Unresolved reference: create")
+            doesNotContain("Unresolved reference 'create'")
         }
     }
 
@@ -256,9 +256,9 @@ class RoundsTest {
                 """.trimIndent()
             ).compile()
         }.message().isNotNull().all {
-            contains("Unresolved reference: Foo")
-            doesNotContain("Unresolved reference: Bar")
-            doesNotContain("Unresolved reference: create")
+            contains("Unresolved reference 'Foo'")
+            doesNotContain("Unresolved reference 'Bar'")
+            doesNotContain("Unresolved reference 'create'")
         }
     }
 
@@ -284,8 +284,8 @@ class RoundsTest {
                 """.trimIndent()
             ).compile()
         }.message().isNotNull().all {
-            contains("Unresolved reference: Foo")
-            contains("Unresolved reference: Bar")
+            contains("Unresolved reference 'Foo'")
+            contains("Unresolved reference 'Bar'")
             doesNotContain("Cannot provide", "as it is already provided")
         }
     }
@@ -305,7 +305,7 @@ class RoundsTest {
                 """.trimIndent()
             ).compile()
         }.message().isNotNull().all {
-            contains("Unresolved reference: MyMissingComponent")
+            contains("Unresolved reference 'MyMissingComponent'")
         }
     }
 }
