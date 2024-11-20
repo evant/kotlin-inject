@@ -232,7 +232,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             return map(key)
         }
 
-        if (key.type.isFunction()) {
+        if (key.type.isFunctionOrTypeAliasOfFunction()) {
             return functionType(element, key)
         }
 
