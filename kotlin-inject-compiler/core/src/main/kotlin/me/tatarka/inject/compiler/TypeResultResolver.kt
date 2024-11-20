@@ -242,13 +242,14 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         }
 
         val astClass = key.type.toAstClass()
+
+        if (astClass.isObject && astClass.isInject()) {
+            return Object(astClass.type)
+        }
+
         val injectCtor = astClass.findInjectConstructors(provider.messenger, options)
         if (injectCtor != null) {
             return constructor(key, injectCtor, astClass)
-        }
-
-        if (astClass.isInject() && astClass.isObject) {
-            return Object(astClass.type)
         }
 
         if (astClass.isAssistedFactory()) {
