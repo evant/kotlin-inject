@@ -27,6 +27,8 @@ project(":ast:core").name = "ast-core"
 include(":ast:ksp")
 project(":ast:ksp").name = "ast-ksp"
 include(":integration-tests:ksp")
+include(":integration-tests:ksp1")
 include(":integration-tests:module")
 include(":integration-tests:ksp-companion")
+include(":integration-tests:ksp1-companion")
 include(":integration-tests:jmh")
