@@ -1,39 +1,20 @@
 package me.tatarka.inject.compiler
 
-import com.squareup.kotlinpoet.AnnotationSpec
-import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
-import com.squareup.kotlinpoet.TypeName
+import me.tatarka.kotlin.ast.AstClass
+import me.tatarka.kotlin.ast.AstFunction
 import me.tatarka.kotlin.ast.AstProvider
-
-data class ComponentClassInfo(
-    val packageName: String,
-    val name: String,
-    val companionClassName: ClassName?,
-    val typeName: TypeName,
-    val className: ClassName,
-)
-
-data class KmpComponentCreateFunctionInfo(
-    val name: String,
-    val annotations: List<AnnotationSpec>,
-    val visibility: KModifier,
-    val receiverParameterType: TypeName?,
-    val parameters: List<Pair<String, TypeName>>,
-    val parametersTemplate: String,
-    val parameterNames: List<String>,
-)
 
 class KmpComponentCreateGenerator(
     private val provider: AstProvider,
     private val options: Options,
 ) {
     fun generate(
-        componentClass: ComponentClassInfo,
-        kmpComponentCreateFunctions: List<KmpComponentCreateFunctionInfo>,
+        componentClass: AstClass,
+        kmpComponentCreateFunctions: List<AstFunction>,
     ) = with(provider) {
         FileSpec.builder(
             packageName = componentClass.packageName,
@@ -43,37 +24,36 @@ class KmpComponentCreateGenerator(
                 addFunction(
                     FunSpec
                         .builder(kmpComponentCreateFunction.name)
-//                        .addOriginatingElement(kmpComponentCreateFunction)
+                        .addOriginatingElement(kmpComponentCreateFunction)
                         .apply {
                             kmpComponentCreateFunction.annotations.forEach { annotation ->
-                                addAnnotation(annotation)
+                                addAnnotation(annotation.toAnnotationSpec())
                             }
 
                             addModifiers(
-                                kmpComponentCreateFunction.visibility,
+                                kmpComponentCreateFunction.visibility.toKModifier(),
                                 KModifier.ACTUAL,
                             )
 
-                            kmpComponentCreateFunction.receiverParameterType?.let(::receiver)
+                            kmpComponentCreateFunction.receiverParameterType?.toTypeName()?.let(::receiver)
 
                             for (param in kmpComponentCreateFunction.parameters) {
-                                val (name, typeName) = param
-                                addParameter(name, typeName)
+                                addParameter(param.name, param.type.toTypeName())
                             }
 
                             val funcParams = kmpComponentCreateFunction.parameters.joinToString { "%N" }
-                            val funcParamsNames = kmpComponentCreateFunction.parameterNames.toTypedArray()
+                            val funcParamsNames = kmpComponentCreateFunction.parameters.map { it.name }.toTypedArray()
 
                             val returnTypeCompanion = when {
-                                options.generateCompanionExtensions -> componentClass.companionClassName
+                                options.generateCompanionExtensions -> componentClass.companion?.type
                                 else -> null
                             }
 
-                            val returnTypeName = componentClass.typeName
+                            val returnTypeName = componentClass.type.toTypeName()
 
                             val (createReceiver, createReceiverClassName) = when (returnTypeCompanion) {
-                                null -> "%T::class" to componentClass.className
-                                else -> "%T" to returnTypeCompanion
+                                null -> "%T::class" to componentClass.toClassName()
+                                else -> "%T" to returnTypeCompanion.toAstClass().toClassName()
                             }
                             addCode(
                                 CodeBlock.of(

@@ -11,12 +11,12 @@ import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSName
 import me.tatarka.inject.compiler.COMPONENT
-import me.tatarka.inject.compiler.ComponentClassInfo
 import me.tatarka.inject.compiler.InjectGenerator
 import me.tatarka.inject.compiler.KMP_COMPONENT_CREATE
-import me.tatarka.inject.compiler.KmpComponentCreateFunctionInfo
 import me.tatarka.inject.compiler.KmpComponentCreateGenerator
 import me.tatarka.inject.compiler.Options
+import me.tatarka.kotlin.ast.AstClass
+import me.tatarka.kotlin.ast.AstFunction
 import me.tatarka.kotlin.ast.KSAstProvider
 
 class InjectProcessor(
@@ -31,9 +31,6 @@ class InjectProcessor(
     private var lastResolver: Resolver? = null
     private var deferredClassNames: List<KSName> = mutableListOf()
     private var deferredFunctionNames: List<KSName> = mutableListOf()
-
-    private val kmpComponentCreateFunctionsByComponentType =
-        mutableMapOf<ComponentClassInfo, MutableList<KmpComponentCreateFunctionInfo>>()
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
         lastResolver = resolver
@@ -66,16 +63,7 @@ class InjectProcessor(
 
         val kmpComponentCreateSymbols = resolver.getSymbolsWithAnnotation(KMP_COMPONENT_CREATE.canonicalName)
             .filterIsInstance<KSFunctionDeclaration>()
-        val deferredFunctions = kmpComponentCreateSymbols.filterNot { element ->
-            processKmpComponentCreate(element, provider, kmpComponentCreateFunctionsByComponentType)
-        }.toList()
-        deferredFunctionNames = deferredFunctions.mapNotNull {
-            val name = it.qualifiedName
-            if (name == null) {
-                logger.warn("Unable to defer symbol: ${it.simpleName.asString()}, no qualified name", it)
-            }
-            name
-        }
+        val deferredFunctions = kmpComponentCreateSymbols.toList()
 
         return deferredClasses + deferredFunctions
     }
@@ -99,17 +87,13 @@ class InjectProcessor(
                 )
             }
 
-            for (name in deferredFunctionNames) {
-                val element = resolver.getFunctionDeclarationsByName(
-                    name,
-                    includeTopLevel = true
-                ).firstOrNull()
-                if (element == null) {
-                    logger.error("Failed to resolve: ${name.asString()}")
-                    continue
+            val kmpComponentCreateFunctionsByComponentType = mutableMapOf<AstClass, MutableList<AstFunction>>()
+
+            resolver.getSymbolsWithAnnotation(KMP_COMPONENT_CREATE.canonicalName)
+                .filterIsInstance<KSFunctionDeclaration>()
+                .forEach { element ->
+                    processKmpComponentCreate(element, provider, kmpComponentCreateFunctionsByComponentType)
                 }
-                processKmpComponentCreate(element, provider, kmpComponentCreateFunctionsByComponentType)
-            }
 
             generateKmpComponentCreateFiles(
                 codeGenerator,
