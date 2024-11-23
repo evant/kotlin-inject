@@ -64,6 +64,9 @@ jobs:
             - run:
                 name: Build
                 command: ./gradlew assemble
+            - run: # clean to avoid issues until https://github.com/google/ksp/pull/2231 is released
+                name: Clean
+                command: ./gradlew clean
             - run:
                 name: Run Tests
                 command: ./gradlew check --continue
@@ -84,6 +87,9 @@ jobs:
             - run:
                 name: Build
                 command: ./gradlew assemble
+            - run: # clean to avoid issues until https://github.com/google/ksp/pull/2231 is released
+                name: Clean
+                command: ./gradlew clean
             - run:
                 name: Run Tests
                 command: ./gradlew checkApple --continue
