@@ -1,7 +1,7 @@
 [versions]
 kotlin-inject = "0.7.3-SNAPSHOT"
-kotlin = "2.0.21"
-ksp = "2.0.21-1.0.28"
+kotlin = "2.1.0"
+ksp = "2.1.0-1.0.28"
 kotlinpoet = "2.0.0"
 junit5 = "5.9.3"
 jvmTarget = "11"
@@ -17,6 +17,7 @@ kotlin-compile-testing = { module = "dev.zacsweers.kctfork:ksp", version = "0.6.
 kotlin-metadata-jvm = { module = "org.jetbrains.kotlin:kotlin-metadata-jvm", version.ref = "kotlin" }
 kotlinx-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version = "1.8.0" }
 kotlinx-atomicfu = { module = "org.jetbrains.kotlinx:atomicfu", version = "0.23.2" }
+kotlinx-wasm-browser = "org.jetbrains.kotlinx:kotlinx-browser:0.3"
 jdk-compiler = { module = "io.earcam.wrapped:jdk.compiler", version = "1.8.132" }
 assertk = { module = "com.willowtreeapps.assertk:assertk", version = "0.28.0" }
 burst-junit4 = { module = "com.squareup.burst:burst-junit4", version = "1.2.0" }

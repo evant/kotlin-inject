@@ -50,6 +50,11 @@ kotlin {
                 implementation(libs.kotlin.reflect)
             }
         }
+        wasmJsMain {
+            dependencies {
+                implementation(libs.kotlinx.wasm.browser)
+            }
+        }
     }
 
     targets.all {
