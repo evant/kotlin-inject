@@ -9,20 +9,25 @@ import assertk.assertions.message
 import me.tatarka.inject.ProjectCompiler
 import me.tatarka.inject.SimpleClassProcessor
 import me.tatarka.inject.Target
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.io.TempDir
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.EnumSource
 import java.io.File
 
-class RoundsTest {
+private fun Target.unresolvedReference(reference: String) = when (this) {
+    Target.KSP1 -> "Unresolved reference: $reference"
+    Target.KSP2 -> "Unresolved reference '$reference'"
+}
 
-    private val target = Target.KSP
+class RoundsTest {
 
     @TempDir
     lateinit var workingDir: File
 
-    @Test
-    fun can_reference_generated_interface_as_parent() {
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun can_reference_generated_interface_as_parent(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
             .symbolProcessor(SimpleClassProcessor.Provider("Source", "Generated"))
 
@@ -44,8 +49,9 @@ class RoundsTest {
         }
     }
 
-    @Test
-    fun can_reference_generated_class_in_supertype() {
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun can_reference_generated_class_in_supertype(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
             .symbolProcessor(SimpleClassProcessor.Provider("Source", "Generated"))
 
@@ -70,8 +76,9 @@ class RoundsTest {
         }
     }
 
-    @Test
-    fun errors_on_missing_parent_interface() {
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun errors_on_missing_parent_interface(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
         assertFailure {
             projectCompiler.source(
@@ -86,13 +93,14 @@ class RoundsTest {
                 """.trimIndent()
             ).compile()
         }.message().isNotNull().all {
-            contains("Unresolved reference: Invalid")
-            doesNotContain("Unresolved reference: create")
+            contains(target.unresolvedReference("Invalid"))
+            doesNotContain(target.unresolvedReference("create"))
         }
     }
 
-    @Test
-    fun errors_on_missing_provider_type() {
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun errors_on_missing_provider_type(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
         assertFailure {
             projectCompiler.source(
@@ -114,8 +122,9 @@ class RoundsTest {
         }
     }
 
-    @Test
-    fun errors_on_missing_provides_return_type() {
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun errors_on_missing_provides_return_type(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
         assertFailure {
             projectCompiler.source(
@@ -133,13 +142,14 @@ class RoundsTest {
                 """.trimIndent()
             ).compile()
         }.message().isNotNull().all {
-            contains("Unresolved reference: Foo")
-            doesNotContain("Unresolved reference: create")
+            contains(target.unresolvedReference("Foo"))
+            doesNotContain(target.unresolvedReference("create"))
         }
     }
 
-    @Test
-    fun errors_on_missing_provides_arg() {
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun errors_on_missing_provides_arg(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
         assertFailure {
             projectCompiler.source(
@@ -157,13 +167,14 @@ class RoundsTest {
                 """.trimIndent()
             ).compile()
         }.message().isNotNull().all {
-            contains("Unresolved reference: Foo")
-            doesNotContain("Unresolved reference: create")
+            contains(target.unresolvedReference("Foo"))
+            doesNotContain(target.unresolvedReference("create"))
         }
     }
 
-    @Test
-    fun ignores_invalid_references_in_private_declarations() {
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun ignores_invalid_references_in_private_declarations(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
         assertFailure {
             projectCompiler.source(
@@ -181,13 +192,14 @@ class RoundsTest {
                 """.trimIndent()
             ).compile()
         }.message().isNotNull().all {
-            contains("Unresolved reference: Foo")
-            doesNotContain("Unresolved reference: create")
+            contains(target.unresolvedReference("Foo"))
+            doesNotContain(target.unresolvedReference("create"))
         }
     }
 
-    @Test
-    fun ignores_invalid_references_in_non_provides_declaration() {
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun ignores_invalid_references_in_non_provides_declaration(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
         assertFailure {
             projectCompiler.source(
@@ -205,13 +217,14 @@ class RoundsTest {
                 """.trimIndent()
             ).compile()
         }.message().isNotNull().all {
-            contains("Unresolved reference: Foo")
-            doesNotContain("Unresolved reference: create")
+            contains(target.unresolvedReference("Foo"))
+            doesNotContain(target.unresolvedReference("create"))
         }
     }
 
-    @Test
-    fun includes_invalid_provides_on_method_with_invalid_reference() {
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun includes_invalid_provides_on_method_with_invalid_reference(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
         assertFailure {
             projectCompiler.source(
@@ -230,12 +243,13 @@ class RoundsTest {
             ).compile()
         }.message().isNotNull().all {
             contains("@Provides method must not be private")
-            doesNotContain("Unresolved reference: create")
+            doesNotContain("Unresolved reference 'create'")
         }
     }
 
-    @Test
-    fun ignores_invalid_wrapped_type() {
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun ignores_invalid_wrapped_type(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
         assertFailure {
             projectCompiler.source(
@@ -256,14 +270,15 @@ class RoundsTest {
                 """.trimIndent()
             ).compile()
         }.message().isNotNull().all {
-            contains("Unresolved reference: Foo")
-            doesNotContain("Unresolved reference: Bar")
-            doesNotContain("Unresolved reference: create")
+            contains(target.unresolvedReference("Foo"))
+            doesNotContain(target.unresolvedReference("Bar"))
+            doesNotContain(target.unresolvedReference("create"))
         }
     }
 
-    @Test
-    fun multiple_invalid_types_only_show_unresolved_reference_error() {
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun multiple_invalid_types_only_show_unresolved_reference_error(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
         assertFailure {
             projectCompiler.source(
@@ -284,14 +299,15 @@ class RoundsTest {
                 """.trimIndent()
             ).compile()
         }.message().isNotNull().all {
-            contains("Unresolved reference: Foo")
-            contains("Unresolved reference: Bar")
+            contains(target.unresolvedReference("Foo"))
+            contains(target.unresolvedReference("Bar"))
             doesNotContain("Cannot provide", "as it is already provided")
         }
     }
 
-    @Test
-    fun errors_on_missing_target_component_accessor_return_type() {
+    @ParameterizedTest
+    @EnumSource(Target::class)
+    fun errors_on_missing_target_component_accessor_return_type(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
             .symbolProcessor(SimpleClassProcessor.Provider("Source", "Generated"))
         assertFailure {
@@ -305,7 +321,7 @@ class RoundsTest {
                 """.trimIndent()
             ).compile()
         }.message().isNotNull().all {
-            contains("Unresolved reference: MyMissingComponent")
+            contains(target.unresolvedReference("MyMissingComponent"))
         }
     }
 }
