@@ -382,7 +382,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         val resolveType = key.type.resolvedType()
         val args = resolveType.arguments.dropLast(1)
         if (key.type.isTypeAlias()) {
-            val resolvedTypeAlias = key.type.resolveToHighestTypeAlias()
+            val resolvedTypeAlias = key.type.fullyResolvedType()
 
             // Check to see if we have a function matching the type alias
             val functions = provider.findFunctions(resolvedTypeAlias.packageName, resolvedTypeAlias.simpleName)

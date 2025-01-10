@@ -76,11 +76,11 @@ fun AstType.isPair(): Boolean = packageName == "kotlin" && simpleName == "Pair"
 fun AstType.isFunctionOrTypeAliasOfFunction(): Boolean = isFunction() || isTypeAlias() &&
     resolvedType().isFunctionOrTypeAliasOfFunction()
 
-tailrec fun AstType.resolveToHighestTypeAlias(): AstType {
+tailrec fun AstType.fullyResolvedType(): AstType {
     check(isTypeAlias()) {
         "resolveToHighestTypeAlias should only be called on a typealias AstType"
     }
 
     val resolvedType = resolvedType()
-    return if (resolvedType.isTypeAlias()) resolvedType.resolveToHighestTypeAlias() else this
+    return if (resolvedType.isTypeAlias()) resolvedType.fullyResolvedType() else this
 }
