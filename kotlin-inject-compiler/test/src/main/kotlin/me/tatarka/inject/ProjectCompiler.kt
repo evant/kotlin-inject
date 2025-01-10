@@ -4,17 +4,18 @@ package me.tatarka.inject
 
 import com.google.devtools.ksp.processing.SymbolProcessorProvider
 import com.tschuchort.compiletesting.CompilationResult
+import com.tschuchort.compiletesting.DiagnosticSeverity
 import com.tschuchort.compiletesting.KotlinCompilation
+import com.tschuchort.compiletesting.KspTool
 import com.tschuchort.compiletesting.SourceFile
-import com.tschuchort.compiletesting.kspArgs
+import com.tschuchort.compiletesting.configureKsp
+import com.tschuchort.compiletesting.kspProcessorOptions
 import com.tschuchort.compiletesting.kspWithCompilation
-import com.tschuchort.compiletesting.symbolProcessorProviders
 import me.tatarka.inject.compiler.Options
 import me.tatarka.inject.compiler.ksp.InjectProcessorProvider
 import org.intellij.lang.annotations.Language
 import org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi
 import java.io.File
-import javax.tools.Diagnostic
 
 class ProjectCompiler(
     private val target: Target,
@@ -45,14 +46,20 @@ class ProjectCompiler(
             KotlinCompilation().apply {
                 workingDir = this@ProjectCompiler.workingDir
                 sources = sourceFiles
+
+                if (target == Target.KSP1) {
+                    languageVersion = "1.9"
+                }
+
+                val ksp: KspTool.() -> Unit = {
+                    options?.toMap()?.let { kspProcessorOptions.putAll(it) }
+                    symbolProcessorProviders.add(InjectProcessorProvider())
+                    symbolProcessorProviders.addAll(symbolProcessors)
+                }
+
                 when (target) {
-                    Target.KSP -> {
-                        options?.toMap()?.let { kspArgs.putAll(it) }
-                        symbolProcessorProviders = mutableListOf<SymbolProcessorProvider>().apply {
-                            add(InjectProcessorProvider())
-                            addAll(symbolProcessors)
-                        }
-                    }
+                    Target.KSP1 -> configureKsp(useKsp2 = false, ksp)
+                    Target.KSP2 -> configureKsp(useKsp2 = true, ksp)
                 }
                 inheritClassPath = true
                 // work-around for https://github.com/ZacSweers/kotlin-compile-testing/issues/197
@@ -63,32 +70,32 @@ class ProjectCompiler(
 
         if (!result.success) {
             @Suppress("TooGenericExceptionThrown")
-            throw Exception(result.output(Diagnostic.Kind.ERROR))
+            throw Exception(result.output(DiagnosticSeverity.ERROR))
         }
         return result
     }
 }
 
-private fun String.filterByKind(kind: Diagnostic.Kind): String = buildString {
-    var currentKind: Diagnostic.Kind? = null
+private fun String.filterByKind(vararg kind: DiagnosticSeverity): String = buildString {
+    var currentKind: DiagnosticSeverity? = null
     for (line in this@filterByKind.lineSequence()) {
         val lineKind = line.matchLine()
         if (lineKind != null) {
             currentKind = lineKind
         }
-        if (currentKind == kind) {
+        if (currentKind in kind) {
             append(line)
             append('\n')
         }
     }
 }
 
-private fun String.matchLine(): Diagnostic.Kind? {
+private fun String.matchLine(): DiagnosticSeverity? {
     if (length < 2) return null
     val matchedKind = when (get(0)) {
-        'e' -> Diagnostic.Kind.ERROR
-        'w' -> Diagnostic.Kind.WARNING
-        'v' -> Diagnostic.Kind.NOTE
+        'e' -> DiagnosticSeverity.ERROR
+        'w' -> DiagnosticSeverity.WARNING
+        'v' -> DiagnosticSeverity.LOGGING
         else -> null
     } ?: return null
 
@@ -100,12 +107,14 @@ private fun String.matchLine(): Diagnostic.Kind? {
 }
 
 enum class Target {
-    KSP
+    KSP1,
+    KSP2
 }
 
 class TestCompilationResult(private val result: CompilationResult) {
     val success: Boolean
         get() = result.exitCode == KotlinCompilation.ExitCode.OK
 
-    fun output(kind: Diagnostic.Kind): String = result.messages.filterByKind(kind)
+    fun output(vararg severities: DiagnosticSeverity): String =
+        result.messages.filterByKind(*severities)
 }

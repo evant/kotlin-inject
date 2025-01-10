@@ -73,3 +73,14 @@ private fun <T> renderTree(node: T, visitor: TreeVisitor<T>, indent: String, isL
 fun AstType.isSet(): Boolean = packageName == "kotlin.collections" && simpleName == "Set"
 fun AstType.isMap(): Boolean = packageName == "kotlin.collections" && simpleName == "Map"
 fun AstType.isPair(): Boolean = packageName == "kotlin" && simpleName == "Pair"
+fun AstType.isFunctionOrTypeAliasOfFunction(): Boolean = isFunction() || isTypeAlias() &&
+    resolvedType().isFunctionOrTypeAliasOfFunction()
+
+tailrec fun AstType.fullyResolvedType(): AstType {
+    check(isTypeAlias()) {
+        "resolveToHighestTypeAlias should only be called on a typealias AstType"
+    }
+
+    val resolvedType = resolvedType()
+    return if (resolvedType.isTypeAlias()) resolvedType.fullyResolvedType() else this
+}

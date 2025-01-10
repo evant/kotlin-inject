@@ -32,8 +32,6 @@ class InjectProcessor(
     private var deferredClassNames: List<KSName> = mutableListOf()
     private var deferredFunctionNames: List<KSName> = mutableListOf()
 
-    private val kmpComponentCreateFunctionsByComponentType = mutableMapOf<AstClass, MutableList<AstFunction>>()
-
     override fun process(resolver: Resolver): List<KSAnnotated> {
         lastResolver = resolver
         provider = KSAstProvider(resolver, logger)
@@ -65,16 +63,7 @@ class InjectProcessor(
 
         val kmpComponentCreateSymbols = resolver.getSymbolsWithAnnotation(KMP_COMPONENT_CREATE.canonicalName)
             .filterIsInstance<KSFunctionDeclaration>()
-        val deferredFunctions = kmpComponentCreateSymbols.filterNot { element ->
-            processKmpComponentCreate(element, provider, kmpComponentCreateFunctionsByComponentType)
-        }.toList()
-        deferredFunctionNames = deferredFunctions.mapNotNull {
-            val name = it.qualifiedName
-            if (name == null) {
-                logger.warn("Unable to defer symbol: ${it.simpleName.asString()}, no qualified name", it)
-            }
-            name
-        }
+        val deferredFunctions = kmpComponentCreateSymbols.toList()
 
         return deferredClasses + deferredFunctions
     }
@@ -98,17 +87,13 @@ class InjectProcessor(
                 )
             }
 
-            for (name in deferredFunctionNames) {
-                val element = resolver.getFunctionDeclarationsByName(
-                    name,
-                    includeTopLevel = true
-                ).firstOrNull()
-                if (element == null) {
-                    logger.error("Failed to resolve: ${name.asString()}")
-                    continue
+            val kmpComponentCreateFunctionsByComponentType = mutableMapOf<AstClass, MutableList<AstFunction>>()
+
+            resolver.getSymbolsWithAnnotation(KMP_COMPONENT_CREATE.canonicalName)
+                .filterIsInstance<KSFunctionDeclaration>()
+                .forEach { element ->
+                    processKmpComponentCreate(element, provider, kmpComponentCreateFunctionsByComponentType)
                 }
-                processKmpComponentCreate(element, provider, kmpComponentCreateFunctionsByComponentType)
-            }
 
             generateKmpComponentCreateFiles(
                 codeGenerator,

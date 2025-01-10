@@ -91,11 +91,9 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         var assistedFailed = false
         val args = context.args.toMutableList()
         for (param in params) {
-            val type = if (param.type.isPlatform()) {
-                param.type.makeNonNullable()
-            } else {
-                param.type
-            }
+            val resolvedType = if (param.type.isTypeAlias()) param.type.resolvedType() else param.type
+            val type = if (resolvedType.isPlatform()) resolvedType.makeNonNullable() else resolvedType
+
             val qualifier = qualifier(provider, options, param, type)
             val key = TypeKey(type, qualifier)
             if (param.isAssisted()) {
@@ -232,7 +230,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             return map(key)
         }
 
-        if (key.type.isFunction()) {
+        if (key.type.isFunctionOrTypeAliasOfFunction()) {
             return functionType(element, key)
         }
 
@@ -244,13 +242,14 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         }
 
         val astClass = key.type.toAstClass()
+
+        if (astClass.isObject && astClass.isInject()) {
+            return Object(astClass.type)
+        }
+
         val injectCtor = astClass.findInjectConstructors(provider.messenger, options)
         if (injectCtor != null) {
             return constructor(key, injectCtor, astClass)
-        }
-
-        if (astClass.isInject() && astClass.isObject) {
-            return Object(astClass.type)
         }
 
         if (astClass.isAssistedFactory()) {
@@ -383,8 +382,10 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         val resolveType = key.type.resolvedType()
         val args = resolveType.arguments.dropLast(1)
         if (key.type.isTypeAlias()) {
+            val resolvedTypeAlias = key.type.fullyResolvedType()
+
             // Check to see if we have a function matching the type alias
-            val functions = provider.findFunctions(key.type.packageName, key.type.simpleName)
+            val functions = provider.findFunctions(resolvedTypeAlias.packageName, resolvedTypeAlias.simpleName)
             val injectedFunction = functions.find { it.isInject() }
             if (injectedFunction != null) {
                 return NamedFunction(

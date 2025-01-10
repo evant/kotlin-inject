@@ -1,3 +1,5 @@
+import com.google.devtools.ksp.KspExperimental
+
 plugins {
     id("kotlin-inject.multiplatform")
     id("kotlin-inject.detekt")
@@ -74,4 +76,6 @@ java {
 
 ksp {
     arg("me.tatarka.inject.enableJavaxAnnotations", "true")
+    @OptIn(KspExperimental::class)
+    useKsp2 = false
 }
