@@ -10,8 +10,6 @@ import java.io.File
 
 class InheritanceTest {
 
-    private val target = Target.KSP2
-
     @TempDir
     lateinit var workingDir: File
 
