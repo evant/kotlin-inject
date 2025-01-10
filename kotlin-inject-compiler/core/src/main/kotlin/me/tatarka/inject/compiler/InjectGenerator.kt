@@ -370,12 +370,14 @@ fun <E> qualifier(
         }
     }
 
-    val qualifiers = (element?.annotationsAnnotatedWith(QUALIFIER.packageName, QUALIFIER.simpleName,).orEmpty() +
-        if (options.enableJavaxAnnotations) {
-            element?.annotationsAnnotatedWith(JAVAX_QUALIFIER.packageName, JAVAX_QUALIFIER.simpleName,).orEmpty()
-        } else {
-            emptySequence()
-        }).toList()
+    val qualifiers = (
+        element?.annotationsAnnotatedWith(QUALIFIER.packageName, QUALIFIER.simpleName).orEmpty() +
+            if (options.enableJavaxAnnotations) {
+                element?.annotationsAnnotatedWith(JAVAX_QUALIFIER.packageName, JAVAX_QUALIFIER.simpleName).orEmpty()
+            } else {
+                emptySequence()
+            }
+        ).toList()
 
     val qualifiersIncludingType = (qualifiers + type.typeQualifierAnnotations().toList()).distinct()
     if (qualifiersIncludingType.size > 1) {
