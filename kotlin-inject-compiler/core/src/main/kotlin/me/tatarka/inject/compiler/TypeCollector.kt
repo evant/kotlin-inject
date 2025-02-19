@@ -114,27 +114,57 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                     }
                 }
                 val scopedComponent = if (scope != null) astClass else null
-                if (member.hasAnnotation(INTO_MAP.packageName, INTO_MAP.simpleName)) {
-                    // Pair<A, B> -> Map<A, B>
+                if (member.isIntoMap()) {
                     val returnType = member.returnTypeFor(astClass)
                     val key = TypeKey(returnType, qualifier)
                     val resolvedType = returnType.resolvedType()
-                    if (resolvedType.isPair()) {
-                        val containerKey = ContainerKey.MapKey(
-                            resolvedType.arguments[0],
-                            resolvedType.arguments[1],
-                            key.qualifier
-                        )
-                        addContainerType(provider, key, containerKey, member, accessor, scope, scopedComponent)
+
+                    val containerKey = if (member.isIntoMapMultiple()) {
+                        // Map<A, B> -> Map<A, B>
+                        if (resolvedType.isMap()) {
+                            ContainerKey.fromContainer(key)
+                        } else {
+                            provider.error("@IntoMap(multiple = true) must have return type of type Map", member)
+                            null
+                        }
                     } else {
-                        provider.error("@IntoMap must have return type of type Pair", member)
+                        // Pair<A, B> -> Map<A, B>
+                        if (resolvedType.isPair()) {
+                            ContainerKey.MapKey(
+                                resolvedType.arguments[0],
+                                resolvedType.arguments[1],
+                                key.qualifier
+                            )
+                        } else {
+                            provider.error("@IntoMap(multiple = false) must have return type of type Pair", member)
+                            null
+                        }
                     }
-                } else if (member.hasAnnotation(INTO_SET.packageName, INTO_SET.simpleName)) {
-                    // A -> Set<A>
+
+                    if (containerKey != null) {
+                        addContainerType(provider, key, containerKey, member, accessor, scope, scopedComponent)
+                    }
+                } else if (member.isIntoSet()) {
                     val returnType = member.returnTypeFor(astClass)
                     val key = TypeKey(returnType, qualifier)
-                    val containerKey = ContainerKey.SetKey(returnType, key.qualifier)
-                    addContainerType(provider, key, containerKey, member, accessor, scope, scopedComponent)
+
+                    val containerKey = if (member.isIntoSetMultiple()) {
+                        // Set<A> -> Set<A>
+                        val resolvedType = returnType.resolvedType()
+                        if (resolvedType.isSet()) {
+                            ContainerKey.fromContainer(key)
+                        } else {
+                            provider.error("@IntoSet(multiple = true) must have return type of type Set", member)
+                            null
+                        }
+                    } else {
+                        // A -> Set<A>
+                        ContainerKey.SetKey(returnType, key.qualifier)
+                    }
+
+                    if (containerKey != null) {
+                        addContainerType(provider, key, containerKey, member, accessor, scope, scopedComponent)
+                    }
                 } else {
                     val returnType = member.returnTypeFor(astClass)
                     val key = TypeKey(returnType, qualifier)
@@ -504,20 +534,15 @@ class Member(
 )
 
 sealed class ContainerKey {
-    abstract val creator: String
     abstract fun containerTypeKey(provider: AstProvider): TypeKey
 
     data class SetKey(val type: AstType, val qualifier: AstAnnotation? = null) : ContainerKey() {
-        override val creator: String = "setOf"
-
         override fun containerTypeKey(provider: AstProvider): TypeKey {
             return TypeKey(provider.declaredTypeOf(Set::class, type), qualifier)
         }
     }
 
     data class MapKey(val key: AstType, val value: AstType, val qualifier: AstAnnotation? = null) : ContainerKey() {
-        override val creator: String = "mapOf"
-
         override fun containerTypeKey(provider: AstProvider): TypeKey {
             return TypeKey(provider.declaredTypeOf(Map::class, key, value), qualifier)
         }

@@ -12,6 +12,7 @@ import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.tags.TypeAliasTag
+import com.squareup.kotlinpoet.withIndent
 
 data class TypeResultGenerator(val options: Options, val implicitAccessor: Accessor = Accessor.Empty) {
 
@@ -68,7 +69,8 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
             is TypeResult.Provides -> generate()
             is TypeResult.Scoped -> generate()
             is TypeResult.Constructor -> generate()
-            is TypeResult.Container -> generate()
+            is TypeResult.SetContainer -> generate()
+            is TypeResult.MapContainer -> generate()
             is TypeResult.Function -> generate()
             is TypeResult.NamedFunction -> generate()
             is TypeResult.Object -> generate()
@@ -245,18 +247,31 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
     private val TypeName.isTypeAlias: Boolean
         get() = tag(TypeAliasTag::class) != null
 
-    private fun TypeResult.Container.generate(): CodeBlock {
+    private fun TypeResult.SetContainer.generate(): CodeBlock {
         return CodeBlock.builder().apply {
-            add("$creator(")
-            add("\n⇥")
-            args.forEachIndexed { index, arg ->
-                if (index != 0) {
-                    add(",\n")
+            beginControlFlow("buildSet(%L)", args.size)
+            withIndent {
+                for (arg in args) {
+                    if (arg.key.type.isSet()) {
+                        add("addAll(%L)\n", arg.generate())
+                    } else {
+                        add("add(%L)\n", arg.generate())
+                    }
                 }
-                add(arg.generate())
             }
-            add("\n⇤")
-            add(")")
+            add("}")
+        }.build()
+    }
+
+    private fun TypeResult.MapContainer.generate(): CodeBlock {
+        return CodeBlock.builder().apply {
+            beginControlFlow("buildMap(%L)", args.size)
+            withIndent {
+                for (arg in args) {
+                    add("this += %L\n", arg.generate())
+                }
+            }
+            add("}")
         }.build()
     }
 

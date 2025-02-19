@@ -80,11 +80,14 @@ sealed class TypeResult {
             }
     }
 
-    /**
-     * A container that holds the type (ex: Set or Map).
-     */
-    class Container(
-        val creator: String,
+    class SetContainer(
+        val args: List<TypeResultRef>,
+    ) : TypeResult() {
+        override val children
+            get() = args.iterator()
+    }
+
+    class MapContainer(
         val args: List<TypeResultRef>,
     ) : TypeResult() {
         override val children
