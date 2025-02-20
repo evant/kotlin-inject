@@ -28,9 +28,15 @@ abstract class SetComponent {
 abstract class EmptySetComponent {
     abstract val items: Set<FooValue>
 
+    abstract val nestedItems: Set<Set<FooValue>>
+
     @Provides
     @IntoSet(multiple = true)
-    fun defaultEmptySet() = emptySet<FooValue>()
+    fun provideDefaultEmptySetUsingMultiple() = emptySet<FooValue>()
+
+    @Provides
+    @IntoSet
+    fun provideEmptySetIntoSet() = emptySet<FooValue>()
 }
 
 @Component
@@ -48,6 +54,11 @@ abstract class DynamicKeyComponent {
     @Provides
     @IntoMap(multiple = true)
     fun fooValue3And4() = mapOf("3" to FooValue("3"), "4" to FooValue("4"))
+
+    val emptyFooValue
+        @Provides
+        @IntoMap(multiple = true)
+        get() = emptyMap<String, FooValue>()
 }
 
 @Component

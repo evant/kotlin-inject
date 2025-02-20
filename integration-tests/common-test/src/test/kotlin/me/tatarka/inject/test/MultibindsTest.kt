@@ -17,10 +17,11 @@ class MultibindsTest {
     }
 
     @Test
-    fun generates_a_component_that_provides_an_empty_set_by_default() {
+    fun generates_a_component_that_provides_an_empty_set() {
         val component = EmptySetComponent::class.create()
 
         assertThat(component.items).isEmpty()
+        assertThat(component.nestedItems).containsOnly(emptySet<FooValue>())
     }
 
     @Test

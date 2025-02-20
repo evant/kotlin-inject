@@ -42,6 +42,7 @@ sealed class TypeResult {
         val accessor: Accessor = Accessor.Empty,
         val receiver: TypeResultRef? = null,
         val isProperty: Boolean = false,
+        val isMultiple: Boolean = false,
         val parameters: Map<String, TypeResultRef> = emptyMap(),
     ) : TypeResult() {
         override val children

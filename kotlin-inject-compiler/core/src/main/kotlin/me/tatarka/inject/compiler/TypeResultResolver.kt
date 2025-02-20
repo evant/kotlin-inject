@@ -285,58 +285,46 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         val containerKey = ContainerKey.SetKey(innerType, key.qualifier)
         val args = types.containerArgs(containerKey)
         if (args.isNotEmpty()) {
-            return SetContainer(
-                args = args,
-                mapArg = { key, arg, types ->
-                    Provides(withTypes(types), arg.accessor, arg.method, arg.scope, key)
-                }
-            )
+            return SetContainer(args) { key, arg, types ->
+                Provides(withTypes(types), arg.accessor, arg.method, arg.scope, key, isMultiple = arg.isMultiple)
+            }
         }
 
         if (innerType.isFunction()) {
             val containerKey = ContainerKey.SetKey(innerType.arguments.last(), key.qualifier)
             val args = types.containerArgs(containerKey)
             if (args.isEmpty()) return null
-            val intoSetArgs = args.filter { (member, _) -> member.method.isIntoSetMultiple() }
-            if (intoSetArgs.isNotEmpty()) {
-                for (arg in intoSetArgs) {
-                    provider.error("Cannot use @IntoSet(multiple = true) with a Set<Function>", arg.first.method)
-                }
-                return null
-            }
+            addErrorForMultipleProvider(key, args)
 
-            return SetContainer(
-                args = args,
-                mapArg = { key, arg, types ->
-                    Function(withTypes(types), args = innerType.arguments.dropLast(1)) { context ->
-                        TypeResultRef(key, Provides(context, arg.accessor, arg.method, arg.scope, key))
-                    }
+            return SetContainer(args) { key, arg, types ->
+                Function(withTypes(types), args = innerType.arguments.dropLast(1)) { context ->
+                    TypeResultRef(key, Provides(context, arg.accessor, arg.method, arg.scope, key))
                 }
-            )
+            }
         }
 
         if (innerType.isLazy()) {
             val containerKey = ContainerKey.SetKey(innerType.arguments[0], key.qualifier)
             val args = types.containerArgs(containerKey)
             if (args.isEmpty()) return null
-            val intoSetArgs = args.filter { (member, _) -> member.method.isIntoSetMultiple() }
-            if (intoSetArgs.isNotEmpty()) {
-                for (arg in intoSetArgs) {
-                    provider.error("Cannot use @IntoSet(multiple = true) with a Set<Lazy>", arg.first.method)
-                }
-                return null
-            }
+            addErrorForMultipleProvider(key, args)
 
-            return SetContainer(
-                args = args,
-                mapArg = { key, arg, types ->
-                    Lazy(key) {
-                        TypeResultRef(key, Provides(withTypes(types), arg.accessor, arg.method, arg.scope, key))
-                    }
+            return SetContainer(args) { key, arg, types ->
+                Lazy(key) {
+                    TypeResultRef(key, Provides(withTypes(types), arg.accessor, arg.method, arg.scope, key))
                 }
-            )
+            }
         }
+
         return null
+    }
+
+    private fun addErrorForMultipleProvider(key: TypeKey, args: List<Pair<ContainerMember, TypeCollector.Result>>) {
+        args.forEach { (member, _) ->
+            if (member.method.isIntoSetMultiple()) {
+                provider.error("Cannot use @IntoSet(multiple = true) with a ${key.type} binding", member.method)
+            }
+        }
     }
 
     private fun Context.map(key: TypeKey): TypeResult? {
@@ -344,12 +332,9 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         val containerKey = ContainerKey.MapKey(type.arguments[0], type.arguments[1], key.qualifier)
         val args = types.containerArgs(containerKey)
         if (args.isEmpty()) return null
-        return MapContainer(
-            args = args,
-            mapArg = { key, arg, types ->
-                Provides(withTypes(types), arg.accessor, arg.method, arg.scope, key)
-            }
-        )
+        return MapContainer(args) { key, arg, types ->
+            Provides(withTypes(types), arg.accessor, arg.method, arg.scope, key, isMultiple = arg.isMultiple)
+        }
     }
 
     private fun Context.assistedFactory(astClass: AstClass, key: TypeKey): TypeResult? {
@@ -482,6 +467,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         method: AstMember,
         scope: AstAnnotation?,
         key: TypeKey,
+        isMultiple: Boolean = false
     ): TypeResult {
         if (scope != null && method is AstFunction && method.isSuspend) {
             throw FailedToGenerateException(
@@ -499,6 +485,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
                     resolve(context, method, key)
                 },
                 isProperty = method is AstProperty,
+                isMultiple = isMultiple,
                 parameters = (method as? AstFunction)?.let {
                     resolveParams(context, method, scope, it.parameters)
                 } ?: emptyMap(),
@@ -535,22 +522,22 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     }
 
     private fun SetContainer(
-        args: List<Pair<Member, TypeCollector.Result>>,
-        mapArg: (TypeKey, Member, TypeCollector.Result) -> TypeResult,
+        args: List<Pair<ContainerMember, TypeCollector.Result>>,
+        mapArg: (TypeKey, ContainerMember, TypeCollector.Result) -> TypeResult,
     ): TypeResult {
-        return TypeResult.SetContainer(args = containerArgs(args, mapArg))
+        return TypeResult.SetContainer(containerArgs(args, mapArg))
     }
 
     private fun MapContainer(
-        args: List<Pair<Member, TypeCollector.Result>>,
-        mapArg: (TypeKey, Member, TypeCollector.Result) -> TypeResult,
+        args: List<Pair<ContainerMember, TypeCollector.Result>>,
+        mapArg: (TypeKey, ContainerMember, TypeCollector.Result) -> TypeResult,
     ): TypeResult {
-        return TypeResult.MapContainer(args = containerArgs(args, mapArg))
+        return TypeResult.MapContainer(containerArgs(args, mapArg))
     }
 
     private fun containerArgs(
-        args: List<Pair<Member, TypeCollector.Result>>,
-        mapArg: (TypeKey, Member, TypeCollector.Result) -> TypeResult,
+        args: List<Pair<ContainerMember, TypeCollector.Result>>,
+        mapArg: (TypeKey, ContainerMember, TypeCollector.Result) -> TypeResult,
     ) = args.map { (arg, types) ->
         val returnType = arg.method.returnType
         val qualifier = qualifier(provider, options, arg.method, returnType)

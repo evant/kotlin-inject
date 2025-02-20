@@ -252,7 +252,8 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
             beginControlFlow("buildSet(%L)", args.size)
             withIndent {
                 for (arg in args) {
-                    if (arg.key.type.isSet()) {
+                    val result = arg.result
+                    if (result is TypeResult.Provides && result.isMultiple) {
                         add("addAll(%L)\n", arg.generate())
                     } else {
                         add("add(%L)\n", arg.generate())
