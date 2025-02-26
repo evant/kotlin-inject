@@ -34,7 +34,7 @@ fun MavenPublication.mavenCentralPom() {
 publishing {
     if (plugins.hasPlugin("org.jetbrains.kotlin.multiplatform")) {
         // already has publications, just need to add javadoc task
-        val javadocJar by tasks.creating(Jar::class) {
+        val javadocJar by tasks.registering(Jar::class) {
             from("javadoc")
             archiveClassifier.set("javadoc")
         }

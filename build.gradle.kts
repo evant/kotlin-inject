@@ -41,7 +41,8 @@ val copyTestResultsApple by tasks.registering(Copy::class) {
 }
 
 val check by tasks.getting
-val checkApple by tasks.creating
+val checkApple by tasks.registering {
+    finalizedBy(testReportApple, copyTestResultsApple)
+}
 
 check.finalizedBy(testReport, copyTestResults)
-checkApple.finalizedBy(testReportApple, copyTestResultsApple)
