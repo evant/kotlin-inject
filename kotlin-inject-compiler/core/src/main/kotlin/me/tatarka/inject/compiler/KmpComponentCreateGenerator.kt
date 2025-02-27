@@ -20,6 +20,7 @@ class KmpComponentCreateGenerator(
             packageName = componentClass.packageName,
             fileName = "KmpComponentCreate${componentClass.name}",
         ).apply {
+            addAnnotation(createSuppressAnnotation("REDUNDANT_VISIBILITY_MODIFIER"))
             kmpComponentCreateFunctions.forEach { kmpComponentCreateFunction ->
                 addFunction(
                     FunSpec
