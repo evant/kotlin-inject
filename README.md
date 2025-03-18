@@ -406,16 +406,21 @@ class MyClass(fooCreator: () -> Foo) {
 ```
 
 If you define args, you can use these to assist the creation of the dependency. To do so, mark these args with the
-`@Assisted` annotation. The function should take the same number of assisted args in the same order.
+`@Assisted` annotation. Then create an interface with the `@AssistedFactory` annotation with a function that takes the same number of assisted args in the same order.
 
 ```kotlin
 @Inject
 class Foo(bar: Bar, @Assisted arg1: String, @Assisted arg2: String)
 
+@AssistedFactory
+interface FooFactory {
+    fun create(arg1: String, arg2: String): Foo
+}
+
 @Inject
-class MyClass(fooCreator: (arg1: String, arg2: String) -> Foo) {
+class MyClass(fooFactory: FooFactory) {
     init {
-        val foo = fooCreator("1", "2")
+        val foo = fooFactory.create("1", "2")
     }
 }
 ```
