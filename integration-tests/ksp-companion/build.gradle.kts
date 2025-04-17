@@ -10,9 +10,7 @@ dependencies {
 }
 
 kotlin {
-    jvm {
-        withJava()
-    }
+    jvm()
 
     sourceSets {
         commonMain {
