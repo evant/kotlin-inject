@@ -11,9 +11,7 @@ dependencies {
 }
 
 kotlin {
-    jvm {
-        withJava()
-    }
+    jvm()
 
     sourceSets {
         commonMain {
@@ -67,7 +65,7 @@ kotlin {
 }
 
 java {
-    val test by sourceSets.existing {
+    sourceSets.named("jvmTest").configure {
         java.srcDir("../common-jvm/src/test/java")
     }
 }
