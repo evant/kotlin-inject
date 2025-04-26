@@ -20,7 +20,7 @@ fun MavenPublication.mavenCentralPom() {
         developers {
             developer {
                 id.set("evant")
-                name.set("Evan Tatarka")
+                name.set("Eva Tatarka")
             }
         }
         scm {
