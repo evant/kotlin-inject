@@ -36,5 +36,5 @@ kotlin-compile-testing = [
 kotlin-test-junit5 = ["junit5-api", "junit5-params", "kotlin-reflect"]
 [plugins]
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
-nexus-publish = { id = "io.github.gradle-nexus.publish-plugin", version = "1.1.0" }
+nexus-publish = { id = "io.github.gradle-nexus.publish-plugin", version = "2.0.0" }
 jmh = { id = "me.champeau.jmh", version = "0.6.6" }

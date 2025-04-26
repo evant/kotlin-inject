@@ -6,6 +6,10 @@ _defaults: &defaults
   working_directory: ~/code
   environment:
     JVM_OPTS: -Xmx4G
+_image: &image
+  docker:
+    - image: cimg/openjdk:22.0.2-browsers@sha256:6a2c48853a3693d1673ae10a0146c999de37d810cc507ef085ec7f15e03396e5
+  resource_class: large
 commands:
   with_cache:
     description: "Caches and restores gradle dependencies"
@@ -50,9 +54,7 @@ commands:
             fi
 jobs:
   build-linux:
-    docker:
-      - image: cimg/openjdk:22.0.2-browsers@sha256:6a2c48853a3693d1673ae10a0146c999de37d810cc507ef085ec7f15e03396e5
-    resource_class: large
+    <<: *image
     <<: *defaults
     steps:
       - checkout
@@ -92,6 +94,17 @@ jobs:
                 reports_path: build/reports
             - gradle_publish:
                 publish_task: publishApple
+  finalize-release:
+    <<: *image
+    <<: *defaults
+    steps:
+      - checkout
+      - with_cache:
+          cache_key: linux
+          steps:
+            - run:
+                name: Close & Release
+                command: ./gradlew findSonatypeStagingRepository closeSonatypeStagingRepository
 workflows:
   version: 2
   build:
@@ -99,18 +112,33 @@ workflows:
       - build-linux:
           filters:
             branches:
-              ignore: main
+              ignore:
+                - main
       - build-macos:
           filters:
             branches:
-              ignore: main
+              ignore:
+                - main
       - build-linux:
+          name: build-linux-publish
           context: opensource-maven
           filters:
             branches:
-              only: main
+              only:
+                - main
       - build-macos:
+          name: build-macos-publish
           context: opensource-maven
           filters:
             branches:
-              only: main
+              only:
+                - main
+      - finalize-release:
+          context: opensource-maven
+          requires:
+            - build-linux-publish
+            - build-macos-publish
+          filters:
+            branches:
+              only:
+                - main
