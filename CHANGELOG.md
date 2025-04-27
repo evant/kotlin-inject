@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+[Unreleased]
+
+### Changed
+- Kotlin updated to 2.1.20
+
+### Fixed
+- Will now error when a child and parent components provide a binding for the same type.
+
+### Added
+- Added mingwX64 target for windows
+- KSP2 support
+- You can now use `@AssistedFactory` to annotate an interface that creates an instance of a type. This factory can be
+  used in place of a lambda when injecting. This can be useful because an explicit interface can have named and default
+  parameters. ex:
+  ```kotlin
+  @Inject class Foo(@Assisted arg: String)
+  
+  @AssistedFactory
+  interface CreateFoo {
+    fun create(arg: String): Foo
+  }
+  
+  @Inject
+  class Bar(fooFactory: CreateFoo)
+  ```
+
 ## [0.7.2] 2024-09-13
 
 ### Changed
