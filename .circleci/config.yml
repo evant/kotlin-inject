@@ -20,25 +20,38 @@ commands:
       steps:
         type: steps
     steps:
+      - run:
+          name: Generate cache keys
+          command: grep 'kotlin =' 'gradle/libs.versions.toml' > konan-cache.txt
       - restore_cache:
           key: >-
-            gradle-cache-<< parameters.cache_key >>-{{ checksum "gradle/libs.versions.toml" }}-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
+            konan-<< parameters.cache_key >>-{{ checksum "konan-cache.txt" }}
       - restore_cache:
-          key: >-
-            konan-<< parameters.cache_key >>-{{ checksum "gradle/libs.versions.toml" }}-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
+          keys:
+            - gradle-cache-<< parameters.cache_key >>-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum "gradle/libs.versions.toml" }}-{{ .Branch }}
+            - gradle-cache-<< parameters.cache_key >>-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum "gradle/libs.versions.toml" }}
+            - gradle-cache-<< parameters.cache_key >>-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}-
+            - gradle-cache-<< parameters.cache_key >>-
+      - restore_cache:
+          key: local-cache-<< parameters.cache_key >>-{{ .Branch }}
       - steps:
           << parameters.steps >>
       - save_cache:
           key: >-
-            gradle-cache-<< parameters.cache_key >>-{{ checksum "gradle/libs.versions.toml" }}-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
+            konan-<< parameters.cache_key >>-{{ checksum "konan-cache.txt" }}
+          paths:
+            - ~/.konan
+      - save_cache:
+          key: >-
+            gradle-cache-<< parameters.cache_key >>-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}-{{ checksum "gradle/libs.versions.toml" }}-{{ .Branch }}
           paths:
             - ~/.gradle/caches
             - ~/.gradle/wrapper
       - save_cache:
-          key: >-
-            konan-<< parameters.cache_key >>-{{ checksum "gradle/libs.versions.toml" }}-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}
+          key: local-cache-<< parameters.cache_key >>-{{ .Branch }}
           paths:
-            - ~/.konan
+            - ./.gradle
+            - ./.kotlin
   gradle_publish:
     description: "Publishes to sonatype/maven central"
     parameters:
@@ -66,9 +79,16 @@ jobs:
             - run:
                 name: Build
                 command: ./gradlew assemble
+                # split up compiling and running tests to prevent OOM errors
+            - run:
+                name: Compile Tests
+                command: ./gradlew linkDebugTestLinuxX64 linkDebugTestMingwX64 compileTestDevelopmentExecutableKotlinJs compileTestDevelopmentExecutableKotlinWasmJs
             - run:
                 name: Run Tests
-                command: ./gradlew check --continue
+                command: ./gradlew check --continue -x jsBrowserTest -x wasmJsBrowserTest
+            - run:
+                name: Run Browser Tests
+                command: ./gradlew jsBrowserTest -x wasmJsBrowserTest
             - gradle/collect_test_results:
                 test_results_path: build/test-results
                 reports_path: build/reports
