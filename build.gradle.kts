@@ -8,6 +8,7 @@ buildscript {
 plugins {
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.nexus.publish)
+    alias(libs.plugins.changelog)
     base
 }
 
@@ -18,6 +19,11 @@ nexusPublishing {
     repositories {
         sonatype()
     }
+}
+
+changelog {
+    groups = emptyList()
+    repositoryUrl = "https://github.com/evant/kotlin-inject"
 }
 
 val testReport by tasks.registering(TestReport::class) {
