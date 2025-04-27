@@ -59,12 +59,15 @@ commands:
       publish_task:
         type: string
         default: publish
+      target:
+        type: string
+        default: ""
     steps:
       - run:
           command: |
             if [ "${CIRCLE_BRANCH}" == "main" ]; then
               echo "$MAVEN_CENTRAL_SEC_RING" | base64 -d > $HOME/secring.gpg
-              ./gradlew << parameters.publish_task >> -PsonatypeUsername="$SONATYPE_USERNAME" -PsonatypePassword="$SONATYPE_PASSWORD" -Psigning.keyId=34BCD878 -Psigning.password="$MAVEN_CENTRAL_KEY_PASSPHRASE" -Psigning.secretKeyRingFile=$HOME/secring.gpg --no-parallel
+              ./gradlew << parameters.publish_task >> -PreleaseTarget="<< parameters.target >>" -PsonatypeUsername="$SONATYPE_USERNAME" -PsonatypePassword="$SONATYPE_PASSWORD" -Psigning.keyId="$MAVEN_CENTRAL_KEY_ID" -Psigning.password="$MAVEN_CENTRAL_KEY_PASSPHRASE" -Psigning.secretKeyRingFile=$HOME/secring.gpg --no-parallel
             fi
 jobs:
   build-linux:
@@ -93,7 +96,8 @@ jobs:
             - gradle/collect_test_results:
                 test_results_path: build/test-results
                 reports_path: build/reports
-            - gradle_publish
+            - gradle_publish:
+                target: linux
   build-macos:
     macos:
       xcode: "16.0.0"
@@ -115,6 +119,7 @@ jobs:
                 reports_path: build/reports
             - gradle_publish:
                 publish_task: publishApple
+                target: macos
   finalize-release:
     <<: *image
     <<: *defaults
@@ -126,7 +131,9 @@ jobs:
           steps:
             - run:
                 name: Close & Release
-                command: ./gradlew findSonatypeStagingRepository closeSonatypeStagingRepository
+                command: |
+                  ./gradlew findSonatypeStagingRepository closeAndReleaseSonatypeStagingRepository -PreleaseTarget=linux
+                  ./gradlew findSonatypeStagingRepository closeAndReleaseSonatypeStagingRepository -PreleaseTarget=macos
             - run:
                 name: Query Version
                 command: |
