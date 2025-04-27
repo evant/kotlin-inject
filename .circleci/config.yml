@@ -2,6 +2,7 @@ version: 2.1
 orbs:
   gradle: circleci/gradle@3.0.0
   browser-tools: circleci/browser-tools@1.4.6
+  github-cli: circleci/github-cli@2.7.0
 _defaults: &defaults
   working_directory: ~/code
   environment:
@@ -118,6 +119,7 @@ jobs:
     <<: *image
     <<: *defaults
     steps:
+      - github-cli/install
       - checkout
       - with_cache:
           cache_key: linux
@@ -125,6 +127,18 @@ jobs:
             - run:
                 name: Close & Release
                 command: ./gradlew findSonatypeStagingRepository closeSonatypeStagingRepository
+            - run:
+                name: Query Version
+                command: |
+                  sed -nE 's/kotlin-inject *= *"([^"]+)"/v\1/p' gradle/libs.versions.toml > version.txt
+                  echo "export VERSION=\"$(cat version.txt)\"" >> "$BASH_ENV"
+            - run:
+                name: Publish Github Release
+                command: |
+                  if [ ! "${VERSION}" == *"-SNAPSHOT" ]; then
+                    ./gradlew -q getChangelog > RELEASE.md
+                    gh release create "${VERSION}" -F RELEASE.md
+                  fi
 workflows:
   version: 2
   build:

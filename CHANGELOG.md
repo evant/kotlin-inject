@@ -1,16 +1,19 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
-
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
 
 ## [0.7.2] 2024-09-13
 
 ### Changed
+
 - kotlin updated to 2.0.0
 
 ### Fixed
+
 - Fixed various issues with qualifier annotations.
 - Fixed issue with inner class or companion inside a component extending the component interface causing an error.
 - Fixed crash when attempting to display a type parameter.
@@ -21,11 +24,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [0.7.1] 2024-06-12
 
 ### Fixed
+
 - Removed erroneous `@KmpComponentCreator` annotation.
 
 ## [0.7.0] 2024-06-12
 
 ### Changed
+
 - `@Scope` annotations now take arguments into account. This means for example, if you have
   ```kotlin
   @Scope
@@ -80,9 +85,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   ```
 
 ### Removed
+
 - The KAPT backend is removed, please migrate to KSP if you haven't already.
 
 ### Fixed
+
 - Fixed cases of invalid code generation (#321, #337, #313).
 - Fixed an exception thrown on KSP2 when running multiple rounds (google/ksp#1854).
 - Fixed various issues with handling method overrides in components (#309, #375)
@@ -91,6 +98,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [0.6.3] 2023-09-02
 
 ### Fixed
+
 - Fixed scoped assisted injection enforcement. It was incorrectly using the component scope instead of the scope of the
   assisted class or provides method.
 
@@ -498,3 +506,49 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [0.1.0] - 2020-09-17
 
 - Initial Release
+
+[Unreleased]: https://github.com/evant/kotlin-inject/compare/v0.7.3...HEAD
+
+[0.7.3]: https://github.com/evant/kotlin-inject/compare/v0.7.2...v0.7.3
+
+[0.7.2]: https://github.com/evant/kotlin-inject/compare/v0.7.1...v0.7.2
+
+[0.7.1]: https://github.com/evant/kotlin-inject/compare/v0.7.0...v0.7.1
+
+[0.7.0]: https://github.com/evant/kotlin-inject/compare/v0.6.3...v0.7.0
+
+[0.6.3]: https://github.com/evant/kotlin-inject/compare/v0.6.2...v0.6.3
+
+[0.6.2]: https://github.com/evant/kotlin-inject/compare/v0.6.1...v0.6.2
+
+[0.6.1]: https://github.com/evant/kotlin-inject/compare/v0.6.0...v0.6.1
+
+[0.6.0]: https://github.com/evant/kotlin-inject/compare/v0.5.1...v0.6.0
+
+[0.5.1]: https://github.com/evant/kotlin-inject/compare/v0.5.0...v0.5.1
+
+[0.5.0]: https://github.com/evant/kotlin-inject/compare/v0.4.1...v0.5.0
+
+[0.4.1]: https://github.com/evant/kotlin-inject/compare/v0.4.0...v0.4.1
+
+[0.4.0]: https://github.com/evant/kotlin-inject/compare/v0.3.7-RC...v0.4.0
+
+[0.3.7-RC]: https://github.com/evant/kotlin-inject/compare/v0.3.6...v0.3.7-RC
+
+[0.3.6]: https://github.com/evant/kotlin-inject/compare/v0.3.5...v0.3.6
+
+[0.3.5]: https://github.com/evant/kotlin-inject/compare/v0.3.4...v0.3.5
+
+[0.3.4]: https://github.com/evant/kotlin-inject/compare/v0.3.3...v0.3.4
+
+[0.3.3]: https://github.com/evant/kotlin-inject/compare/v0.3.2...v0.3.3
+
+[0.3.2]: https://github.com/evant/kotlin-inject/compare/v0.3.1...v0.3.2
+
+[0.3.1]: https://github.com/evant/kotlin-inject/compare/v0.3.0...v0.3.1
+
+[0.3.0]: https://github.com/evant/kotlin-inject/compare/v0.2.0...v0.3.0
+
+[0.2.0]: https://github.com/evant/kotlin-inject/compare/v0.1.0...v0.2.0
+
+[0.1.0]: https://github.com/evant/kotlin-inject/commits/v0.1.0
