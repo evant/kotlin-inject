@@ -135,7 +135,7 @@ jobs:
             - run:
                 name: Publish Github Release
                 command: |
-                  if [ ! "${VERSION}" == *"-SNAPSHOT" ]; then
+                  if [[ ! "${VERSION}" =~ .*"-SNAPSHOT" ]]; then
                     ./gradlew -q getChangelog > RELEASE.md
                     gh release create "${VERSION}" -F RELEASE.md
                   fi
