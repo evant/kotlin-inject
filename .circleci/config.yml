@@ -132,8 +132,8 @@ jobs:
             - run:
                 name: Close & Release
                 command: |
-                  ./gradlew findSonatypeStagingRepository closeAndReleaseSonatypeStagingRepository -PreleaseTarget=linux
-                  ./gradlew findSonatypeStagingRepository closeAndReleaseSonatypeStagingRepository -PreleaseTarget=macos
+                  ./gradlew findSonatypeStagingRepository closeAndReleaseSonatypeStagingRepository -PreleaseTarget=linux -PsonatypeUsername="$SONATYPE_USERNAME" -PsonatypePassword="$SONATYPE_PASSWORD"
+                  ./gradlew findSonatypeStagingRepository closeAndReleaseSonatypeStagingRepository -PreleaseTarget=macos -PsonatypeUsername="$SONATYPE_USERNAME" -PsonatypePassword="$SONATYPE_PASSWORD"
             - run:
                 name: Query Version
                 command: |
