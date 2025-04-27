@@ -31,7 +31,7 @@ fun List<TypeResult.Provider>.optimize(context: Context): List<TypeResult.Provid
         val newResult = TypeResult.Provides(
             className = context.className,
             methodName = name,
-            isProperty = provider?.isProperty ?: true,
+            isProperty = { provider?.isProperty ?: true },
         )
         if (provider == null) {
             provider = TypeResult.Provider(

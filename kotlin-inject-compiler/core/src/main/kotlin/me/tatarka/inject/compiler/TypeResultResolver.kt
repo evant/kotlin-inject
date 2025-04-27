@@ -19,17 +19,26 @@ import me.tatarka.kotlin.ast.AstType
 class TypeResultResolver(private val provider: AstProvider, private val options: Options) {
 
     private val cycleDetector = CycleDetector()
-    private val typeCache = mutableMapOf<TypeCacheKey, TypeResult>()
+    private val resolvedProvides = mutableMapOf<ResolveProvidesKey, TypeResult.Provides>()
+    private val resolveProviders = mutableListOf<TypeResult.Provider>()
 
     /**
      * Resolves all [TypeResult] for provider methods in the given class.
      */
     fun resolveAll(context: Context, astClass: AstClass): List<TypeResult.Provider> {
-        return context.types.providerMembers.map { member ->
-            // reset the name allocator between methods so that arg names are not unique across
-            // all functions of a component
-            Provider(context.copyNameAllocator(), astClass, member.member, member.qualifier)
+        val results = ArrayList<TypeResult.Provider>()
+        for (member in context.types.providerMembers) {
+            results.add(
+                Provider(
+                    context,
+                    astClass,
+                    member.member,
+                    member.qualifier,
+                )
+            )
         }
+        results.addAll(0, resolveProviders)
+        return results
     }
 
     /**
@@ -46,35 +55,86 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
      * null if it cannot be found.
      */
     private fun resolveOrNull(context: Context, element: AstElement, key: TypeKey): TypeResultRef? {
-        val cacheKey = TypeCacheKey(key, context.args)
-        val type = typeCache[cacheKey] ?: context.findType(element, key)?.also {
-            if (it.isCacheable) {
-                typeCache[cacheKey] = it
+        val providesKey = context.providesKey(key)
+
+        if (context.skipProvider != key.type) {
+            val resolved = resolvedProvides[providesKey]
+            if (resolved != null) {
+                return TypeResultRef(key, resolved)
             }
         }
-        return type?.let { TypeResultRef(key, it) }
+
+        val name = context.nameAllocator.newName("${key.type.toVariableName()}__Provider")
+
+        // lazily evaluate findType() as it may cycle and need a resolved provides ref
+        val type = lazy(LazyThreadSafetyMode.NONE) {
+            context.withoutProvider(key.type).findType(element, key)
+        }
+
+        val isSuspend = {
+            val resolvedType = type.value
+            resolvedType is TypeResult.Provides && resolvedType.isSuspend()
+        }
+        val isProperty = { context.args.isEmpty() && !isSuspend() }
+
+        val provides = TypeResult.Provides(
+            className = context.className,
+            methodName = name,
+            isProperty = isProperty,
+            isSuspend = isSuspend,
+            args = context.args.associate { (type, name) ->
+                val key = TypeKey(type)
+                name to TypeResultRef(key, TypeResult.Arg(name))
+            },
+        )
+        resolvedProvides[providesKey] = provides
+
+        val resolvedType = type.value
+        if (resolvedType == null) {
+            resolvedProvides.remove(providesKey)
+            return null
+        }
+
+        val result = TypeResultRef(key, provides)
+
+        resolveProviders.add(
+            TypeResult.Provider(
+                name = name,
+                returnType = key.type,
+                isProperty = isProperty(),
+                isPrivate = true,
+                isSuspend = isSuspend(),
+                parameters = context.args,
+                result = TypeResultRef(key, resolvedType)
+            )
+        )
+        return result
+    }
+
+    private fun Context.providesKey(key: TypeKey): ResolveProvidesKey {
+        return ResolveProvidesKey(key, args.map { (type, _) -> TypeKey(type) })
     }
 
     /**
      * Resolves the given set of params. It will match position types in function args. If a param cannot be resolved,
      * but it has as default, it will be skipped.
      */
-    private fun resolveParams(
+    private fun resolveArgs(
         context: Context,
         element: AstElement,
         scope: AstAnnotation?,
         params: List<AstParam>,
     ): Map<String, TypeResultRef> {
         return if (params.any { it.isAssisted() }) {
-            resolveParamsNew(context, element, scope, params)
+            resolveArgsNew(context, element, scope, params)
         } else {
-            resolveParamsLegacy(context, element, scope, params)
+            resolveArgsLegacy(context, element, scope, params)
         }
     }
 
     // new behavior where we only consider args annotated with @Assisted
     @Suppress("NestedBlockDepth")
-    private fun resolveParamsNew(
+    private fun resolveArgsNew(
         context: Context,
         element: AstElement,
         scope: AstAnnotation?,
@@ -140,7 +200,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     }
 
     // old behavior where the last args are used, error.
-    private fun resolveParamsLegacy(
+    private fun resolveArgsLegacy(
         context: Context,
         element: AstElement,
         scope: AstAnnotation?,
@@ -202,6 +262,13 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     private fun Context.findType(element: AstElement, key: TypeKey): TypeResult? {
         if (key.type.isError) {
             throw FailedToGenerateException(trace("Unresolved reference: $key"))
+        }
+
+        if (skipProvider != key.type) {
+            val resolvedProvider = resolvedProvides[providesKey(key)]
+            if (resolvedProvider != null) {
+                return resolvedProvider
+            }
         }
 
         val providerResult = types.providerType(key)
@@ -302,7 +369,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
                 creator = containerKey.creator,
                 args = args,
                 mapArg = { key, arg, types ->
-                    Function(withTypes(types), args = innerType.arguments.dropLast(1)) { context ->
+                    Function(withTypes(types), parameters = innerType.arguments.dropLast(1)) { context ->
                         TypeResultRef(key, Provides(context, arg.accessor, arg.method, arg.scope, key))
                     }
                 }
@@ -368,7 +435,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
                 function = factoryFunction,
                 parameters = namedArgs,
                 injectFunction = injectFunction,
-                injectFunctionParameters = resolveParams(
+                injectFunctionParameters = resolveArgs(
                     context = withArgs(namedArgs),
                     element = injectFunction,
                     scope = null,
@@ -397,7 +464,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             }
         }
         val fKey = TypeKey(resolveType.arguments.last(), key.qualifier)
-        return Function(this, args = args) { context ->
+        return Function(this, parameters = args) { context ->
             resolveOrNull(context, element = element, key = fKey) ?: return null
         }
     }
@@ -450,7 +517,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     ): TypeResult.Provider {
         val returnType = method.returnTypeFor(astClass)
         val key = TypeKey(returnType, qualifier)
-        val result = withCycleDetection(key, method) {
+        val result = withCycleDetection(context, key, method) {
             resolve(context.withoutProvider(returnType), method, key).result
         }
         return TypeResult.Provider(
@@ -476,7 +543,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
                 "@Provides scoped with $scope cannot be suspend, consider returning Deferred<T> instead."
             )
         }
-        return withCycleDetection(key, method) {
+        return withCycleDetection(context, key, method) {
             TypeResult.Provides(
                 className = context.className,
                 methodName = method.name,
@@ -486,9 +553,10 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
                     val key = TypeKey(it, qualifier)
                     resolve(context, method, key)
                 },
-                isProperty = method is AstProperty,
-                parameters = (method as? AstFunction)?.let {
-                    resolveParams(context, method, scope, it.parameters)
+                isProperty = { method is AstProperty },
+                isSuspend = { method is AstFunction && method.isSuspend },
+                args = (method as? AstFunction)?.let {
+                    resolveArgs(context, method, scope, it.parameters)
                 } ?: emptyMap(),
             )
         }
@@ -512,12 +580,12 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         outerClassType: AstType?,
         scope: AstAnnotation?,
         key: TypeKey,
-    ) = withCycleDetection(key, constructor) {
+    ) = withCycleDetection(context, key, constructor) {
         TypeResult.Constructor(
             type = constructor.type,
             scope = scope,
             outerClass = outerClassType?.let { resolve(context, constructor, TypeKey(it)) },
-            parameters = resolveParams(context, constructor, scope, constructor.parameters),
+            args = resolveArgs(context, constructor, scope, constructor.parameters),
             supportsNamedArguments = constructor.supportsNamedArguments
         )
     }
@@ -529,29 +597,32 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     ): TypeResult {
         return TypeResult.Container(
             creator = creator,
-            args = args.map { (arg, types) ->
+            args = args.associate { (arg, types) ->
                 val returnType = arg.method.returnType
                 val qualifier = qualifier(provider, options, arg.method, returnType)
                 val key = TypeKey(returnType, qualifier)
-                TypeResultRef(key, mapArg(key, arg, types))
+                "" to TypeResultRef(key, mapArg(key, arg, types))
             }
         )
     }
 
     private inline fun Function(
         context: Context,
-        args: List<AstType>,
+        parameters: List<AstType>,
         result: (context: Context) -> TypeResultRef,
     ): TypeResult {
         // The current cycle resolution does not handle args because it re-uses the same instance.
-        if (args.isEmpty()) {
+        if (parameters.isEmpty()) {
             cycleDetector.delayedConstruction()
         }
         val context = context.copyNameAllocator()
-        val namedArgs = args.mapIndexed { i, arg ->
+        val namedParams = parameters.mapIndexed { i, arg ->
             arg to context.nameAllocator.newName("arg$i")
         }
-        return TypeResult.Function(args = namedArgs.map { it.second }, result = result(context.withArgs(namedArgs)))
+        return TypeResult.Function(
+            parameters = namedParams.map { it.second },
+            result = result(context.withArgs(namedParams))
+        )
     }
 
     private fun NamedFunction(
@@ -559,8 +630,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         function: AstFunction,
         key: TypeKey,
         args: List<AstType>,
-    ) = withCycleDetection(key, function) {
-        val context = context.copyNameAllocator()
+    ) = withCycleDetection(context, key, function) {
         // Drop receiver from args
         val namedArgs = if (function.receiverParameterType != null) {
             args.drop(1)
@@ -571,8 +641,8 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         }
         TypeResult.NamedFunction(
             name = function.toMemberName(),
-            args = namedArgs.map { it.second },
-            parameters = resolveParams(
+            parameters = namedArgs.map { it.second },
+            args = resolveArgs(
                 context = context.withArgs(namedArgs),
                 element = function,
                 scope = null,
@@ -583,21 +653,11 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
 
     private inline fun Lazy(key: TypeKey, result: () -> TypeResultRef): TypeResult {
         cycleDetector.delayedConstruction()
-        return maybeLateInit(key, TypeResult.Lazy(result()))
-    }
-
-    private fun LateInit(
-        name: String,
-        key: TypeKey,
-        typeResult: TypeResult,
-    ): TypeResult.LateInit {
-        return TypeResult.LateInit(
-            name = name,
-            result = TypeResultRef(key, typeResult)
-        )
+        return TypeResult.Lazy(result())
     }
 
     private fun withCycleDetection(
+        context: Context,
         key: TypeKey,
         source: AstElement,
         f: () -> TypeResult,
@@ -606,20 +666,10 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
             when (cycleResult) {
                 is CycleResult.None -> f()
                 is CycleResult.Cycle -> throw FailedToGenerateException(trace("Cycle detected"))
-                is CycleResult.Resolvable -> TypeResult.LocalVar(cycleResult.name)
+                is CycleResult.Resolvable -> resolvedProvides.getValue(context.providesKey(cycleResult.key))
             }
         }
-        return maybeLateInit(key, result)
-    }
-
-    private fun maybeLateInit(key: TypeKey, result: TypeResult): TypeResult {
-        // TODO: better way to determine this?
-        val validResultType =
-            result !is TypeResult.LocalVar && result !is TypeResult.Lazy &&
-                result !is TypeResult.Function && result !is TypeResult.Scoped
-        if (!validResultType) return result
-        val name = cycleDetector.hitResolvable(key) ?: return result
-        return LateInit(name, key, result)
+        return result
     }
 
     /**
@@ -649,10 +699,8 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
 
     private fun AstParam.isAssisted(): Boolean = hasAnnotation(ASSISTED.packageName, ASSISTED.simpleName)
 
-    private data class TypeCacheKey(
-        val type: TypeKey,
-        // Include args in scope because a different call may be made for the same type depending on which args with
-        // default values are present.
-        val args: List<Pair<AstType, String>>,
+    private data class ResolveProvidesKey(
+        val key: TypeKey,
+        val assistedParams: List<TypeKey> = emptyList(),
     )
 }

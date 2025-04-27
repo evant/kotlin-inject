@@ -43,6 +43,9 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
                         if (isOverride) addModifiers(KModifier.OVERRIDE)
                         if (isSuspend) addModifiers(KModifier.SUSPEND)
                     }
+                    .addParameters(parameters.map { (type, name) ->
+                        ParameterSpec.builder(name, type.toTypeName()).build()
+                    })
                     .addCode(codeBlock).build()
             )
         }
@@ -120,14 +123,14 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
                 add(".")
             }
 
-            if (isProperty) {
+            if (isProperty()) {
                 add("%N", methodName)
             } else {
                 add("%N(", methodName)
-                if (parameters.isNotEmpty()) {
+                if (args.isNotEmpty()) {
                     add("\n⇥")
                 }
-                parameters.entries.forEachIndexed { i, (paramName, param) ->
+                args.entries.forEachIndexed { i, (paramName, param) ->
                     if (i != 0) {
                         add(",\n")
                     }
@@ -136,7 +139,7 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
                         add(param.generate())
                     }
                 }
-                if (parameters.isNotEmpty()) {
+                if (args.isNotEmpty()) {
                     add("\n⇤")
                 }
                 add(")")
@@ -157,10 +160,10 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
             } else {
                 add("%T(", type.toTypeName())
             }
-            if (parameters.isNotEmpty()) {
+            if (args.isNotEmpty()) {
                 add("\n⇥")
                 val isNamedArgumentsSupported = supportsNamedArguments
-                parameters.entries.forEachIndexed { i, (paramName, param) ->
+                args.entries.forEachIndexed { i, (paramName, param) ->
                     if (i != 0) {
                         add(",\n")
                     }
@@ -251,7 +254,7 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
         return CodeBlock.builder().apply {
             add("$creator(")
             add("\n⇥")
-            args.forEachIndexed { index, arg ->
+            args.values.forEachIndexed { index, arg ->
                 if (index != 0) {
                     add(",\n")
                 }
@@ -317,13 +320,13 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
         return CodeBlock.builder().apply {
             // don't use beginControlFlow() so the arg list can be kept on the same line
             add("{")
-            args.forEachIndexed { index, arg ->
+            parameters.forEachIndexed { index, arg ->
                 if (index != 0) {
                     add(",")
                 }
                 add(" %L", arg)
             }
-            if (args.isNotEmpty()) {
+            if (parameters.isNotEmpty()) {
                 add(" ->")
             }
             add("\n⇥")
@@ -337,18 +340,18 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
         return CodeBlock.builder().apply {
             // don't use beginControlFlow() so the arg list can be kept on the same line
             add("{")
-            args.forEachIndexed { index, arg ->
+            parameters.forEachIndexed { index, arg ->
                 if (index != 0) {
                     add(",")
                 }
                 add(" %L", arg)
             }
-            if (args.isNotEmpty()) {
+            if (parameters.isNotEmpty()) {
                 add(" ->")
             }
             add("\n⇥")
 
-            addFunctionCall(name, parameters)
+            addFunctionCall(name, args)
 
             // don't use endControlFlow() because it emits a newline after the closing brace
             add("\n⇤}")

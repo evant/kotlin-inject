@@ -10,7 +10,7 @@ import me.tatarka.kotlin.ast.AstProvider
 class CycleDetector {
 
     private val entries = mutableListOf<Entry>()
-    private val resolving = mutableMapOf<TypeKey, String>()
+    private val resolving = mutableSetOf<TypeKey>()
 
     /**
      * Denote that construction is being delayed. A cycle that crosses a delayed element can be resolved.
@@ -23,7 +23,7 @@ class CycleDetector {
      * Returns the variable name if [CycleResult.Resolvable] was hit for the given type key lower in the tree. This
      * means you should create the variable that was referenced.
      */
-    fun hitResolvable(key: TypeKey): String? {
+    fun hitResolvable(key: TypeKey): Boolean {
         return resolving.remove(key)
     }
 
@@ -37,9 +37,8 @@ class CycleDetector {
         val lastRepeatIndex = entries.indexOfLast { it is Entry.Element && it.value == element }
         val cycleResult = if (lastRepeatIndex != -1) {
             if (entries.indexOfLast { it is Entry.Delayed } > lastRepeatIndex) {
-                val name = key.type.toVariableName()
-                resolving[key] = name
-                CycleResult.Resolvable(name)
+                resolving.add(key)
+                CycleResult.Resolvable(key)
             } else {
                 CycleResult.Cycle
             }
@@ -89,5 +88,5 @@ sealed class CycleResult {
      * There was a cycle but it was across a delayed construction so it can be resolved. Reference the variable here
      * with the given name and call [CycleDetector.hitResolvable] higher up the tree to create it.
      */
-    class Resolvable(val name: String) : CycleResult()
+    class Resolvable(val key: TypeKey) : CycleResult()
 }

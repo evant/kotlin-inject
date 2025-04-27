@@ -157,7 +157,7 @@ class InjectGenerator(
                             if (options.dumpGraph) {
                                 messenger.warn(dumpGraph(astClass, this))
                             }
-                        }.optimize(context)
+                        }//.optimize(context)
 
                         with(TypeResultGenerator(options)) {
                             for (result in results) {
@@ -182,6 +182,7 @@ class InjectGenerator(
         val scopeFromParent = elementScopeClass != astClass
         return Context(
             provider = provider,
+            component = astClass,
             className = injectName,
             types = types,
             scopeComponent = elementScopeClass,
@@ -441,21 +442,21 @@ private fun dumpGraph(astClass: AstClass, entries: List<TypeResult.Provider>): S
     for (entry in entries) {
         out.append("* ${entry.name}: ${entry.returnType}\n")
         val seen = mutableSetOf<TypeResult>()
-        out.renderTree(entry.result) { ref ->
-            val walkChildren = ref.result !in seen
-            seen.add(ref.result)
+        out.renderTree(entry.result) { (key, result) ->
+            val walkChildren = result !in seen
+            seen.add(result)
             out.apply {
-                append(ref.result::class.simpleName)
+                append(result::class.simpleName)
                 append("@")
-                append(System.identityHashCode(ref.result))
+                append(System.identityHashCode(result))
                 append(": ")
-                append(ref.key)
+                append(key)
                 if (!walkChildren) {
                     append(" *")
                 }
             }
             if (walkChildren) {
-                ref.result.children
+                result.children
             } else {
                 EmptyIterator
             }

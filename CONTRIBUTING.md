@@ -17,7 +17,7 @@ for various features. The ones in `compiler-test` test the output of the compile
  
 To debug the compiler, you can write the code you want to test and then run
 ```
-./gradlew :integration-tests:ksp:test --no-daemon -Dorg.gradle.debug=true -Dkotlin.compiler.execution.strategy=in-process
+./gradlew :integration-tests:ksp:jvmTest -Dorg.gradle.debug=true -Dkotlin.compiler.execution.strategy=in-process
 ```
 Then you can create and run a remote run configuration in intellij to attach the debugger.
 

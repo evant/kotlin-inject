@@ -8,7 +8,7 @@ import me.tatarka.kotlin.ast.AstType
 /**
  * [TypeResult] wrapper that allows updating it's value.
  */
-class TypeResultRef(val key: TypeKey, var result: TypeResult)
+data class TypeResultRef(val key: TypeKey, var result: TypeResult)
 
 /**
  * Represents a certain type that can be constructed.
@@ -23,6 +23,7 @@ sealed class TypeResult {
     class Provider(
         val name: String,
         val returnType: AstType,
+        val parameters: List<Pair<AstType, String>> = emptyList(),
         val isProperty: Boolean = false,
         val isPrivate: Boolean = false,
         val isOverride: Boolean = false,
@@ -41,13 +42,14 @@ sealed class TypeResult {
         val methodName: String,
         val accessor: Accessor = Accessor.Empty,
         val receiver: TypeResultRef? = null,
-        val isProperty: Boolean = false,
-        val parameters: Map<String, TypeResultRef> = emptyMap(),
+        val isProperty: () -> Boolean = { false },
+        val isSuspend: () -> Boolean = { false },
+        val args: Map<String, TypeResultRef> = emptyMap(),
     ) : TypeResult() {
         override val children
             get() = iterator {
                 receiver?.let { yield(it) }
-                yieldAll(parameters.values)
+                yieldAll(args.values)
             }
     }
 
@@ -70,13 +72,13 @@ sealed class TypeResult {
         val type: AstType,
         val scope: AstAnnotation?,
         val outerClass: TypeResultRef?,
-        val parameters: Map<String, TypeResultRef>,
+        val args: Map<String, TypeResultRef>,
         val supportsNamedArguments: Boolean,
     ) : TypeResult() {
         override val children
             get() = iterator {
                 outerClass?.let { yield(it) }
-                yieldAll(parameters.values)
+                yieldAll(args.values)
             }
     }
 
@@ -85,10 +87,10 @@ sealed class TypeResult {
      */
     class Container(
         val creator: String,
-        val args: List<TypeResultRef>,
+        val args: Map<String, TypeResultRef>,
     ) : TypeResult() {
         override val children
-            get() = args.iterator()
+            get() = args.values.iterator()
     }
 
     class AssistedFactory(
@@ -103,14 +105,14 @@ sealed class TypeResult {
         val function: AstFunction,
         val parameters: List<Pair<AstType, String>>,
         val injectFunction: AstFunction,
-        val injectFunctionParameters: Map<String, TypeResultRef>
+        val injectFunctionParameters: Map<String, TypeResultRef>,
     ) : TypeResult()
 
     /**
      * A lambda function that returns the type.
      */
     class Function(
-        val args: List<String>,
+        val parameters: List<String>,
         val result: TypeResultRef,
     ) : TypeResult() {
         override val children
@@ -122,11 +124,11 @@ sealed class TypeResult {
      */
     class NamedFunction(
         val name: MemberName,
-        val args: List<String>,
-        val parameters: Map<String, TypeResultRef>,
+        val parameters: List<String>,
+        val args: Map<String, TypeResultRef>,
     ) : TypeResult() {
         override val children
-            get() = parameters.values.iterator()
+            get() = args.values.iterator()
     }
 
     /**

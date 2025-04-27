@@ -10,6 +10,7 @@ import me.tatarka.kotlin.ast.AstType
  */
 data class Context(
     val provider: AstProvider,
+    val component: AstClass,
     val className: String,
     val types: TypeCollector.Result,
     val scopeComponent: AstClass?,
