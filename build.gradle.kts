@@ -19,6 +19,10 @@ nexusPublishing {
     repositories {
         sonatype()
     }
+    repositoryDescription = provider {
+        val target = providers.gradleProperty("releaseTarget").map { ":$it" }.getOrElse("")
+        "$group:$name:$version$target"
+    }
 }
 
 changelog {
