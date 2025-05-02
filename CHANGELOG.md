@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Fixed
+- Fixed code generation when referencing a parent component provider that uses a receiver.
+
 ## [0.8.0] - 2025-04-27
 
 ### Changed
