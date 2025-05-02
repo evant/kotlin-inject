@@ -13,6 +13,7 @@ class NestedComponentTest {
 
         assertThat(component.parent.parentNamedFoo.name).isEqualTo("parent")
         assertThat(component.namedFoo.name).isEqualTo("parent")
+        assertThat(component.namedBar.name).isEqualTo("parent")
         assertThat(component.foo).isNotNull()
     }
 
@@ -24,6 +25,7 @@ class NestedComponentTest {
 
         assertThat(component.parent.parent.parentNamedFoo.name).isEqualTo("parent")
         assertThat(component.namedFoo.name).isEqualTo("parent")
+        assertThat(component.namedBar.name).isEqualTo("parent")
         assertThat(component.foo).isNotNull()
         assertThat(component.bar).isNotNull()
     }
