@@ -21,7 +21,6 @@ import me.tatarka.kotlin.ast.AstProvider
 import me.tatarka.kotlin.ast.AstType
 import me.tatarka.kotlin.ast.AstVisibility
 import me.tatarka.kotlin.ast.Messenger
-import me.tatarka.kotlin.ast.annotationAnnotatedWith
 import me.tatarka.kotlin.ast.hasAnnotation
 
 private const val ANNOTATION_PACKAGE_NAME = "me.tatarka.inject.annotations"
@@ -342,6 +341,9 @@ fun findAssistedFactoryInjectFunction(
     return function
 }
 
+fun AstType.typeQualifierAnnotations() =
+    annotationsAnnotatedWith(QUALIFIER.packageName, QUALIFIER.simpleName)
+
 fun <E> qualifier(
     provider: AstProvider,
     options: Options,
@@ -349,7 +351,7 @@ fun <E> qualifier(
     type: AstType,
 ): AstAnnotation? where E : AstElement, E : AstAnnotated {
     // check for qualifiers incorrectly applied to type arguments
-    fun checkTypeArgs(packageName: String, simpleName: String, type: AstType) {
+    fun checkTypeArgs(type: AstType) {
         @Suppress("SwallowedException")
         val arguments = try {
             type.arguments
@@ -360,52 +362,30 @@ fun <E> qualifier(
         }
 
         for (typeArg in arguments) {
-            val argQualifier = typeArg.annotationAnnotatedWith(packageName, simpleName)
-            if (argQualifier != null) {
-                provider.error("Qualifier: $argQualifier can only be applied to the outer type", typeArg)
+            val argQualifiers = typeArg.typeQualifierAnnotations().toList()
+            if (argQualifiers.size > 1) {
+                provider.error("Cannot apply multiple qualifiers: $argQualifiers", typeArg)
             }
-            checkTypeArgs(packageName, simpleName, typeArg)
+            checkTypeArgs(typeArg)
         }
     }
 
-    fun qualifier(
-        packageName: String,
-        simpleName: String,
-        provider: AstProvider,
-        element: E?,
-        type: AstType,
-    ): AstAnnotation? {
-        val qualifiers = (
-            element?.annotationsAnnotatedWith(packageName, simpleName).orEmpty() +
-                type.annotationsAnnotatedWith(packageName, simpleName)
-            ).toList()
-        if (qualifiers.size > 1) {
-            provider.error("Cannot apply multiple qualifiers: $qualifiers", element)
-        }
-        checkTypeArgs(packageName, simpleName, type)
-        return qualifiers.firstOrNull()
+    val qualifiers = (
+        element?.annotationsAnnotatedWith(QUALIFIER.packageName, QUALIFIER.simpleName).orEmpty() +
+            if (options.enableJavaxAnnotations) {
+                element?.annotationsAnnotatedWith(JAVAX_QUALIFIER.packageName, JAVAX_QUALIFIER.simpleName).orEmpty()
+            } else {
+                emptySequence()
+            }
+        ).toList()
+
+    val qualifiersIncludingType = (qualifiers + type.typeQualifierAnnotations().toList()).distinct()
+    if (qualifiersIncludingType.size > 1) {
+        provider.error("Cannot apply multiple qualifiers: $qualifiersIncludingType", element)
     }
-    // check our qualifier annotation first, then check the javax qualifier annotation. This allows you to have both
-    // in case your in the middle of a migration.
-    val qualifier = qualifier(
-        QUALIFIER.packageName,
-        QUALIFIER.simpleName,
-        provider,
-        element,
-        type,
-    )
-    if (qualifier != null) return qualifier
-    return if (options.enableJavaxAnnotations) {
-        qualifier(
-            JAVAX_QUALIFIER.packageName,
-            JAVAX_QUALIFIER.simpleName,
-            provider,
-            element,
-            type,
-        )
-    } else {
-        null
-    }
+
+    checkTypeArgs(type)
+    return qualifiers.firstOrNull() // type qualifier is used separately in TypeKey
 }
 
 fun AstMember.isProvider(): Boolean =
