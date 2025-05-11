@@ -107,8 +107,9 @@ data class TypeResultGenerator(val options: Options, val implicitAccessor: Acces
                     }
                     add("%L.", accessorInScope)
                 }
-            } else if (implicitAccessor.isNotEmpty()) {
-                if (accessor == accessorInScope) {
+            } else if (implicitAccessor.isNotEmpty() && accessor == accessorInScope) {
+                // `receiver` will generate its own `this` expression below
+                if (receiver == null) {
                     add("this@%L.", className)
                 }
             }
