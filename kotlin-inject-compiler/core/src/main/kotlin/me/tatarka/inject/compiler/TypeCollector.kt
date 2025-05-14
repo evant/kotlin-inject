@@ -32,7 +32,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
         private val types = mutableMapOf<TypeKey, Member>()
 
         // Map of container types to inject. Used for multibinding.
-        private val containerTypes = mutableMapOf<ContainerKey, MutableList<Member>>()
+        private val containerTypes = mutableMapOf<ContainerKey, MutableList<ContainerMember>>()
 
         // Map of types obtained from generated provider methods. This can be used for lookup when the underlying method
         // is not available (ex: because we only see an interface, or it's marked protected).
@@ -66,8 +66,8 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
             return null
         }
 
-        fun containerArgs(key: ContainerKey): List<Pair<Member, Result>> {
-            val results = mutableListOf<Pair<Member, Result>>()
+        fun containerArgs(key: ContainerKey): List<Pair<ContainerMember, Result>> {
+            val results = mutableListOf<Pair<ContainerMember, Result>>()
             for (result in iterator()) {
                 val types = result.containerTypes[key]
                 if (types != null) {
@@ -114,39 +114,12 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                     }
                 }
                 val scopedComponent = if (scope != null) astClass else null
-                if (member.hasAnnotation(INTO_MAP.packageName, INTO_MAP.simpleName)) {
-                    // Pair<A, B> -> Map<A, B>
-                    val returnType = member.returnTypeFor(astClass)
-                    val key = TypeKey(returnType, qualifier)
-                    val resolvedType = returnType.resolvedType()
-                    if (resolvedType.isPair()) {
-                        val containerKey = ContainerKey.MapKey(
-                            resolvedType.arguments[0],
-                            resolvedType.arguments[1],
-                            key.qualifier
-                        )
-                        addContainerType(provider, key, containerKey, member, accessor, scope, scopedComponent)
-                    } else {
-                        provider.error("@IntoMap must have return type of type Pair", member)
-                    }
-                } else if (member.hasAnnotation(INTO_SET.packageName, INTO_SET.simpleName)) {
-                    // A -> Set<A>
-                    val returnType = member.returnTypeFor(astClass)
-                    val key = TypeKey(returnType, qualifier)
-                    val containerKey = ContainerKey.SetKey(returnType, key.qualifier)
-                    addContainerType(provider, key, containerKey, member, accessor, scope, scopedComponent)
-                } else {
-                    val returnType = member.returnTypeFor(astClass)
-                    val key = TypeKey(returnType, qualifier)
-                    if (accessor.isNotEmpty()) {
-                        // May have already added from a resolvable provider
-                        if (providerTypes.containsKey(key)) continue
-                        // We out outside the current class, so complain if not accessible
-                        if (member.visibility == AstVisibility.PROTECTED) {
-                            provider.error("@Provides method is not accessible", member)
-                        }
-                    }
-                    addMethod(key, member, accessor, scope, scopedComponent)
+                val returnType = member.returnTypeFor(astClass)
+                val key = TypeKey(returnType, qualifier)
+                when {
+                    member.isIntoMap() -> collectIntoMapProvider(key, member, accessor, scope)
+                    member.isIntoSet() -> collectIntoSetProvider(key, member, accessor, scope)
+                    else -> collectProvider(key, member, accessor, scope, scopedComponent)
                 }
             }
 
@@ -215,6 +188,76 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
             }
         }
 
+        private fun collectProvider(
+            key: TypeKey,
+            member: AstMember,
+            accessor: Accessor,
+            scope: AstAnnotation?,
+            scopedComponent: AstClass?,
+        ) {
+            if (accessor.isNotEmpty()) {
+                // May have already added from a resolvable provider
+                if (providerTypes.containsKey(key)) return
+                // We out outside the current class, so complain if not accessible
+                if (member.visibility == AstVisibility.PROTECTED) {
+                    provider.error("@Provides method is not accessible", member)
+                }
+            }
+            addMethod(key, member, accessor, scope, scopedComponent)
+        }
+
+        private fun collectIntoSetProvider(
+            key: TypeKey,
+            member: AstMember,
+            accessor: Accessor,
+            scope: AstAnnotation?,
+        ) {
+            val isMultiple = member.isIntoSetMultiple()
+            val containerKey = if (isMultiple) {
+                // Set<A> -> Set<A>
+                val resolvedType = key.type.resolvedType()
+                if (!resolvedType.isSet()) {
+                    provider.error("@IntoSet(multiple = true) must have return type of type Set", member)
+                    return
+                }
+
+                ContainerKey.SetKey(resolvedType.arguments[0], key.qualifier)
+            } else {
+                // A -> Set<A>
+                ContainerKey.SetKey(key.type, key.qualifier)
+            }
+            addContainerType(provider, key, containerKey, member, accessor, scope, isMultiple)
+        }
+
+        private fun collectIntoMapProvider(
+            key: TypeKey,
+            member: AstMember,
+            accessor: Accessor,
+            scope: AstAnnotation?,
+        ) {
+            val resolvedType = key.type.resolvedType()
+            val isMultiple = member.isIntoMapMultiple()
+            if (isMultiple) {
+                // Map<A, B> -> Map<A, B>
+                if (!resolvedType.isMap()) {
+                    provider.error("@IntoMap(multiple = true) must have return type of type Map", member)
+                    return
+                }
+            } else {
+                // Pair<A, B> -> Map<A, B>
+                if (!resolvedType.isPair()) {
+                    provider.error("@IntoMap(multiple = false) must have return type of type Pair", member)
+                    return
+                }
+            }
+            val containerKey = ContainerKey.MapKey(
+                resolvedType.arguments[0],
+                resolvedType.arguments[1],
+                key.qualifier
+            )
+            addContainerType(provider, key, containerKey, member, accessor, scope, isMultiple)
+        }
+
         private fun checkDuplicateTypesBetweenResults(
             result1Types: Map<TypeKey, AstMember>,
             result1ContainerTypes: Map<TypeKey, AstMember>,
@@ -242,7 +285,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
             method: AstMember,
             accessor: Accessor,
             scope: AstAnnotation?,
-            scopedComponent: AstClass?,
+            isMultiple: Boolean
         ) {
             val current = type(containerKey.containerTypeKey(provider))
             if (current != null) {
@@ -251,7 +294,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
             }
 
             containerTypes.getOrPut(containerKey) { mutableListOf() }
-                .add(method(method, accessor, scope, scopedComponent))
+                .add(ContainerMember(method, accessor, scope, isMultiple))
         }
 
         private fun addMethod(
@@ -276,7 +319,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                 }
             }
 
-            types[key] = method(method, accessor, scope, scopedComponent)
+            types[key] = Member(method, accessor, scope, scopedComponent)
         }
 
         private fun addProviderMethod(key: TypeKey, member: AstMember, accessor: Accessor) {
@@ -285,14 +328,6 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                 providerTypes[key] = ProviderMember(member, accessor)
             }
         }
-
-        private fun method(method: AstMember, accessor: Accessor, scope: AstAnnotation?, scopedComponent: AstClass?) =
-            Member(
-                method = method,
-                accessor = accessor,
-                scope = scope,
-                scopedComponent = scopedComponent
-            )
 
         private fun duplicate(key: TypeKey, newValue: AstElement, oldValue: AstElement) {
             provider.error("Cannot provide: $key", newValue)
@@ -503,21 +538,23 @@ class Member(
     val scopedComponent: AstClass? = null,
 )
 
+class ContainerMember(
+    val method: AstMember,
+    val accessor: Accessor,
+    val scope: AstAnnotation?,
+    val isMultiple: Boolean,
+)
+
 sealed class ContainerKey {
-    abstract val creator: String
     abstract fun containerTypeKey(provider: AstProvider): TypeKey
 
     data class SetKey(val type: AstType, val qualifier: AstAnnotation? = null) : ContainerKey() {
-        override val creator: String = "setOf"
-
         override fun containerTypeKey(provider: AstProvider): TypeKey {
             return TypeKey(provider.declaredTypeOf(Set::class, type), qualifier)
         }
     }
 
     data class MapKey(val key: AstType, val value: AstType, val qualifier: AstAnnotation? = null) : ContainerKey() {
-        override val creator: String = "mapOf"
-
         override fun containerTypeKey(provider: AstProvider): TypeKey {
             return TypeKey(provider.declaredTypeOf(Map::class, key, value), qualifier)
         }
