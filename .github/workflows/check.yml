@@ -4,7 +4,13 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - '**/.gitignore'
+      - '**.md'
   pull_request:
+    paths-ignore:
+      - '**/.gitignore'
+      - '**.md'
   workflow_dispatch:
 
 env:
