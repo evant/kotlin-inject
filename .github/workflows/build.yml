@@ -73,18 +73,12 @@ jobs:
             build/test-results
             build/reports
       
-  # publish:
-  #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-  #   runs-on: ubuntu-latest
-  #   needs: build
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-  #     - name: Set up JDK
-  #       uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
-  #       with:
-  #         java-version: ${{ env.JAVA_VERSION }}
-  #         distribution: ${{ env.JAVA_DISTRO }}
-
+      # - name: Publish Linux
+      #   if: startsWith(matrix.os, 'ubuntu') && github.event_name == 'push' && github.ref == 'refs/heads/main'
+      #   run: |
+      #     ./gradlew publishLinux
       
+      # - name: Publish MacOS
+      #   if: startsWith(matrix.os, 'macos') && github.event_name == 'push' && github.ref == 'refs/heads/main'
+      #   run: |
+      #     ./gradlew publishMacos      
