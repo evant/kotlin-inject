@@ -40,13 +40,13 @@ Add the runtime dependency in commonMain
 sourceSets {
     commonMain {
         dependencies {
-            implementation("me.tatarka.inject:kotlin-inject-runtime-kmp:0.7.2")
+            implementation("me.tatarka.inject:kotlin-inject-runtime-kmp:0.8.0")
         }
     }
 }
 ```
 
-> [!NOTE]  
+> [!NOTE]
 > `kotlin-inject-runtime-kmp` is the same as `kotlin-inject-runtime` aside from adding the `KmpComponentCreate` annotation.
 
 ### Adding the compiler dependencies
@@ -64,17 +64,18 @@ Add the compiler dependencies in a top level `dependencies` block
 ```kotlin
 dependencies {
     // 1. Configure code generation into the common source set
-    kspCommonMainMetadata(libs.kotlinInject)
+    kspCommonMainMetadata(libs.kotlinInject.compiler)
 
     // 2. Configure code generation into each KMP target source set
-    kspAndroid("me.tatarka.inject:kotlin-inject-compiler-ksp:0.7.2")
-    kspIosX64("me.tatarka.inject:kotlin-inject-compiler-ksp:0.7.2")
-    kspIosArm64("me.tatarka.inject:kotlin-inject-compiler-ksp:0.7.2")
-    kspIosSimulatorArm64("me.tatarka.inject:kotlin-inject-compiler-ksp:0.7.2")
+    add("kspAndroid", libs.kotlinInject.compiler)
+    add("kspIosX64", libs.kotlinInject.compiler)
+    add("kspIosArm64", libs.kotlinInject.compiler)
+    add("kspIosSimulatorArm64", libs.kotlinInject.compiler)
+    // add more targets here...
 }
 ```
 
-> [!NOTE]  
+> [!NOTE]
 > Code generation can be configured for both the common source set and all target source sets, but that will likely lead to [Redeclaration errors for @Component when ksp is used for common and target source sets](https://github.com/evant/kotlin-inject/issues/194).
 
 If a `Component` is declared in the common source set, then KSP would typically be configured to generate code in the common source set. This means that the generated code will be accessible from the common source set, and any source set that depends on it.
@@ -83,7 +84,7 @@ However, certain scenarios instead require generating code for all target source
 
 In those cases, while the `Component` might be declared in the common source set, it is not possible to create it, because the `create` functions are declared in each target source set.
 
-> [!NOTE]  
+> [!NOTE]
 > Pre Kotlin 2.0 it is possible to reference the `create` function from the common source set because code from a target source set was visible to the common source set.
 > However this can lead to very subtle bugs, and starting from Kotlin 2.0 common source sets can no longer see code from target source sets.
 
@@ -102,7 +103,7 @@ actual fun createKmp(): MyKmpComponent = MyKmpComponent::class.create()
 
 Creating an `actual fun` for each platform can be tedious, so kotlin-inject provides a `KmpComponentCreate` annotation.
 
-```kotlin  
+```kotlin
 @Component
 abstract class MyKmpComponent
 
@@ -110,7 +111,7 @@ abstract class MyKmpComponent
 expect fun createKmp(): MyKmpComponent
 ```
 
-> [!NOTE]  
+> [!NOTE]
 > Make sure you are using the `kotlin-inject-runtime-kmp` artifact in order to have access to the `KmpComponentCreate` annotation.
 
 kotlin-inject's processor will generate an `actual fun` in each target's source set that calls through to the `create` function for `MyKmpComponent`. The generated code looks like this:
@@ -171,19 +172,16 @@ The only difference is for projects that generate code into each KMP target sour
 kotlin {
     // add your project's targets here like in the snippet above
 
-    configureCommonMainKsp()
+    commonMain {
+        kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
+    }
 }
 
-@OptIn(ExternalVariantApi::class)
-fun KotlinMultiplatformExtension.configureCommonMainKsp() {
-  sourceSets.named("commonMain").configure {
-    kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
-  }
-
-  project.tasks.withType(KotlinCompilationTask::class.java).configureEach {
-    if(name != "kspCommonMainKotlinMetadata") {
-      dependsOn("kspCommonMainKotlinMetadata")
+// KspAATask should be used for KSP2
+// For KSP1 use KotlinCompilationTask instead
+tasks.withType<KspAATask>().configureEach {
+    if (name != "kspCommonMainKotlinMetadata") {
+        dependsOn("kspCommonMainKotlinMetadata")
     }
-  }
 }
 ```
