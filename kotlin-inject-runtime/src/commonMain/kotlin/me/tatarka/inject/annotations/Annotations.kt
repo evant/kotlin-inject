@@ -20,10 +20,10 @@ annotation class Provides
 annotation class Scope
 
 @Target(FUNCTION, PROPERTY_GETTER)
-annotation class IntoSet
+annotation class IntoSet(val multiple: Boolean = false)
 
 @Target(FUNCTION, PROPERTY_GETTER)
-annotation class IntoMap
+annotation class IntoMap(val multiple: Boolean = false)
 
 @Target(VALUE_PARAMETER)
 annotation class Assisted
