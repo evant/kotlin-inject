@@ -3,11 +3,14 @@ package me.tatarka.inject.compiler
 import me.tatarka.kotlin.ast.AstAnnotation
 import me.tatarka.kotlin.ast.AstType
 
-class TypeKey(val type: AstType, val qualifier: AstAnnotation? = null) {
+class TypeKey(val type: AstType, val memberQualifier: AstAnnotation? = null) {
+
+    val qualifier = memberQualifier ?: type.typeQualifierAnnotations().firstOrNull()
 
     override fun equals(other: Any?): Boolean {
         if (other !is TypeKey) return false
-        return qualifier == other.qualifier && type == other.type
+        return qualifier == other.qualifier && type == other.type &&
+            type.arguments.eqvItr(other.type.arguments, ::qualifiersEquals)
     }
 
     override fun hashCode(): Int {
@@ -24,4 +27,13 @@ class TypeKey(val type: AstType, val qualifier: AstAnnotation? = null) {
         }
         append(type)
     }.toString()
+
+    companion object {
+        private fun qualifiersEquals(left: AstType, right: AstType): Boolean {
+            val leftAnnotations = left.typeQualifierAnnotations().asIterable()
+            val rightAnnotations = right.typeQualifierAnnotations().asIterable()
+            return leftAnnotations.eqvItr(rightAnnotations, AstAnnotation::equals) &&
+                left.arguments.eqvItr(right.arguments, ::qualifiersEquals)
+        }
+    }
 }

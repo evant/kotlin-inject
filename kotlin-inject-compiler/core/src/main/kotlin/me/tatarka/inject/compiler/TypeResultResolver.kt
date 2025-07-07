@@ -235,7 +235,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         }
 
         if (key.type.isLazy()) {
-            val lKey = TypeKey(key.type.arguments[0], key.qualifier)
+            val lKey = TypeKey(key.type.arguments[0], key.memberQualifier)
             return Lazy(key = lKey) {
                 resolveOrNull(this, element = element, key = lKey) ?: return null
             }
@@ -282,7 +282,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
     private fun Context.set(key: TypeKey): TypeResult? {
         val innerType = key.type.arguments[0]
 
-        val containerKey = ContainerKey.SetKey(innerType, key.qualifier)
+        val containerKey = ContainerKey.SetKey(innerType, key.memberQualifier)
         val args = types.containerArgs(containerKey)
         if (args.isNotEmpty()) {
             return Container(
@@ -295,7 +295,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         }
 
         if (innerType.isFunction()) {
-            val containerKey = ContainerKey.SetKey(innerType.arguments.last(), key.qualifier)
+            val containerKey = ContainerKey.SetKey(innerType.arguments.last(), key.memberQualifier)
             val args = types.containerArgs(containerKey)
             if (args.isEmpty()) return null
             return Container(
@@ -310,7 +310,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
         }
 
         if (innerType.isLazy()) {
-            val containerKey = ContainerKey.SetKey(innerType.arguments[0], key.qualifier)
+            val containerKey = ContainerKey.SetKey(innerType.arguments[0], key.memberQualifier)
             val args = types.containerArgs(containerKey)
             if (args.isEmpty()) return null
             return Container(
@@ -328,7 +328,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
 
     private fun Context.map(key: TypeKey): TypeResult? {
         val type = key.type.resolvedType()
-        val containerKey = ContainerKey.MapKey(type.arguments[0], type.arguments[1], key.qualifier)
+        val containerKey = ContainerKey.MapKey(type.arguments[0], type.arguments[1], key.memberQualifier)
         val args = types.containerArgs(containerKey)
         if (args.isEmpty()) return null
         return Container(
@@ -396,7 +396,7 @@ class TypeResultResolver(private val provider: AstProvider, private val options:
                 )
             }
         }
-        val fKey = TypeKey(resolveType.arguments.last(), key.qualifier)
+        val fKey = TypeKey(resolveType.arguments.last(), key.memberQualifier)
         return Function(this, args = args) { context ->
             resolveOrNull(context, element = element, key = fKey) ?: return null
         }
