@@ -29,6 +29,7 @@ kotlin {
             dependencies {
                 implementation(kotlin("test"))
                 implementation(libs.kotlinx.coroutines)
+                implementation(libs.kotlinx.coroutinesTest)
                 implementation(libs.assertk)
             }
         }
@@ -60,7 +61,8 @@ kotlin {
     targets.all {
         compilations.all {
             compileTaskProvider.configure {
-                compilerOptions.allWarningsAsErrors = true
+                // w: Language version 1.9 is deprecated and its support will be removed in a future version of Kotlin
+                compilerOptions.allWarningsAsErrors = false
             }
         }
     }
