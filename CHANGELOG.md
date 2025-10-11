@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+
+- Added arm32 & arm64 android native targets
+
 ### Fixed
 - Fixed code generation when referencing a parent component provider that uses a receiver.
 

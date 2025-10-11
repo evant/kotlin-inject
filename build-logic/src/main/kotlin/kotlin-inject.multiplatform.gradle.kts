@@ -24,6 +24,8 @@ kotlin {
     macosX64()
     macosArm64()
     mingwX64()
+    androidNativeArm32()
+    androidNativeArm64()
     iosArm64()
     iosX64()
     iosSimulatorArm64()
