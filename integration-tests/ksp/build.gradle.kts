@@ -27,6 +27,7 @@ kotlin {
             dependencies {
                 implementation(kotlin("test"))
                 implementation(libs.kotlinx.coroutines)
+                implementation(libs.kotlinx.coroutinesTest)
                 implementation(libs.assertk)
             }
         }
