@@ -5,6 +5,7 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isNotNull
 import assertk.assertions.isNotSameInstanceAs
 import assertk.assertions.isSameInstanceAs
+import kotlinx.coroutines.test.runTest
 import me.tatarka.inject.test.different.DifferentPackageScopedComponent
 import me.tatarka.inject.test.different.create
 import me.tatarka.inject.test.module.ExternalChildComponent
