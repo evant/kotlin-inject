@@ -8,7 +8,7 @@ import kotlinx.coroutines.promise
 /**
  * Workaround to use suspending functions in unit tests
  */
-@OptIn(DelicateCoroutinesApi::class)
+@OptIn(DelicateCoroutinesApi::class, ExperimentalWasmJsInterop::class)
 actual fun runTest(block: suspend (scope: CoroutineScope) -> Unit) {
     GlobalScope.promise { block(this) }
 }
