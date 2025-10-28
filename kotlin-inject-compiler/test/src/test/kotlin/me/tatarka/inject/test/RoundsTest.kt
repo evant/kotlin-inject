@@ -16,7 +16,6 @@ import org.junit.jupiter.params.provider.EnumSource
 import java.io.File
 
 private fun Target.unresolvedReference(reference: String) = when (this) {
-    Target.KSP1 -> "Unresolved reference: $reference"
     Target.KSP2 -> "Unresolved reference '$reference'"
 }
 

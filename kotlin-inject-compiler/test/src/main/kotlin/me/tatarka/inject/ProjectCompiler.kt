@@ -47,10 +47,6 @@ class ProjectCompiler(
                 workingDir = this@ProjectCompiler.workingDir
                 sources = sourceFiles
 
-                if (target == Target.KSP1) {
-                    languageVersion = "1.9"
-                }
-
                 val ksp: KspTool.() -> Unit = {
                     options?.toMap()?.let { kspProcessorOptions.putAll(it) }
                     symbolProcessorProviders.add(InjectProcessorProvider())
@@ -58,8 +54,7 @@ class ProjectCompiler(
                 }
 
                 when (target) {
-                    Target.KSP1 -> configureKsp(useKsp2 = false, ksp)
-                    Target.KSP2 -> configureKsp(useKsp2 = true, ksp)
+                    Target.KSP2 -> configureKsp(ksp)
                 }
                 inheritClassPath = true
                 // work-around for https://github.com/ZacSweers/kotlin-compile-testing/issues/197
@@ -107,7 +102,6 @@ private fun String.matchLine(): DiagnosticSeverity? {
 }
 
 enum class Target {
-    KSP1,
     KSP2
 }
 
