@@ -2,6 +2,7 @@ package me.tatarka.inject.test
 
 import assertk.assertThat
 import assertk.assertions.isInstanceOf
+import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 
 class SuspendTest {
