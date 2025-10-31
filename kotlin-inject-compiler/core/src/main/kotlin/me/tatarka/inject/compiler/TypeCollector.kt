@@ -123,7 +123,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                         val containerKey = ContainerKey.MapKey(
                             resolvedType.arguments[0],
                             resolvedType.arguments[1],
-                            key.qualifier
+                            key.memberQualifier
                         )
                         addContainerType(provider, key, containerKey, member, accessor, scope, scopedComponent)
                     } else {
@@ -133,7 +133,7 @@ class TypeCollector(private val provider: AstProvider, private val options: Opti
                     // A -> Set<A>
                     val returnType = member.returnTypeFor(astClass)
                     val key = TypeKey(returnType, qualifier)
-                    val containerKey = ContainerKey.SetKey(returnType, key.qualifier)
+                    val containerKey = ContainerKey.SetKey(returnType, key.memberQualifier)
                     addContainerType(provider, key, containerKey, member, accessor, scope, scopedComponent)
                 } else {
                     val returnType = member.returnTypeFor(astClass)
@@ -507,29 +507,41 @@ sealed class ContainerKey {
     abstract val creator: String
     abstract fun containerTypeKey(provider: AstProvider): TypeKey
 
-    data class SetKey(val type: AstType, val qualifier: AstAnnotation? = null) : ContainerKey() {
+    data class SetKey(
+        val typeKey: TypeKey,
+        val qualifier: AstAnnotation? = null,
+    ) : ContainerKey() {
+        constructor(type: AstType, qualifier: AstAnnotation? = null) : this(TypeKey(type), qualifier)
+
         override val creator: String = "setOf"
 
         override fun containerTypeKey(provider: AstProvider): TypeKey {
-            return TypeKey(provider.declaredTypeOf(Set::class, type), qualifier)
+            return TypeKey(provider.declaredTypeOf(Set::class, typeKey.type), qualifier)
         }
     }
 
-    data class MapKey(val key: AstType, val value: AstType, val qualifier: AstAnnotation? = null) : ContainerKey() {
+    data class MapKey(
+        val keyTypeKey: TypeKey,
+        val valueTypeKey: TypeKey,
+        val qualifier: AstAnnotation? = null,
+    ) : ContainerKey() {
+        constructor(key: AstType, value: AstType, qualifier: AstAnnotation? = null) :
+            this(TypeKey(key), TypeKey(value), qualifier)
+
         override val creator: String = "mapOf"
 
         override fun containerTypeKey(provider: AstProvider): TypeKey {
-            return TypeKey(provider.declaredTypeOf(Map::class, key, value), qualifier)
+            return TypeKey(provider.declaredTypeOf(Map::class, keyTypeKey.type, valueTypeKey.type), qualifier)
         }
     }
 
     companion object {
         fun fromContainer(key: TypeKey): ContainerKey? {
             if (key.type.isSet()) {
-                return SetKey(key.type.arguments[0], key.qualifier)
+                return SetKey(key.type.arguments[0], key.memberQualifier)
             }
             if (key.type.isMap()) {
-                return MapKey(key.type.arguments[0], key.type.arguments[1], key.qualifier)
+                return MapKey(key.type.arguments[0], key.type.arguments[1], key.memberQualifier)
             }
             return null
         }
