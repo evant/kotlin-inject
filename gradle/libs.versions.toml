@@ -3,7 +3,7 @@ kotlin-inject = "0.8.1-SNAPSHOT"
 kotlin = "2.2.20"
 ksp = "2.3.0"
 kotlinpoet = "2.0.0"
-junit5 = "5.9.3"
+junit5 = "5.13.4"
 jvmTarget = "11"
 detekt = "1.23.6"
 [libraries]
@@ -21,9 +21,11 @@ kotlinx-wasm-browser = "org.jetbrains.kotlinx:kotlinx-browser:0.3"
 jdk-compiler = { module = "io.earcam.wrapped:jdk.compiler", version = "1.8.132" }
 assertk = { module = "com.willowtreeapps.assertk:assertk", version = "0.28.0" }
 burst-junit4 = { module = "com.squareup.burst:burst-junit4", version = "1.2.0" }
-junit5-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit5" }
-junit5-params = { module = "org.junit.jupiter:junit-jupiter-params", version.ref = "junit5" }
-junit5-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit5" }
+junit5-api = { module = "org.junit.jupiter:junit-jupiter-api" }
+junit5-bom = { module = "org.junit:junit-bom", version.ref = "junit5" }
+junit5-engine = { module = "org.junit.jupiter:junit-jupiter-engine" }
+junit5-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+junit5-params = { module = "org.junit.jupiter:junit-jupiter-params" }
 javax-inject = { module = "javax.inject:javax.inject", version = "1" }
 kotlinpoet = { module = "com.squareup:kotlinpoet", version.ref = "kotlinpoet" }
 kotlinpoet-ksp = { module = "com.squareup:kotlinpoet-ksp", version.ref = "kotlinpoet" }
@@ -37,5 +39,5 @@ kotlin-test-junit5 = ["junit5-api", "junit5-params", "kotlin-reflect"]
 [plugins]
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 nexus-publish = { id = "io.github.gradle-nexus.publish-plugin", version = "2.0.0" }
-jmh = { id = "me.champeau.jmh", version = "0.6.6" }
-changelog = { id = "org.jetbrains.changelog", version = "2.2.1" }
+jmh = { id = "me.champeau.jmh", version = "0.7.3" }
+changelog = { id = "org.jetbrains.changelog", version = "2.4.0" }
