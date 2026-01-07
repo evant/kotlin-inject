@@ -6,11 +6,22 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [0.9.0]
+
+### Breaking
+
+- KSP1 support removed
+
 ### Added
 
 - Added arm32 & arm64 android native targets
 
+### Changed
+
+- Kotlin updated to 2.2.20
+
 ### Fixed
+
 - Fixed code generation when referencing a parent component provider that uses a receiver.
 
 ## [0.8.0] - 2025-04-27
@@ -543,48 +554,27 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - Initial Release
 
-[Unreleased]: https://github.com/evant/kotlin-inject/compare/v0.8.0...HEAD
-
+[Unreleased]: https://github.com/evant/kotlin-inject/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/evant/kotlin-inject/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/evant/kotlin-inject/compare/v0.7.2...v0.8.0
-
 [0.7.2]: https://github.com/evant/kotlin-inject/compare/v0.7.1...v0.7.2
-
 [0.7.1]: https://github.com/evant/kotlin-inject/compare/v0.7.0...v0.7.1
-
 [0.7.0]: https://github.com/evant/kotlin-inject/compare/v0.6.3...v0.7.0
-
 [0.6.3]: https://github.com/evant/kotlin-inject/compare/v0.6.2...v0.6.3
-
 [0.6.2]: https://github.com/evant/kotlin-inject/compare/v0.6.1...v0.6.2
-
 [0.6.1]: https://github.com/evant/kotlin-inject/compare/v0.6.0...v0.6.1
-
 [0.6.0]: https://github.com/evant/kotlin-inject/compare/v0.5.1...v0.6.0
-
 [0.5.1]: https://github.com/evant/kotlin-inject/compare/v0.5.0...v0.5.1
-
 [0.5.0]: https://github.com/evant/kotlin-inject/compare/v0.4.1...v0.5.0
-
 [0.4.1]: https://github.com/evant/kotlin-inject/compare/v0.4.0...v0.4.1
-
 [0.4.0]: https://github.com/evant/kotlin-inject/compare/v0.3.7-RC...v0.4.0
-
 [0.3.7-RC]: https://github.com/evant/kotlin-inject/compare/v0.3.6...v0.3.7-RC
-
 [0.3.6]: https://github.com/evant/kotlin-inject/compare/v0.3.5...v0.3.6
-
 [0.3.5]: https://github.com/evant/kotlin-inject/compare/v0.3.4...v0.3.5
-
 [0.3.4]: https://github.com/evant/kotlin-inject/compare/v0.3.3...v0.3.4
-
 [0.3.3]: https://github.com/evant/kotlin-inject/compare/v0.3.2...v0.3.3
-
 [0.3.2]: https://github.com/evant/kotlin-inject/compare/v0.3.1...v0.3.2
-
 [0.3.1]: https://github.com/evant/kotlin-inject/compare/v0.3.0...v0.3.1
-
 [0.3.0]: https://github.com/evant/kotlin-inject/compare/v0.2.0...v0.3.0
-
 [0.2.0]: https://github.com/evant/kotlin-inject/compare/v0.1.0...v0.2.0
-
 [0.1.0]: https://github.com/evant/kotlin-inject/commits/v0.1.0

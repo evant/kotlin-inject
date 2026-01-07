@@ -1,6 +1,6 @@
 [versions]
+kotlin-inject = "0.9.0"
 kotlinx-coroutines = "1.9.0"
-kotlin-inject = "0.8.1-SNAPSHOT"
 kotlin = "2.2.20"
 ksp = "2.3.0"
 kotlinpoet = "2.0.0"
