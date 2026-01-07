@@ -1,6 +1,7 @@
 package me.tatarka.inject.test
 
 import assertk.assertThat
+import assertk.assertions.containsExactlyInAnyOrder
 import assertk.assertions.containsOnly
 import kotlin.test.Test
 
@@ -69,5 +70,15 @@ class MultibindsTest {
 
         assertThat(component.stringMap).containsOnly("1" to "string")
         assertThat(component.myStringMap).containsOnly("1" to "myString")
+    }
+
+    @Test
+    fun generate_a_component_with_qualified_multibindings() {
+        val component: MultibindWithQualifiersComponent = MultibindWithQualifiersComponent::class.create()
+
+        assertThat(component.set1).containsExactlyInAnyOrder("1")
+        assertThat(component.set2).containsExactlyInAnyOrder("2")
+        assertThat(component.map1.toList()).containsExactlyInAnyOrder("1" to "2")
+        assertThat(component.map2.toList()).containsExactlyInAnyOrder("2" to "1")
     }
 }

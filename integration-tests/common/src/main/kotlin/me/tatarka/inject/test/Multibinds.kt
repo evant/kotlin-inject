@@ -25,6 +25,30 @@ abstract class SetComponent {
 }
 
 @Component
+abstract class MultibindWithQualifiersComponent {
+    abstract val set1: Set<@Named("foo") String>
+    abstract val set2: Set<@Named("bar") String>
+    abstract val map1: Map<@Named("bar") String, @Named("foo") String>
+    abstract val map2: Map<@Named("foo") String, @Named("bar") String>
+
+    @Provides
+    @IntoSet
+    protected fun fooSet(): @Named("foo") String = "1"
+
+    @Provides
+    @IntoSet
+    protected fun barSet(): @Named("bar") String = "2"
+
+    @Provides
+    @IntoMap
+    protected fun fooMap(): Pair<@Named("foo") String, @Named("bar") String> = "2" to "1"
+
+    @Provides
+    @IntoMap
+    protected fun barMap(): Pair<@Named("bar") String, @Named("foo") String> = "1" to "2"
+}
+
+@Component
 abstract class DynamicKeyComponent {
 
     abstract val items: Map<String, FooValue>

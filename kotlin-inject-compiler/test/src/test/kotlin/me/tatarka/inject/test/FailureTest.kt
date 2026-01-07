@@ -1437,7 +1437,7 @@ class FailureTest {
 
     @ParameterizedTest
     @EnumSource(Target::class)
-    fun fails_if_multiple_qualifier_is_applied_to_generic_type(target: Target) {
+    fun fails_if_type_qualifier_is_missing_in_generic_type(target: Target) {
         val projectCompiler = ProjectCompiler(target, workingDir)
 
         assertFailure {
@@ -1457,12 +1457,12 @@ class FailureTest {
                 abstract class MultipleQualifiersComponent {
                     abstract val foo: List<@MyQualifier String>
                     
-                    @Provides fun providesFoo(): List<@MyQualifier String> = "test"
+                    @Provides fun providesFoo(): List<String> = listOf("test")
                 }
                 """.trimIndent()
             ).compile()
         }.output().all {
-            contains("Qualifier: @MyQualifier can only be applied to the outer type")
+            contains("Cannot find an @Inject constructor or provider for: List<kotlin.String>")
         }
     }
 
