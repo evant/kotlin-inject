@@ -72,6 +72,7 @@ class InjectGenerator(
         val createFunction = createGenerator.create(astClass, constructor, injectComponent, classOptIn)
 
         return FileSpec.builder(astClass.packageName, injectName).apply {
+            addAnnotation(createSuppressAnnotation("REDUNDANT_VISIBILITY_MODIFIER"))
             astClass.containingFile?.optInAnnotation()?.let { addAnnotation(it) }
             createFunction.forEach { addFunction(it) }
             addType(injectComponent)
@@ -424,6 +425,11 @@ fun AstType.toVariableName(): String =
 
 fun AstAnnotated.optInAnnotation(): AnnotationSpec? =
     annotation(OPT_IN.packageName, OPT_IN.simpleName)?.toAnnotationSpec()
+
+fun createSuppressAnnotation(reason: String): AnnotationSpec =
+    AnnotationSpec.builder(Suppress::class)
+        .addMember("%S", reason)
+        .build()
 
 private fun AstType.joinArgumentTypeNames(): String = when {
     arguments.isEmpty() -> ""
