@@ -31,6 +31,7 @@ val SCOPE = ClassName(ANNOTATION_PACKAGE_NAME, "Scope")
 val INJECT = ClassName(ANNOTATION_PACKAGE_NAME, "Inject")
 val INTO_MAP = ClassName(ANNOTATION_PACKAGE_NAME, "IntoMap")
 val INTO_SET = ClassName(ANNOTATION_PACKAGE_NAME, "IntoSet")
+const val ANNOTATION_MULTIPLE_ARG = "multiple"
 val ASSISTED = ClassName(ANNOTATION_PACKAGE_NAME, "Assisted")
 val ASSISTED_FACTORY = ClassName(ANNOTATION_PACKAGE_NAME, "AssistedFactory")
 const val ASSISTED_FACTORY_FUNCTION_ARG = "injectFunction"
@@ -226,6 +227,19 @@ fun AstAnnotated.isAssistedFactory() = hasAnnotation(ASSISTED_FACTORY)
 fun AstAnnotated.assistedFactoryFunctionName() =
     annotation(ASSISTED_FACTORY.packageName, ASSISTED_FACTORY.simpleName)
         ?.argument(ASSISTED_FACTORY_FUNCTION_ARG) as? String
+
+fun AstAnnotated.isIntoMap() = hasAnnotation(INTO_MAP)
+
+fun AstAnnotated.isIntoSet() = hasAnnotation(INTO_SET)
+
+private fun AstAnnotated.multipleArgValue(annotationClass: ClassName) =
+    annotation(annotationClass.packageName, annotationClass.simpleName)
+        ?.argument(ANNOTATION_MULTIPLE_ARG) as Boolean?
+        ?: false
+
+fun AstAnnotated.isIntoMapMultiple() = multipleArgValue(INTO_MAP)
+
+fun AstAnnotated.isIntoSetMultiple() = multipleArgValue(INTO_SET)
 
 fun AstClass.findInjectConstructors(messenger: Messenger, options: Options): AstConstructor? {
     val injectCtors = constructors.filter {

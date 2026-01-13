@@ -2,6 +2,7 @@ package me.tatarka.inject.test
 
 import assertk.assertThat
 import assertk.assertions.containsOnly
+import assertk.assertions.isEmpty
 import kotlin.test.Test
 
 class MultibindsTest {
@@ -16,12 +17,22 @@ class MultibindsTest {
     }
 
     @Test
+    fun generates_a_component_that_provides_an_empty_set() {
+        val component = EmptySetComponent::class.create()
+
+        assertThat(component.items).isEmpty()
+        assertThat(component.nestedItems).containsOnly(emptySet<FooValue>())
+    }
+
+    @Test
     fun generates_a_component_that_provides_multiple_items_into_a_map() {
         val component = DynamicKeyComponent::class.create()
 
         assertThat(component.items).containsOnly(
             "1" to FooValue("1"),
-            "2" to FooValue("2")
+            "2" to FooValue("2"),
+            "3" to FooValue("3"),
+            "4" to FooValue("4"),
         )
     }
 

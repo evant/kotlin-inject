@@ -426,6 +426,12 @@ private class KSAstProperty(override val resolver: Resolver, override val declar
         return declaration.getter?.hasAnnotation(packageName, simpleName) == true
     }
 
+    override fun annotation(packageName: String, simpleName: String): AstAnnotation? {
+        return declaration.getter?.annotations(packageName, simpleName)
+            ?.firstOrNull()
+            ?.let { KSAstAnnotation(resolver, it) }
+    }
+
     override fun annotationsAnnotatedWith(packageName: String, simpleName: String): Sequence<AstAnnotation> {
         val declarationAnnotations = super.annotationsAnnotatedWith(packageName, simpleName)
         val getter = declaration.getter
